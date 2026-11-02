@@ -57,59 +57,82 @@ class OcrResult(BaseModel):
 
 
 # ------------------------------------------------------------ Semantica (salida LLM)
-NodeKind = Literal[
-    "equation", "inequality", "expression", "relation",
-    "variable", "constant", "number", "operator",
-    "fraction", "power", "root", "function", "function_application",
-    "sum", "product", "integral", "limit", "derivative",
-    "subscript", "group", "unknown",
-]
-
+# Los intents NO se enumeran aqui: viven en app/intent_vocabulary.json (fuente unica).
+# El tipo de nodo si es cerrado porque es estructura del modelo, no vocabulario.
+NodeType = Literal["element", "operation", "relation", "structure", "function", "calculus", "unresolved"]
 Evidence = Literal["directly_supported", "context_dependent"]
+LinkType = Literal["binds", "same_entity"]
+
+
+class Operand(BaseModel):
+    """Referencia ordenada a un nodo hijo, con el rol que desempena para el padre."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    role: str = Field(description="Rol definido por el vocabulario (p. ej. base, exponent, numerator).")
+    node_id: str
 
 
 class SemanticNode(BaseModel):
-    """Nodo recursivo: permite expresiones anidadas, no solo listas planas."""
+    """Nodo del arbol semantico (representacion plana: los hijos se referencian por id).
+
+    * ``symbol``: simbolo tal como se escribe en la formula (si existe).
+    * ``intent``: funcion matematica del elemento dentro de la expresion (vocabulario controlado).
+    * ``operands``: hijos ordenados con su rol (relacion padre-hijo).
+    * Un nodo ambiguo no tiene ``intent`` definitivo: lista ``candidate_intents`` y exige revision.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
     id: str
-    kind: NodeKind
-    symbol: Optional[str] = Field(default=None, description="Simbolo o valor literal si es hoja.")
-    role: Optional[str] = None
+    node_type: NodeType
+    intent: Optional[str] = None
+    symbol: Optional[str] = None
+    operands: list[Operand] = Field(default_factory=list)
+    properties: dict[str, str] = Field(default_factory=dict)
+    implicit: bool = Field(default=False, description="Operador no escrito (multiplicacion o aplicacion implicita).")
+    evaluation_order: Optional[int] = Field(
+        default=None, description="Lo calcula el proyecto; el valor que envie el LLM se descarta."
+    )
     evidence: Evidence = "directly_supported"
-    children: list["SemanticNode"] = Field(default_factory=list)
+    ambiguous: bool = False
+    candidate_intents: list[str] = Field(default_factory=list)
+    justification: Optional[str] = None
+    review_required: bool = False
 
 
-class SemanticRelation(BaseModel):
+class SemanticLink(BaseModel):
+    """Relacion no jerarquica entre nodos (p. ej. un integral que liga a su variable)."""
+
     model_config = ConfigDict(extra="forbid")
 
-    type: str = Field(description="p. ej. equality, less_than, divides, applies_function")
-    left: str = Field(description="id de un SemanticNode")
-    right: str = Field(description="id de un SemanticNode")
+    type: LinkType
+    source: str
+    target: str
     evidence: Evidence = "directly_supported"
 
 
 class SemanticOutput(BaseModel):
-    """Esquema que debe cumplir la salida del LLM (se exporta a JSON Schema)."""
+    """Esquema que debe cumplir la salida del LLM (se exporta a JSON Schema).
+
+    No contiene campos para LaTeX ni MathML: el LLM no puede devolverlos modificados.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
-    expression_type: str
-    root: SemanticNode
-    relations: list[SemanticRelation] = Field(default_factory=list)
+    vocabulary_version: str
+    root_id: str
+    nodes: list[SemanticNode]
+    links: list[SemanticLink] = Field(default_factory=list)
     assumptions: list[str] = Field(default_factory=list)
     ambiguities: list[str] = Field(default_factory=list)
-    requires_review: bool
+    review_required: bool
     confidence: Optional[float] = Field(
         default=None,
         ge=0,
         le=1,
-        description="Solo si existe una medida fiable; en caso contrario null.",
+        description="La confianza declarada por un LLM no es fiable: el proyecto la descarta.",
     )
-
-
-SemanticNode.model_rebuild()
 
 
 # ------------------------------------------------------------------- Conversion
@@ -140,6 +163,8 @@ class SemanticResult(BaseModel):
     provider: Optional[str] = None
     model: Optional[str] = None
     attempts: int = 0
+    input_latex_sha256: Optional[str] = Field(default=None, description="Huella del LaTeX enviado al modelo.")
+    input_mathml_sha256: Optional[str] = Field(default=None, description="Huella del MathML enviado al modelo.")
     errors: list[StageIssue] = Field(default_factory=list)
     warnings: list[StageIssue] = Field(default_factory=list)
 
@@ -184,8 +209,88 @@ class XmlResult(BaseModel):
     warnings: list[StageIssue] = Field(default_factory=list)
 
 
+# ------------------------------------------------------------ MathCAT, braille y audio
+class MathCATConfiguration(BaseModel):
+    """Configuracion de MathCAT. Los valores por defecto viven AQUI y en nigun otro sitio."""
+
+    rules_dir: Optional[str] = Field(default=None, description="Carpeta Rules de MathCAT.")
+    braille_code: str = Field(default="CMU", description="nemeth | ueb_technical | cmu")
+    speech_language: str = Field(default="es", description="Codigo de idioma de la lectura (p. ej. es, en).")
+    speech_style: str = "ClearSpeak"
+    verbosity: str = "Medium"
+    python_module: Optional[str] = Field(default=None, description="Nombre del modulo nativo, si no es el habitual.")
+
+
+class _StageOutput(BaseModel):
+    """Campos comunes a las salidas de las etapas nuevas."""
+
+    status: StageStatus
+    errors: list[StageIssue] = Field(default_factory=list)
+    warnings: list[StageIssue] = Field(default_factory=list)
+    review_required: bool = False
+
+
+class BrailleOutput(_StageOutput):
+    """Transcripcion braille en Unicode (celdas U+2800..U+28FF). No es un archivo BRF ni salida para linea braille."""
+
+    braille_code: Optional[str] = Field(default=None, description="Codigo solicitado (nemeth, ueb_technical, cmu).")
+    mathcat_code: Optional[str] = Field(default=None, description="Valor de BrailleCode enviado a MathCAT.")
+    language: Optional[str] = None
+    text_unicode: Optional[str] = None
+    text_unicode_reviewed: Optional[str] = None
+    reviewed_by_human: bool = False
+    mathcat_version: Optional[str] = None
+
+    @property
+    def text(self) -> Optional[str]:
+        return self.text_unicode_reviewed if self.text_unicode_reviewed is not None else self.text_unicode
+
+
+class SpeechOutput(_StageOutput):
+    """Texto de lectura matematica generado por MathCAT (NO es audio)."""
+
+    language: Optional[str] = None
+    style: Optional[str] = None
+    verbosity: Optional[str] = None
+    text: Optional[str] = None
+    mathcat_version: Optional[str] = None
+
+
+class AudioOutput(_StageOutput):
+    """Resultado de la sintesis de voz. Solo es OK si el archivo existe y se ha verificado."""
+
+    provider: Optional[str] = None
+    language: Optional[str] = None
+    audio_format: Optional[str] = None
+    file_name: Optional[str] = Field(default=None, description="Solo el nombre del archivo, sin ruta personal.")
+    file_path: Optional[str] = Field(default=None, description="Ruta local; no se escribe en el XML.")
+    size_bytes: Optional[int] = None
+    voice: Optional[str] = None
+
+
+class EnrichmentResult(_StageOutput):
+    """Enriquecimiento opcional del MathML con atributos intent (desactivado por defecto)."""
+
+    enabled: bool = False
+    mathml: Optional[str] = Field(default=None, description="MathML enriquecido; None si no se aplico.")
+    applied: list[str] = Field(default_factory=list)
+    mathcat_checked: bool = False
+
+
+class StageResult(BaseModel):
+    """Resumen uniforme de una etapa del pipeline."""
+
+    stage: str
+    status: StageStatus
+    required: bool = True
+    review_required: bool = False
+    skipped_reason: Optional[str] = None
+    error_count: int = 0
+    warning_count: int = 0
+
+
 # ---------------------------------------------------------------------- Pipeline
-class PipelineReport(BaseModel):
+class PipelineResult(BaseModel):
     run_id: str
     created_at: datetime = Field(default_factory=utc_now)
     image_ref: Optional[str] = None
@@ -196,9 +301,17 @@ class PipelineReport(BaseModel):
     rules: list[RuleResult] = Field(default_factory=list)
     rules_catalog_version: Optional[str] = None
     rules_status: StageStatus = StageStatus.SKIPPED
+    enrichment: Optional[EnrichmentResult] = None
+    braille: Optional[BrailleOutput] = None
+    speech: Optional[SpeechOutput] = None
+    audio: Optional[AudioOutput] = None
+    stages: list[StageResult] = Field(default_factory=list)
     xml: Optional[XmlResult] = None
     skipped: dict[str, str] = Field(default_factory=dict, description="Etapa -> motivo por el que no se ejecuto.")
     validated: bool = Field(
         default=False,
         description="True solo si todas las etapas estan OK y el XML supera XSD y coherencia.",
     )
+
+
+PipelineReport = PipelineResult  # alias de compatibilidad con la version anterior

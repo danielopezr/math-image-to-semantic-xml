@@ -4,29 +4,11 @@ import copy
 
 from app import intent_rules
 from app.intent_rules import CatalogError, evaluate_intents, load_catalog, validate_catalog
-from app.models import (
-    RuleOrigin, RuleOutcome, SemanticNode, SemanticOutput, SemanticRelation,
-    SemanticResult, StageStatus,
-)
-
-
-def node_from_dict(d):
-    return SemanticNode(
-        id=d["id"], kind=d["kind"], symbol=d.get("symbol"),
-        evidence=d.get("evidence", "directly_supported"),
-        children=[node_from_dict(c) for c in d.get("children", [])],
-    )
+from app.models import RuleOrigin, RuleOutcome, SemanticOutput, SemanticResult, StageStatus
 
 
 def result_from_dict(d):
-    out = SemanticOutput(
-        expression_type=d["expression_type"],
-        root=node_from_dict(d["root"]),
-        relations=[SemanticRelation(**r) for r in d["relations"]],
-        assumptions=d["assumptions"], ambiguities=d["ambiguities"],
-        requires_review=d["requires_review"],
-    )
-    return SemanticResult(status=StageStatus.OK, output=out)
+    return SemanticResult(status=StageStatus.OK, output=SemanticOutput.model_validate(d))
 
 
 def outcomes(results):
@@ -63,7 +45,7 @@ def test_devuelve_un_resultado_por_regla_sin_puntuacion_agregada():
 def test_sin_datos_nunca_hay_pass_semantico():
     # Sin interpretacion, ninguna regla semantica puede dar PASS
     res = outcomes(evaluate_intents(load_catalog()["fixtures"]["mathml"]["eq"], None))
-    for rid in ("SEM-002", "SEM-003", "SEM-004", "SEM-005", "SEM-006", "SEM-007"):
+    for rid in ("SEM-002", "SEM-003", "SEM-004", "SEM-005", "SEM-006", "SEM-007", "SEM-008"):
         assert res[rid] is RuleOutcome.NOT_APPLICABLE, rid
     assert res["SEM-001"] is RuleOutcome.REVIEW
 

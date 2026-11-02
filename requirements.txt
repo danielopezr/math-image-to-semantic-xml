@@ -8,3 +8,6 @@ python-dotenv>=1.0
 pytest>=7.0
 # OCR (pesado: arrastra PyTorch). En Windows sin GPU instala antes PyTorch para CPU (ver README).
 pix2tex
+# Sintesis de voz local OPCIONAL (usa SAPI5 en Windows; necesita una voz en espanol instalada).
+pyttsx3
+# MathCAT NO se instala con pip desde este archivo: ver README (seccion MathCAT).

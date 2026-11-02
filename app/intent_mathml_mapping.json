@@ -1,0 +1,11 @@
+{
+  "mapping_version": "0.1.0",
+  "status": "experimental",
+  "note": "Correspondencia entre intents del proyecto y atributos intent de MathML 4 (Working Draft). Los nombres de concepto proceden de las listas de conceptos del Math WG (mathml-docs), que siguen en evolucion: NO estan verificados contra una especificacion cerrada. El enriquecimiento esta DESACTIVADO por defecto.",
+  "rules": [
+    {"intent_id": "power", "mathml_element": "msup", "concept": "power",
+     "argument_roles": ["base", "exponent"], "argument_names": ["b", "e"], "verified": false},
+    {"intent_id": "fraction", "mathml_element": "mfrac", "concept": "divide",
+     "argument_roles": ["numerator", "denominator"], "argument_names": ["n", "d"], "verified": false}
+  ]
+}

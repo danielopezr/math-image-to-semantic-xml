@@ -1,0 +1,79 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<result xmlns="urn:math-semantic-ocr:result:1" xmlns:m="http://www.w3.org/1998/Math/MathML" schemaVersion="1.0" runId="ejemplo-manual">
+  <metadata>
+    <createdAt>2026-11-02T00:42:52.714137+00:00</createdAt>
+    <tools>
+      <tool role="ocr" name="manual"/>
+      <tool role="converter" name="latex2mathml"/>
+      <tool role="semantic_agent" name="(construido a mano)" version="n/a"/>
+    </tools>
+    <rulesCatalogVersion>0.2.0</rulesCatalogVersion>
+  </metadata>
+  <input>
+    <imageRef>(manual)</imageRef>
+  </input>
+  <stages>
+    <stage name="ocr" status="OK" required="true"/>
+    <stage name="converter" status="OK" required="true"/>
+    <stage name="semantic_agent" status="OK" required="true"/>
+    <stage name="rules" status="OK" required="true"/>
+    <stage name="enrichment" status="SKIPPED" required="false"/>
+    <stage name="braille" status="SKIPPED" required="false"/>
+    <stage name="speech" status="SKIPPED" required="false"/>
+    <stage name="audio" status="SKIPPED" required="false"/>
+  </stages>
+  <ocr attempt="0" reviewedByHuman="true">
+    <latexReviewed>x^2+3x=10</latexReviewed>
+  </ocr>
+  <mathml kind="presentation">
+    <m:math>
+      <m:msup>
+        <m:mi>x</m:mi>
+        <m:mn>2</m:mn>
+      </m:msup>
+      <m:mo>+</m:mo>
+      <m:mn>3</m:mn>
+      <m:mi>x</m:mi>
+      <m:mo>=</m:mo>
+      <m:mn>10</m:mn>
+    </m:math>
+  </mathml>
+  <semantic vocabularyVersion="1.0.0" rootId="n0" reviewRequired="false" provider="(construido a mano)" model="n/a">
+    <nodes>
+      <node id="n0" nodeType="structure" intent="equation" implicit="false" evaluationOrder="9" evidence="directly_supported" ambiguous="false" reviewRequired="false">
+        <operand role="statement" nodeId="n1"/>
+      </node>
+      <node id="n1" nodeType="relation" intent="equality" symbol="=" implicit="false" evaluationOrder="8" evidence="directly_supported" ambiguous="false" reviewRequired="false">
+        <operand role="left" nodeId="n2"/>
+        <operand role="right" nodeId="n9"/>
+      </node>
+      <node id="n2" nodeType="operation" intent="addition" symbol="+" implicit="false" evaluationOrder="6" evidence="directly_supported" ambiguous="false" reviewRequired="false">
+        <operand role="term" nodeId="n3"/>
+        <operand role="term" nodeId="n6"/>
+      </node>
+      <node id="n3" nodeType="operation" intent="power" implicit="false" evaluationOrder="2" evidence="directly_supported" ambiguous="false" reviewRequired="false">
+        <operand role="base" nodeId="n4"/>
+        <operand role="exponent" nodeId="n5"/>
+      </node>
+      <node id="n4" nodeType="element" intent="variable" symbol="x" implicit="false" evaluationOrder="0" evidence="directly_supported" ambiguous="false" reviewRequired="false"/>
+      <node id="n5" nodeType="element" intent="number" symbol="2" implicit="false" evaluationOrder="1" evidence="directly_supported" ambiguous="false" reviewRequired="false"/>
+      <node id="n6" nodeType="operation" intent="multiplication" implicit="true" evaluationOrder="5" evidence="directly_supported" ambiguous="false" reviewRequired="false">
+        <operand role="factor" nodeId="n7"/>
+        <operand role="factor" nodeId="n8"/>
+      </node>
+      <node id="n7" nodeType="element" intent="number" symbol="3" implicit="false" evaluationOrder="3" evidence="directly_supported" ambiguous="false" reviewRequired="false"/>
+      <node id="n8" nodeType="element" intent="variable" symbol="x" implicit="false" evaluationOrder="4" evidence="directly_supported" ambiguous="false" reviewRequired="false"/>
+      <node id="n9" nodeType="element" intent="number" symbol="10" implicit="false" evaluationOrder="7" evidence="directly_supported" ambiguous="false" reviewRequired="false"/>
+    </nodes>
+    <links/>
+    <assumptions/>
+    <ambiguities/>
+  </semantic>
+  <rules>
+    <rule id="SEM-008" version="1.0.0" origin="project_heuristic" outcome="PASS" severity="error">
+      <message>El arbol cumple el vocabulario controlado y su estructura.</message>
+    </rule>
+  </rules>
+  <validation overall="VALIDATED" semanticReviewRequired="false" brailleGenerated="false" speechGenerated="false" audioGenerated="false"/>
+  <issues/>
+</result>

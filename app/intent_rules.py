@@ -19,7 +19,7 @@ import logging
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Iterator, Optional
+from typing import Callable, Optional
 
 from app.models import (
     RuleOrigin,
@@ -31,6 +31,7 @@ from app.models import (
     SemanticResult,
     StageStatus,
 )
+from app.semantic_tree import errors_only, validate_semantic_output
 
 logger = logging.getLogger(__name__)
 CATALOG_PATH = Path(__file__).with_name("rules_catalog.json")
@@ -45,8 +46,13 @@ MATHML_CORE_ELEMENTS = frozenset({
     "mtable", "mtd", "mtext", "mtr", "munder", "munderover", "none", "semantics",
 })
 TOKEN_ELEMENTS = frozenset({"mi", "mn", "mo", "mtext", "ms"})
-LEAF_KINDS = frozenset({"variable", "constant", "number", "operator"})
-STRUCTURE_MAP = {"mfrac": "fraction", "msqrt": "root", "mroot": "root", "msup": "power"}
+# Correspondencia habitual (NO definida por el W3C) entre elementos de presentacion e intents del proyecto.
+STRUCTURE_MAP = {
+    "mfrac": frozenset({"fraction", "division"}),
+    "msqrt": frozenset({"root"}),
+    "mroot": frozenset({"root"}),
+    "msup": frozenset({"power", "exponential"}),
+}
 
 
 class CatalogError(ValueError):
@@ -66,10 +72,8 @@ class Context:
 Decision = tuple[RuleOutcome, str, list[str]]
 
 
-def _walk(node: SemanticNode) -> Iterator[SemanticNode]:
-    yield node
-    for child in node.children:
-        yield from _walk(child)
+def _norm(symbol: str) -> str:
+    return symbol.replace("\u2212", "-").strip()
 
 
 def _split(tag: object) -> tuple[str, str]:
@@ -116,6 +120,10 @@ def mml_003(ctx: Context) -> Decision:
             ". No se evalua su gramatica.", with_intent)
 
 
+def _nodes(ctx: Context) -> list[SemanticNode]:
+    return list(ctx.semantic.nodes) if ctx.semantic is not None else []
+
+
 def sem_001(ctx: Context) -> Decision:
     if ctx.semantic is None:
         return RuleOutcome.REVIEW, "No hay interpretacion semantica valida.", []
@@ -125,10 +133,9 @@ def sem_001(ctx: Context) -> Decision:
 def sem_002(ctx: Context) -> Decision:
     if ctx.semantic is None or ctx.mathml_root is None:
         return RuleOutcome.NOT_APPLICABLE, "Faltan la interpretacion o un MathML analizable.", []
-    missing = [n for n in _walk(ctx.semantic.root)
-               if n.symbol and not n.children and n.kind in LEAF_KINDS and n.symbol not in ctx.tokens]
+    missing = [n for n in _nodes(ctx) if n.symbol and _norm(n.symbol) not in ctx.tokens]
     if not missing:
-        return RuleOutcome.PASS, "Todos los simbolos de hoja aparecen en el MathML.", []
+        return RuleOutcome.PASS, "Todos los simbolos de la interpretacion aparecen en el MathML.", []
     return (RuleOutcome.FAIL,
             "Simbolos ausentes del MathML: " + ", ".join(sorted({n.symbol for n in missing})),
             [n.id for n in missing])
@@ -139,41 +146,39 @@ def sem_003(ctx: Context) -> Decision:
         return RuleOutcome.NOT_APPLICABLE, "Faltan la interpretacion o un MathML analizable.", []
     if "=" not in ctx.tokens:
         return RuleOutcome.NOT_APPLICABLE, "El MathML no contiene '='.", []
-    has_relation = any(r.type in {"equality", "equals"} for r in ctx.semantic.relations)
-    has_node = any(n.kind == "equation" for n in _walk(ctx.semantic.root))
-    if has_relation or has_node:
-        return RuleOutcome.PASS, "La igualdad del MathML esta reflejada en la interpretacion.", []
-    return RuleOutcome.REVIEW, "El MathML contiene '=' pero la interpretacion no declara una igualdad.", []
+    if any(n.intent == "equality" for n in _nodes(ctx)):
+        return RuleOutcome.PASS, "La igualdad del MathML esta reflejada como intent 'equality'.", []
+    return RuleOutcome.REVIEW, "El MathML contiene '=' pero la interpretacion no declara un nodo 'equality'.", []
 
 
 def sem_004(ctx: Context) -> Decision:
     if ctx.semantic is None or ctx.mathml_root is None:
         return RuleOutcome.NOT_APPLICABLE, "Faltan la interpretacion o un MathML analizable.", []
-    present = {el: kind for el, kind in STRUCTURE_MAP.items() if el in ctx.local_names}
+    present = {el: kinds for el, kinds in STRUCTURE_MAP.items() if el in ctx.local_names}
     if not present:
         return RuleOutcome.NOT_APPLICABLE, "El MathML no contiene mfrac, msqrt, mroot ni msup.", []
-    kinds = {n.kind for n in _walk(ctx.semantic.root)}
-    missing = sorted(f"{el}->{kind}" for el, kind in present.items() if kind not in kinds)
+    intents = {n.intent for n in _nodes(ctx) if n.intent}
+    missing = sorted(f"{el}->{'|'.join(sorted(kinds))}" for el, kinds in present.items() if not (kinds & intents))
     if not missing:
-        return RuleOutcome.PASS, "Las estructuras presentes tienen nodo semantico correspondiente.", []
-    return (RuleOutcome.REVIEW,
-            "Sin nodo correspondiente para: " + ", ".join(missing) + ".", missing)
+        return RuleOutcome.PASS, "Las estructuras presentes tienen un intent correspondiente.", []
+    return RuleOutcome.REVIEW, "Sin intent correspondiente para: " + ", ".join(missing) + ".", missing
 
 
 def sem_005(ctx: Context) -> Decision:
     if ctx.semantic is None:
         return RuleOutcome.NOT_APPLICABLE, "No hay interpretacion semantica.", []
-    if ctx.semantic.ambiguities and not ctx.semantic.requires_review:
+    flagged = [n.id for n in _nodes(ctx) if n.ambiguous or n.review_required]
+    if (flagged or ctx.semantic.ambiguities) and not ctx.semantic.review_required:
         return (RuleOutcome.FAIL,
-                "Hay ambiguedades declaradas pero requires_review es falso.", [])
-    return RuleOutcome.PASS, "Las ambiguedades (si las hay) implican revision.", []
+                "Hay ambiguedades o nodos marcados para revision pero review_required es falso.", flagged)
+    return RuleOutcome.PASS, "Las ambiguedades (si las hay) implican revision.", flagged
 
 
 def sem_006(ctx: Context) -> Decision:
     if ctx.semantic is None:
         return RuleOutcome.NOT_APPLICABLE, "No hay interpretacion semantica.", []
-    refs = [n.id for n in _walk(ctx.semantic.root) if n.evidence == "context_dependent"]
-    refs += [f"relation:{r.type}" for r in ctx.semantic.relations if r.evidence == "context_dependent"]
+    refs = [n.id for n in _nodes(ctx) if n.evidence == "context_dependent"]
+    refs += [f"link:{l.type}:{l.source}->{l.target}" for l in ctx.semantic.links if l.evidence == "context_dependent"]
     if not refs:
         return RuleOutcome.NOT_APPLICABLE, "No hay elementos dependientes del contexto.", []
     if ctx.semantic.assumptions:
@@ -184,15 +189,26 @@ def sem_006(ctx: Context) -> Decision:
 def sem_007(ctx: Context) -> Decision:
     if ctx.semantic is None:
         return RuleOutcome.NOT_APPLICABLE, "No hay interpretacion semantica.", []
-    if ctx.semantic.requires_review:
+    if ctx.semantic.review_required:
         return RuleOutcome.REVIEW, "El LLM declara que su interpretacion requiere revision.", []
     return RuleOutcome.PASS, "El LLM no declara necesidad de revision.", []
+
+
+def sem_008(ctx: Context) -> Decision:
+    """Revalida el arbol contra el vocabulario controlado (defensa en profundidad)."""
+    if ctx.semantic is None:
+        return RuleOutcome.NOT_APPLICABLE, "No hay interpretacion semantica.", []
+    errors = errors_only(validate_semantic_output(ctx.semantic))
+    if not errors:
+        return RuleOutcome.PASS, "El arbol cumple el vocabulario controlado y su estructura.", []
+    shown = "; ".join(f"[{p.code}] {p.message}" for p in errors[:3])
+    return RuleOutcome.FAIL, f"{len(errors)} problema(s) estructurales: {shown}", [p.node_id for p in errors if p.node_id]
 
 
 IMPLEMENTATIONS: dict[str, Callable[[Context], Decision]] = {
     "MML-001": mml_001, "MML-002": mml_002, "MML-003": mml_003,
     "SEM-001": sem_001, "SEM-002": sem_002, "SEM-003": sem_003, "SEM-004": sem_004,
-    "SEM-005": sem_005, "SEM-006": sem_006, "SEM-007": sem_007,
+    "SEM-005": sem_005, "SEM-006": sem_006, "SEM-007": sem_007, "SEM-008": sem_008,
 }
 
 
@@ -266,7 +282,7 @@ def _build_context(mathml: Optional[str], semantic_result: Optional[SemanticResu
         if ns == MATHML_NS:
             ctx.local_names.add(local)
             if local in TOKEN_ELEMENTS and el.text and el.text.strip():
-                ctx.tokens.add(el.text.strip())
+                ctx.tokens.add(_norm(el.text))
     return ctx
 
 

@@ -1,4 +1,8 @@
-"""Evaluacion POR ETAPA. No existe ni se calcula una puntuacion agregada.
+"""Evaluacion POR ASPECTO. No existe ni se calcula una puntuacion agregada.
+
+Aspectos (cada uno independiente): exactitud del OCR, validez de LaTeX, validez del MathML,
+respuesta estructurada del LLM, calidad estructural de los intents, coherencia semantica,
+cumplimiento del catalogo, validez del XML, braille, lectura matematica y audio.
 
 Limites:
 * La exactitud del OCR solo se puede medir si se conoce el LaTeX esperado. Se
@@ -12,7 +16,10 @@ from __future__ import annotations
 from collections import Counter
 from typing import Optional
 
-from app.models import PipelineReport, StageStatus
+from app.braille import non_braille_chars
+from app.converter import validate_mathml
+from app.models import PipelineResult, StageStatus
+from app.semantic_tree import errors_only, tree_metrics, validate_semantic_output
 from app.xml_validator import overall_status
 
 
@@ -51,53 +58,110 @@ def ocr_accuracy(predicted: Optional[str], expected: str) -> dict:
     }
 
 
-def summarize_stages(report: PipelineReport, expected_latex: Optional[str] = None) -> dict:
-    """Resumen independiente por etapa (sin agregar)."""
+SEMANTIC_COHERENCE_RULES = ("SEM-002", "SEM-003", "SEM-004", "SEM-005", "SEM-006")
+
+
+def _status(obj: object) -> str:
+    return obj.status.value if obj is not None else "SKIPPED"
+
+
+def summarize_stages(report: PipelineResult, expected_latex: Optional[str] = None) -> dict:
+    """Resumen independiente por aspecto (sin agregar). Los aspectos no evaluables se marcan como tal."""
     summary: dict = {}
 
     ocr = report.ocr
     summary["ocr"] = {
-        "status": ocr.status.value if ocr else "SKIPPED",
+        "status": _status(ocr),
         "engine": ocr.engine if ocr else None,
         "attempt": ocr.attempt if ocr else None,
         "reviewed_by_human": ocr.reviewed_by_human if ocr else None,
-        "accuracy": (ocr_accuracy(ocr.latex_raw if ocr else None, expected_latex)
+        "accuracy": (ocr_accuracy(ocr.latex_raw, expected_latex)
                      if expected_latex is not None and ocr and ocr.engine != "manual" else None),
     }
 
     conv = report.conversion
-    summary["conversion"] = {
-        "status": conv.status.value if conv else "SKIPPED",
-        "error_kind": conv.error_kind.value if conv else None,
-        "mathml_kind": conv.mathml_kind if conv else None,
+    if conv is None:
+        latex_state = "not_evaluated"
+    elif conv.status is StageStatus.OK:
+        latex_state = "accepted_by_converter"     # el conversor lo acepto; no es una validacion completa de LaTeX
+    elif conv.error_kind.value == "LATEX_SYNTAX":
+        latex_state = "invalid"
+    else:
+        latex_state = "unknown"                   # fallo de conversion: no se puede concluir que el LaTeX sea invalido
+    summary["latex"] = {"state": latex_state, "error_kind": conv.error_kind.value if conv else None}
+
+    mathml_errors = validate_mathml(conv.mathml)[0] if conv and conv.mathml else []
+    summary["mathml"] = {
+        "status": _status(conv),
+        "kind": conv.mathml_kind if conv else None,
+        "structural_errors": [e.code for e in mathml_errors],
+        "note": "Presentacion: no garantiza la semantica.",
     }
 
     sem = report.semantic
-    summary["semantic_structure"] = {
-        "status": sem.status.value if sem else "SKIPPED",
-        "attempts": sem.attempts if sem else None,
-    }
-    summary["semantic_quality"] = {
-        "measured": False,
-        "note": "No hay metrica automatica fiable; consultar las reglas y la revision humana.",
-        "requires_review": sem.output.requires_review if sem and sem.output else None,
+    summary["semantic_response"] = {"status": _status(sem), "attempts": sem.attempts if sem else None}
+
+    if sem is not None and sem.output is not None:
+        problems = validate_semantic_output(
+            sem.output, latex=report.ocr.latex if report.ocr else None,
+            mathml=conv.mathml if conv else None)
+        summary["intent_structure"] = {
+            "metrics": tree_metrics(sem.output),
+            "errors": [p.code for p in errors_only(problems)],
+            "warnings": [p.code for p in problems if p.severity == "warning"],
+        }
+    else:
+        summary["intent_structure"] = {"status": "NOT_EVALUATED"}
+
+    by_rule = {r.rule_id: r.outcome.value for r in report.rules}
+    summary["semantic_coherence"] = {
+        "rules": {rid: by_rule.get(rid, "NOT_EVALUATED") for rid in SEMANTIC_COHERENCE_RULES},
+        "review_required": sem.output.review_required if sem and sem.output else None,
+        "note": "No hay metrica automatica de correccion matematica; la valoracion final es humana.",
     }
 
-    by_outcome = Counter(r.outcome.value for r in report.rules)
     by_origin: dict[str, Counter] = {}
     for r in report.rules:
         by_origin.setdefault(r.origin.value, Counter())[r.outcome.value] += 1
-    summary["rules"] = {
+    summary["catalog"] = {
         "status": report.rules_status.value,
-        "by_outcome": dict(by_outcome),
+        "catalog_version": report.rules_catalog_version,
+        "by_outcome": dict(Counter(r.outcome.value for r in report.rules)),
         "by_origin": {k: dict(v) for k, v in by_origin.items()},
     }
 
     xml = report.xml
     summary["xml"] = {
-        "status": xml.status.value if xml else "SKIPPED",
+        "status": _status(xml),
         "well_formed": xml.well_formed if xml else None,
         "schema_valid": xml.schema_valid if xml else None,
         "overall": overall_status(xml.xml) if xml and xml.xml else None,
+    }
+
+    b = report.braille
+    summary["braille"] = {
+        "status": _status(b),
+        "code": b.braille_code if b else None,
+        "language": b.language if b else None,
+        "generated": bool(b and b.status is StageStatus.OK and b.text),
+        "review_required": b.review_required if b else None,
+        "reviewed_by_human": b.reviewed_by_human if b else None,
+        "non_braille_chars": non_braille_chars(b.text) if b and b.text else None,
+        "note": "Un XML valido no demuestra que la transcripcion braille sea correcta.",
+    }
+    s = report.speech
+    summary["speech"] = {
+        "status": _status(s),
+        "language": s.language if s else None,
+        "generated": bool(s and s.status is StageStatus.OK and s.text),
+        "review_required": s.review_required if s else None,
+    }
+    a = report.audio
+    summary["audio"] = {
+        "status": _status(a),
+        "provider": a.provider if a else None,
+        "file_generated": bool(a and a.status is StageStatus.OK and a.file_name),
+        "format": a.audio_format if a else None,
+        "size_bytes": a.size_bytes if a else None,
     }
     return summary

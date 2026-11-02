@@ -1,0 +1,841 @@
+{
+  "vocabulary_version": "1.0.0",
+  "note": "Vocabulario INTERNO de math-semantic-ocr. Sus nombres NO son valores oficiales de MathML ni nombres de concepto del atributo intent del W3C.",
+  "node_types": [
+    "element",
+    "operation",
+    "relation",
+    "structure",
+    "function",
+    "calculus",
+    "unresolved"
+  ],
+  "unresolved_child_role": "component",
+  "intents": [
+    {
+      "id": "variable",
+      "category": "element",
+      "description": "Magnitud o incognita representada por una letra o identificador.",
+      "roles": [],
+      "variadic": null,
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [],
+      "example": "x"
+    },
+    {
+      "id": "constant",
+      "category": "element",
+      "description": "Valor fijo con nombre propio (pi, e, i).",
+      "roles": [],
+      "variadic": null,
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [],
+      "example": "π"
+    },
+    {
+      "id": "number",
+      "category": "element",
+      "description": "Literal numerico.",
+      "roles": [],
+      "variadic": null,
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [
+        "mn"
+      ],
+      "example": "10"
+    },
+    {
+      "id": "symbol",
+      "category": "element",
+      "description": "Simbolo matematico sin otro rol del vocabulario (p. ej. infinito).",
+      "roles": [],
+      "variadic": null,
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [],
+      "example": "∞"
+    },
+    {
+      "id": "parameter",
+      "category": "element",
+      "description": "Letra que actua como parametro (a y b en ax+b).",
+      "roles": [],
+      "variadic": null,
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [],
+      "example": "a"
+    },
+    {
+      "id": "addition",
+      "category": "operation",
+      "description": "Suma de dos o mas terminos.",
+      "roles": [],
+      "variadic": {
+        "role": "term",
+        "min": 2
+      },
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [],
+      "example": "a+b"
+    },
+    {
+      "id": "subtraction",
+      "category": "operation",
+      "description": "Resta binaria; a-b-c se representa como resta anidada.",
+      "roles": [
+        {
+          "name": "minuend",
+          "required": true
+        },
+        {
+          "name": "subtrahend",
+          "required": true
+        }
+      ],
+      "variadic": null,
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [],
+      "example": "a-b"
+    },
+    {
+      "id": "negation",
+      "category": "operation",
+      "description": "Cambio de signo unario.",
+      "roles": [
+        {
+          "name": "operand",
+          "required": true
+        }
+      ],
+      "variadic": null,
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [],
+      "example": "-x"
+    },
+    {
+      "id": "multiplication",
+      "category": "operation",
+      "description": "Producto de dos o mas factores. Usa implicit=true si no hay operador escrito.",
+      "roles": [],
+      "variadic": {
+        "role": "factor",
+        "min": 2
+      },
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [],
+      "example": "3x"
+    },
+    {
+      "id": "division",
+      "category": "operation",
+      "description": "Division escrita con operador (÷ o /). Para la notacion en dos niveles usa fraction.",
+      "roles": [
+        {
+          "name": "dividend",
+          "required": true
+        },
+        {
+          "name": "divisor",
+          "required": true
+        }
+      ],
+      "variadic": null,
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [],
+      "example": "a/b"
+    },
+    {
+      "id": "power",
+      "category": "operation",
+      "description": "Potenciacion.",
+      "roles": [
+        {
+          "name": "base",
+          "required": true
+        },
+        {
+          "name": "exponent",
+          "required": true
+        }
+      ],
+      "variadic": null,
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [
+        "msup"
+      ],
+      "example": "x²"
+    },
+    {
+      "id": "root",
+      "category": "operation",
+      "description": "Raiz; el indice es opcional (raiz cuadrada si falta).",
+      "roles": [
+        {
+          "name": "radicand",
+          "required": true
+        },
+        {
+          "name": "index",
+          "required": false
+        }
+      ],
+      "variadic": null,
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [
+        "msqrt",
+        "mroot"
+      ],
+      "example": "√x"
+    },
+    {
+      "id": "factorial",
+      "category": "operation",
+      "description": "Factorial.",
+      "roles": [
+        {
+          "name": "operand",
+          "required": true
+        }
+      ],
+      "variadic": null,
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [],
+      "example": "n!"
+    },
+    {
+      "id": "absolute_value",
+      "category": "operation",
+      "description": "Valor absoluto.",
+      "roles": [
+        {
+          "name": "operand",
+          "required": true
+        }
+      ],
+      "variadic": null,
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [],
+      "example": "|x|"
+    },
+    {
+      "id": "equality",
+      "category": "relation",
+      "description": "Igualdad.",
+      "roles": [
+        {
+          "name": "left",
+          "required": true
+        },
+        {
+          "name": "right",
+          "required": true
+        }
+      ],
+      "variadic": null,
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [],
+      "example": "="
+    },
+    {
+      "id": "inequality",
+      "category": "relation",
+      "description": "Desigualdad de tipo distinto de.",
+      "roles": [
+        {
+          "name": "left",
+          "required": true
+        },
+        {
+          "name": "right",
+          "required": true
+        }
+      ],
+      "variadic": null,
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [],
+      "example": "≠"
+    },
+    {
+      "id": "less_than",
+      "category": "relation",
+      "description": "Menor que.",
+      "roles": [
+        {
+          "name": "left",
+          "required": true
+        },
+        {
+          "name": "right",
+          "required": true
+        }
+      ],
+      "variadic": null,
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [],
+      "example": "<"
+    },
+    {
+      "id": "greater_than",
+      "category": "relation",
+      "description": "Mayor que.",
+      "roles": [
+        {
+          "name": "left",
+          "required": true
+        },
+        {
+          "name": "right",
+          "required": true
+        }
+      ],
+      "variadic": null,
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [],
+      "example": ">"
+    },
+    {
+      "id": "less_or_equal",
+      "category": "relation",
+      "description": "Menor o igual que.",
+      "roles": [
+        {
+          "name": "left",
+          "required": true
+        },
+        {
+          "name": "right",
+          "required": true
+        }
+      ],
+      "variadic": null,
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [],
+      "example": "≤"
+    },
+    {
+      "id": "greater_or_equal",
+      "category": "relation",
+      "description": "Mayor o igual que.",
+      "roles": [
+        {
+          "name": "left",
+          "required": true
+        },
+        {
+          "name": "right",
+          "required": true
+        }
+      ],
+      "variadic": null,
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [],
+      "example": "≥"
+    },
+    {
+      "id": "approximation",
+      "category": "relation",
+      "description": "Aproximadamente igual.",
+      "roles": [
+        {
+          "name": "left",
+          "required": true
+        },
+        {
+          "name": "right",
+          "required": true
+        }
+      ],
+      "variadic": null,
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [],
+      "example": "≈"
+    },
+    {
+      "id": "equation",
+      "category": "structure",
+      "description": "Ecuacion completa: envuelve una relacion de igualdad. No es lo mismo que el simbolo =.",
+      "roles": [
+        {
+          "name": "statement",
+          "required": true
+        }
+      ],
+      "variadic": null,
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [],
+      "example": "x²+3x=10",
+      "note": "El operando debe ser un nodo de categoria relation."
+    },
+    {
+      "id": "expression",
+      "category": "structure",
+      "description": "Expresion matematica completa sin relacion.",
+      "roles": [
+        {
+          "name": "content",
+          "required": true
+        }
+      ],
+      "variadic": null,
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [],
+      "example": "x+2"
+    },
+    {
+      "id": "fraction",
+      "category": "structure",
+      "description": "Fraccion escrita en dos niveles.",
+      "roles": [
+        {
+          "name": "numerator",
+          "required": true
+        },
+        {
+          "name": "denominator",
+          "required": true
+        }
+      ],
+      "variadic": null,
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [
+        "mfrac"
+      ],
+      "example": "(a+b)/c"
+    },
+    {
+      "id": "polynomial",
+      "category": "structure",
+      "description": "Polinomio expresado como suma de monomios.",
+      "roles": [],
+      "variadic": {
+        "role": "term",
+        "min": 1
+      },
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [],
+      "example": "x²+3x+1"
+    },
+    {
+      "id": "matrix",
+      "category": "structure",
+      "description": "Matriz: sus filas son nodos vector.",
+      "roles": [],
+      "variadic": {
+        "role": "row",
+        "min": 1
+      },
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [
+        "mtable"
+      ],
+      "example": ""
+    },
+    {
+      "id": "vector",
+      "category": "structure",
+      "description": "Vector o fila de componentes.",
+      "roles": [],
+      "variadic": {
+        "role": "component",
+        "min": 1
+      },
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [],
+      "example": ""
+    },
+    {
+      "id": "interval",
+      "category": "structure",
+      "description": "Intervalo.",
+      "roles": [
+        {
+          "name": "lower",
+          "required": true
+        },
+        {
+          "name": "upper",
+          "required": true
+        }
+      ],
+      "variadic": null,
+      "properties": {
+        "closure": [
+          "open",
+          "closed",
+          "left_open",
+          "right_open"
+        ]
+      },
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [],
+      "example": "(0,1]"
+    },
+    {
+      "id": "group",
+      "category": "structure",
+      "description": "Agrupacion con delimitadores sin significado matematico propio.",
+      "roles": [
+        {
+          "name": "content",
+          "required": true
+        }
+      ],
+      "variadic": null,
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [],
+      "example": "(a+b)"
+    },
+    {
+      "id": "function",
+      "category": "function",
+      "description": "Nombre de funcion (sin aplicar).",
+      "roles": [],
+      "variadic": null,
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [],
+      "example": "f"
+    },
+    {
+      "id": "function_application",
+      "category": "function",
+      "description": "Aplicacion de una funcion a uno o mas argumentos.",
+      "roles": [
+        {
+          "name": "function",
+          "required": true
+        }
+      ],
+      "variadic": {
+        "role": "argument",
+        "min": 1
+      },
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [],
+      "example": "f(x)"
+    },
+    {
+      "id": "composition",
+      "category": "function",
+      "description": "Composicion de funciones.",
+      "roles": [
+        {
+          "name": "outer",
+          "required": true
+        },
+        {
+          "name": "inner",
+          "required": true
+        }
+      ],
+      "variadic": null,
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [],
+      "example": "f∘g"
+    },
+    {
+      "id": "logarithm",
+      "category": "function",
+      "description": "Logaritmo; la base es opcional y no se debe suponer.",
+      "roles": [
+        {
+          "name": "argument",
+          "required": true
+        },
+        {
+          "name": "base",
+          "required": false
+        }
+      ],
+      "variadic": null,
+      "properties": {
+        "variant": [
+          "natural",
+          "common",
+          "unspecified"
+        ]
+      },
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [],
+      "example": "log x"
+    },
+    {
+      "id": "exponential",
+      "category": "function",
+      "description": "Exponencial de base e (e^x).",
+      "roles": [
+        {
+          "name": "exponent",
+          "required": true
+        }
+      ],
+      "variadic": null,
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [],
+      "example": "e^x"
+    },
+    {
+      "id": "trigonometric_function",
+      "category": "function",
+      "description": "Funcion trigonometrica aplicada a un argumento.",
+      "roles": [
+        {
+          "name": "argument",
+          "required": true
+        }
+      ],
+      "variadic": null,
+      "properties": {
+        "function_name": [
+          "sin",
+          "cos",
+          "tan",
+          "cot",
+          "sec",
+          "csc",
+          "arcsin",
+          "arccos",
+          "arctan",
+          "sinh",
+          "cosh",
+          "tanh"
+        ]
+      },
+      "required_properties": [
+        "function_name"
+      ],
+      "both_or_none": [],
+      "mathml_hint": [],
+      "example": "sin x"
+    },
+    {
+      "id": "derivative",
+      "category": "calculus",
+      "description": "Derivada o, sin funcion, operador diferencial d/dx.",
+      "roles": [
+        {
+          "name": "function",
+          "required": false
+        },
+        {
+          "name": "variable",
+          "required": true
+        }
+      ],
+      "variadic": null,
+      "properties": {
+        "order": "integer"
+      },
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [],
+      "example": "d/dx f"
+    },
+    {
+      "id": "integral",
+      "category": "calculus",
+      "description": "Integral; los limites son ambos o ninguno.",
+      "roles": [
+        {
+          "name": "integrand",
+          "required": true
+        },
+        {
+          "name": "variable",
+          "required": true
+        },
+        {
+          "name": "lower_bound",
+          "required": false
+        },
+        {
+          "name": "upper_bound",
+          "required": false
+        }
+      ],
+      "variadic": null,
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [
+        [
+          "lower_bound",
+          "upper_bound"
+        ]
+      ],
+      "mathml_hint": [
+        "msubsup",
+        "msub"
+      ],
+      "example": "∫ f dx"
+    },
+    {
+      "id": "limit",
+      "category": "calculus",
+      "description": "Limite.",
+      "roles": [
+        {
+          "name": "expression",
+          "required": true
+        },
+        {
+          "name": "variable",
+          "required": true
+        },
+        {
+          "name": "approaches",
+          "required": true
+        }
+      ],
+      "variadic": null,
+      "properties": {
+        "direction": [
+          "left",
+          "right",
+          "both"
+        ]
+      },
+      "required_properties": [],
+      "both_or_none": [],
+      "mathml_hint": [
+        "munder"
+      ],
+      "example": "lim x→0 f"
+    },
+    {
+      "id": "summation",
+      "category": "calculus",
+      "description": "Sumatoria; los limites son ambos o ninguno.",
+      "roles": [
+        {
+          "name": "summand",
+          "required": true
+        },
+        {
+          "name": "index",
+          "required": true
+        },
+        {
+          "name": "lower_bound",
+          "required": false
+        },
+        {
+          "name": "upper_bound",
+          "required": false
+        }
+      ],
+      "variadic": null,
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [
+        [
+          "lower_bound",
+          "upper_bound"
+        ]
+      ],
+      "mathml_hint": [
+        "munderover"
+      ],
+      "example": "∑ i"
+    },
+    {
+      "id": "product",
+      "category": "calculus",
+      "description": "Productoria; los limites son ambos o ninguno.",
+      "roles": [
+        {
+          "name": "factor",
+          "required": true
+        },
+        {
+          "name": "index",
+          "required": true
+        },
+        {
+          "name": "lower_bound",
+          "required": false
+        },
+        {
+          "name": "upper_bound",
+          "required": false
+        }
+      ],
+      "variadic": null,
+      "properties": {},
+      "required_properties": [],
+      "both_or_none": [
+        [
+          "lower_bound",
+          "upper_bound"
+        ]
+      ],
+      "mathml_hint": [
+        "munderover"
+      ],
+      "example": "∏ i"
+    }
+  ]
+}

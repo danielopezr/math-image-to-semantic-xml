@@ -1,6 +1,6 @@
 {
-  "catalog_version": "0.1.0",
-  "description": "Catalogo versionado de reglas de intencion. 'origin' separa lo normativo del W3C, las heuristicas del proyecto y las conclusiones del LLM.",
+  "catalog_version": "0.2.0",
+  "description": "Catalogo versionado de reglas de intencion. 'origin' separa lo normativo del W3C, las heuristicas del proyecto y las conclusiones del LLM. Los intents internos estan en intent_vocabulary.json.",
   "status_checked_on": "2026-10-30",
   "fixtures": {
     "mathml": {
@@ -10,226 +10,1066 @@
       "no_ns": "<math><mi>x</mi></math>",
       "bad_xml": "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><mi>x</math>",
       "mfenced": "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><mfenced><mi>x</mi></mfenced></math>",
-      "intent": "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><mi intent=\"point\">x</mi></math>"
+      "intent": "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><mi intent=\"point\">x</mi></math>",
+      "xy": "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><mi>x</mi><mi>y</mi></math>"
     },
     "semantic": {
       "eq_ok": {
-        "expression_type": "equation",
-        "root": {"id": "n0", "kind": "equation", "symbol": "=", "children": [
-          {"id": "n1", "kind": "variable", "symbol": "x"},
-          {"id": "n2", "kind": "number", "symbol": "0"}]},
-        "relations": [{"type": "equality", "left": "n1", "right": "n2"}],
-        "assumptions": [], "ambiguities": [], "requires_review": false
+        "vocabulary_version": "1.0.0",
+        "root_id": "n0",
+        "nodes": [
+          {
+            "id": "n0",
+            "node_type": "structure",
+            "intent": "equation",
+            "symbol": null,
+            "operands": [
+              {
+                "role": "statement",
+                "node_id": "n1"
+              }
+            ]
+          },
+          {
+            "id": "n1",
+            "node_type": "relation",
+            "intent": "equality",
+            "symbol": "=",
+            "operands": [
+              {
+                "role": "left",
+                "node_id": "n2"
+              },
+              {
+                "role": "right",
+                "node_id": "n3"
+              }
+            ]
+          },
+          {
+            "id": "n2",
+            "node_type": "element",
+            "intent": "variable",
+            "symbol": "x",
+            "operands": []
+          },
+          {
+            "id": "n3",
+            "node_type": "element",
+            "intent": "number",
+            "symbol": "0",
+            "operands": []
+          }
+        ],
+        "review_required": false,
+        "assumptions": [],
+        "ambiguities": []
       },
       "eq_ungrounded": {
-        "expression_type": "equation",
-        "root": {"id": "n0", "kind": "equation", "symbol": "=", "children": [
-          {"id": "n1", "kind": "variable", "symbol": "q"},
-          {"id": "n2", "kind": "number", "symbol": "0"}]},
-        "relations": [{"type": "equality", "left": "n1", "right": "n2"}],
-        "assumptions": [], "ambiguities": [], "requires_review": false
+        "vocabulary_version": "1.0.0",
+        "root_id": "n0",
+        "nodes": [
+          {
+            "id": "n0",
+            "node_type": "structure",
+            "intent": "equation",
+            "symbol": null,
+            "operands": [
+              {
+                "role": "statement",
+                "node_id": "n1"
+              }
+            ]
+          },
+          {
+            "id": "n1",
+            "node_type": "relation",
+            "intent": "equality",
+            "symbol": "=",
+            "operands": [
+              {
+                "role": "left",
+                "node_id": "n2"
+              },
+              {
+                "role": "right",
+                "node_id": "n3"
+              }
+            ]
+          },
+          {
+            "id": "n2",
+            "node_type": "element",
+            "intent": "variable",
+            "symbol": "q",
+            "operands": []
+          },
+          {
+            "id": "n3",
+            "node_type": "element",
+            "intent": "number",
+            "symbol": "0",
+            "operands": []
+          }
+        ],
+        "review_required": false,
+        "assumptions": [],
+        "ambiguities": []
       },
       "frac_ok": {
-        "expression_type": "expression",
-        "root": {"id": "n0", "kind": "fraction", "children": [
-          {"id": "n1", "kind": "variable", "symbol": "a"},
-          {"id": "n2", "kind": "variable", "symbol": "b"}]},
-        "relations": [], "assumptions": [], "ambiguities": [], "requires_review": false
+        "vocabulary_version": "1.0.0",
+        "root_id": "n0",
+        "nodes": [
+          {
+            "id": "n0",
+            "node_type": "structure",
+            "intent": "fraction",
+            "symbol": null,
+            "operands": [
+              {
+                "role": "numerator",
+                "node_id": "n1"
+              },
+              {
+                "role": "denominator",
+                "node_id": "n2"
+              }
+            ]
+          },
+          {
+            "id": "n1",
+            "node_type": "element",
+            "intent": "variable",
+            "symbol": "a",
+            "operands": []
+          },
+          {
+            "id": "n2",
+            "node_type": "element",
+            "intent": "variable",
+            "symbol": "b",
+            "operands": []
+          }
+        ],
+        "review_required": false,
+        "assumptions": [],
+        "ambiguities": []
+      },
+      "pow_ok": {
+        "vocabulary_version": "1.0.0",
+        "root_id": "n0",
+        "nodes": [
+          {
+            "id": "n0",
+            "node_type": "operation",
+            "intent": "power",
+            "symbol": null,
+            "operands": [
+              {
+                "role": "base",
+                "node_id": "n1"
+              },
+              {
+                "role": "exponent",
+                "node_id": "n2"
+              }
+            ]
+          },
+          {
+            "id": "n1",
+            "node_type": "element",
+            "intent": "variable",
+            "symbol": "x",
+            "operands": []
+          },
+          {
+            "id": "n2",
+            "node_type": "element",
+            "intent": "number",
+            "symbol": "2",
+            "operands": []
+          }
+        ],
+        "review_required": false,
+        "assumptions": [],
+        "ambiguities": []
       },
       "no_structure": {
-        "expression_type": "expression",
-        "root": {"id": "n0", "kind": "expression", "children": [
-          {"id": "n1", "kind": "variable", "symbol": "a"},
-          {"id": "n2", "kind": "variable", "symbol": "b"}]},
-        "relations": [], "assumptions": [], "ambiguities": [], "requires_review": false
+        "vocabulary_version": "1.0.0",
+        "root_id": "n0",
+        "nodes": [
+          {
+            "id": "n0",
+            "node_type": "structure",
+            "intent": "expression",
+            "symbol": null,
+            "operands": [
+              {
+                "role": "content",
+                "node_id": "n1"
+              }
+            ]
+          },
+          {
+            "id": "n1",
+            "node_type": "operation",
+            "intent": "addition",
+            "symbol": null,
+            "operands": [
+              {
+                "role": "term",
+                "node_id": "n2"
+              },
+              {
+                "role": "term",
+                "node_id": "n3"
+              }
+            ]
+          },
+          {
+            "id": "n2",
+            "node_type": "element",
+            "intent": "variable",
+            "symbol": "a",
+            "operands": []
+          },
+          {
+            "id": "n3",
+            "node_type": "element",
+            "intent": "variable",
+            "symbol": "b",
+            "operands": []
+          }
+        ],
+        "review_required": false,
+        "assumptions": [],
+        "ambiguities": []
       },
       "no_equality": {
-        "expression_type": "expression",
-        "root": {"id": "n0", "kind": "expression", "children": [
-          {"id": "n1", "kind": "variable", "symbol": "x"},
-          {"id": "n2", "kind": "number", "symbol": "0"}]},
-        "relations": [], "assumptions": [], "ambiguities": [], "requires_review": false
+        "vocabulary_version": "1.0.0",
+        "root_id": "n0",
+        "nodes": [
+          {
+            "id": "n0",
+            "node_type": "structure",
+            "intent": "expression",
+            "symbol": null,
+            "operands": [
+              {
+                "role": "content",
+                "node_id": "n1"
+              }
+            ]
+          },
+          {
+            "id": "n1",
+            "node_type": "operation",
+            "intent": "addition",
+            "symbol": null,
+            "operands": [
+              {
+                "role": "term",
+                "node_id": "n2"
+              },
+              {
+                "role": "term",
+                "node_id": "n3"
+              }
+            ]
+          },
+          {
+            "id": "n2",
+            "node_type": "element",
+            "intent": "variable",
+            "symbol": "x",
+            "operands": []
+          },
+          {
+            "id": "n3",
+            "node_type": "element",
+            "intent": "number",
+            "symbol": "0",
+            "operands": []
+          }
+        ],
+        "review_required": false,
+        "assumptions": [],
+        "ambiguities": []
       },
       "amb_inconsistent": {
-        "expression_type": "equation",
-        "root": {"id": "n0", "kind": "equation", "symbol": "=", "children": [
-          {"id": "n1", "kind": "variable", "symbol": "x"},
-          {"id": "n2", "kind": "number", "symbol": "0"}]},
-        "relations": [{"type": "equality", "left": "n1", "right": "n2"}],
-        "assumptions": [], "ambiguities": ["x podria ser variable o constante"], "requires_review": false
+        "vocabulary_version": "1.0.0",
+        "root_id": "n0",
+        "nodes": [
+          {
+            "id": "n0",
+            "node_type": "structure",
+            "intent": "equation",
+            "symbol": null,
+            "operands": [
+              {
+                "role": "statement",
+                "node_id": "n1"
+              }
+            ]
+          },
+          {
+            "id": "n1",
+            "node_type": "relation",
+            "intent": "equality",
+            "symbol": "=",
+            "operands": [
+              {
+                "role": "left",
+                "node_id": "n2"
+              },
+              {
+                "role": "right",
+                "node_id": "n3"
+              }
+            ]
+          },
+          {
+            "id": "n2",
+            "node_type": "element",
+            "intent": "variable",
+            "symbol": "x",
+            "operands": []
+          },
+          {
+            "id": "n3",
+            "node_type": "element",
+            "intent": "number",
+            "symbol": "0",
+            "operands": []
+          }
+        ],
+        "review_required": false,
+        "assumptions": [],
+        "ambiguities": [
+          "x podria ser variable o constante"
+        ]
       },
       "amb_ok": {
-        "expression_type": "equation",
-        "root": {"id": "n0", "kind": "equation", "symbol": "=", "children": [
-          {"id": "n1", "kind": "variable", "symbol": "x"},
-          {"id": "n2", "kind": "number", "symbol": "0"}]},
-        "relations": [{"type": "equality", "left": "n1", "right": "n2"}],
-        "assumptions": [], "ambiguities": ["x podria ser variable o constante"], "requires_review": true
+        "vocabulary_version": "1.0.0",
+        "root_id": "n0",
+        "nodes": [
+          {
+            "id": "n0",
+            "node_type": "unresolved",
+            "intent": null,
+            "symbol": null,
+            "operands": [
+              {
+                "role": "component",
+                "node_id": "n1"
+              },
+              {
+                "role": "component",
+                "node_id": "n2"
+              }
+            ],
+            "ambiguous": true,
+            "candidate_intents": [
+              "multiplication",
+              "variable"
+            ],
+            "review_required": true,
+            "justification": "xy puede ser un producto implicito o un identificador"
+          },
+          {
+            "id": "n1",
+            "node_type": "element",
+            "intent": "variable",
+            "symbol": "x",
+            "operands": []
+          },
+          {
+            "id": "n2",
+            "node_type": "element",
+            "intent": "variable",
+            "symbol": "y",
+            "operands": []
+          }
+        ],
+        "review_required": true,
+        "assumptions": [],
+        "ambiguities": [
+          "xy"
+        ]
       },
       "ctx_no_assumption": {
-        "expression_type": "equation",
-        "root": {"id": "n0", "kind": "equation", "symbol": "=", "children": [
-          {"id": "n1", "kind": "variable", "symbol": "x", "evidence": "context_dependent"},
-          {"id": "n2", "kind": "number", "symbol": "0"}]},
-        "relations": [{"type": "equality", "left": "n1", "right": "n2"}],
-        "assumptions": [], "ambiguities": [], "requires_review": false
+        "vocabulary_version": "1.0.0",
+        "root_id": "n0",
+        "nodes": [
+          {
+            "id": "n0",
+            "node_type": "structure",
+            "intent": "equation",
+            "symbol": null,
+            "operands": [
+              {
+                "role": "statement",
+                "node_id": "n1"
+              }
+            ]
+          },
+          {
+            "id": "n1",
+            "node_type": "relation",
+            "intent": "equality",
+            "symbol": "=",
+            "operands": [
+              {
+                "role": "left",
+                "node_id": "n2"
+              },
+              {
+                "role": "right",
+                "node_id": "n3"
+              }
+            ]
+          },
+          {
+            "id": "n2",
+            "node_type": "element",
+            "intent": "variable",
+            "symbol": "x",
+            "operands": [],
+            "evidence": "context_dependent"
+          },
+          {
+            "id": "n3",
+            "node_type": "element",
+            "intent": "number",
+            "symbol": "0",
+            "operands": []
+          }
+        ],
+        "review_required": false,
+        "assumptions": [],
+        "ambiguities": []
       },
       "ctx_ok": {
-        "expression_type": "equation",
-        "root": {"id": "n0", "kind": "equation", "symbol": "=", "children": [
-          {"id": "n1", "kind": "variable", "symbol": "x", "evidence": "context_dependent"},
-          {"id": "n2", "kind": "number", "symbol": "0"}]},
-        "relations": [{"type": "equality", "left": "n1", "right": "n2"}],
-        "assumptions": ["x es una variable real"], "ambiguities": [], "requires_review": false
+        "vocabulary_version": "1.0.0",
+        "root_id": "n0",
+        "nodes": [
+          {
+            "id": "n0",
+            "node_type": "structure",
+            "intent": "equation",
+            "symbol": null,
+            "operands": [
+              {
+                "role": "statement",
+                "node_id": "n1"
+              }
+            ]
+          },
+          {
+            "id": "n1",
+            "node_type": "relation",
+            "intent": "equality",
+            "symbol": "=",
+            "operands": [
+              {
+                "role": "left",
+                "node_id": "n2"
+              },
+              {
+                "role": "right",
+                "node_id": "n3"
+              }
+            ]
+          },
+          {
+            "id": "n2",
+            "node_type": "element",
+            "intent": "variable",
+            "symbol": "x",
+            "operands": [],
+            "evidence": "context_dependent"
+          },
+          {
+            "id": "n3",
+            "node_type": "element",
+            "intent": "number",
+            "symbol": "0",
+            "operands": []
+          }
+        ],
+        "review_required": false,
+        "assumptions": [
+          "x es una variable real"
+        ],
+        "ambiguities": []
       },
       "llm_review": {
-        "expression_type": "equation",
-        "root": {"id": "n0", "kind": "equation", "symbol": "=", "children": [
-          {"id": "n1", "kind": "variable", "symbol": "x"},
-          {"id": "n2", "kind": "number", "symbol": "0"}]},
-        "relations": [{"type": "equality", "left": "n1", "right": "n2"}],
-        "assumptions": [], "ambiguities": [], "requires_review": true
+        "vocabulary_version": "1.0.0",
+        "root_id": "n0",
+        "nodes": [
+          {
+            "id": "n0",
+            "node_type": "structure",
+            "intent": "equation",
+            "symbol": null,
+            "operands": [
+              {
+                "role": "statement",
+                "node_id": "n1"
+              }
+            ]
+          },
+          {
+            "id": "n1",
+            "node_type": "relation",
+            "intent": "equality",
+            "symbol": "=",
+            "operands": [
+              {
+                "role": "left",
+                "node_id": "n2"
+              },
+              {
+                "role": "right",
+                "node_id": "n3"
+              }
+            ]
+          },
+          {
+            "id": "n2",
+            "node_type": "element",
+            "intent": "variable",
+            "symbol": "x",
+            "operands": []
+          },
+          {
+            "id": "n3",
+            "node_type": "element",
+            "intent": "number",
+            "symbol": "0",
+            "operands": []
+          }
+        ],
+        "review_required": true,
+        "assumptions": [],
+        "ambiguities": []
+      },
+      "bad_vocab": {
+        "vocabulary_version": "1.0.0",
+        "root_id": "n0",
+        "nodes": [
+          {
+            "id": "n0",
+            "node_type": "structure",
+            "intent": "equation",
+            "symbol": null,
+            "operands": [
+              {
+                "role": "statement",
+                "node_id": "n1"
+              }
+            ]
+          },
+          {
+            "id": "n1",
+            "node_type": "relation",
+            "intent": "igualdad",
+            "symbol": "=",
+            "operands": [
+              {
+                "role": "left",
+                "node_id": "n2"
+              },
+              {
+                "role": "right",
+                "node_id": "n3"
+              }
+            ]
+          },
+          {
+            "id": "n2",
+            "node_type": "element",
+            "intent": "variable",
+            "symbol": "x",
+            "operands": []
+          },
+          {
+            "id": "n3",
+            "node_type": "element",
+            "intent": "number",
+            "symbol": "0",
+            "operands": []
+          }
+        ],
+        "review_required": false,
+        "assumptions": [],
+        "ambiguities": []
+      },
+      "cycle": {
+        "vocabulary_version": "1.0.0",
+        "root_id": "n0",
+        "nodes": [
+          {
+            "id": "n0",
+            "node_type": "structure",
+            "intent": "equation",
+            "symbol": null,
+            "operands": [
+              {
+                "role": "statement",
+                "node_id": "n1"
+              }
+            ]
+          },
+          {
+            "id": "n1",
+            "node_type": "relation",
+            "intent": "equality",
+            "symbol": "=",
+            "operands": [
+              {
+                "role": "left",
+                "node_id": "n2"
+              },
+              {
+                "role": "right",
+                "node_id": "n3"
+              }
+            ]
+          },
+          {
+            "id": "n2",
+            "node_type": "element",
+            "intent": "variable",
+            "symbol": "x",
+            "operands": [
+              {
+                "role": "operand",
+                "node_id": "n0"
+              }
+            ]
+          },
+          {
+            "id": "n3",
+            "node_type": "element",
+            "intent": "number",
+            "symbol": "0",
+            "operands": []
+          }
+        ],
+        "review_required": false,
+        "assumptions": [],
+        "ambiguities": []
       }
     }
   },
   "rules": [
     {
-      "id": "MML-001", "version": "1.0.0",
+      "id": "MML-001",
+      "version": "1.0.0",
       "title": "Raiz <math> en el espacio de nombres MathML",
       "description": "El documento MathML debe estar bien formado y su elemento raiz debe ser 'math' en el espacio de nombres http://www.w3.org/1998/Math/MathML.",
       "applies_when": "Siempre que exista un MathML.",
       "expected": "PASS si es analizable y la raiz es {MathML}math; FAIL en caso contrario.",
-      "severity": "error", "origin": "w3c_normative",
-      "source": {"document": "MathML 3.0 (2.a edicion)", "url": "https://www.w3.org/TR/MathML3/", "status": "W3C Recommendation (2014)", "note": "Seccion exacta por verificar; la regla resume la definicion del elemento raiz y su espacio de nombres."},
+      "severity": "error",
+      "origin": "w3c_normative",
+      "source": {
+        "document": "MathML 3.0 (2.a edicion)",
+        "url": "https://www.w3.org/TR/MathML3/",
+        "status": "W3C Recommendation (2014)",
+        "note": "Seccion exacta por verificar; la regla resume la definicion del elemento raiz y su espacio de nombres."
+      },
       "examples": [
-        {"name": "raiz valida", "mathml": "eq", "semantic": null, "expected": "PASS"},
-        {"name": "sin espacio de nombres", "mathml": "no_ns", "semantic": null, "expected": "FAIL"},
-        {"name": "xml mal formado", "mathml": "bad_xml", "semantic": null, "expected": "FAIL"}
+        {
+          "name": "raiz valida",
+          "mathml": "eq",
+          "semantic": null,
+          "expected": "PASS"
+        },
+        {
+          "name": "sin espacio de nombres",
+          "mathml": "no_ns",
+          "semantic": null,
+          "expected": "FAIL"
+        },
+        {
+          "name": "xml mal formado",
+          "mathml": "bad_xml",
+          "semantic": null,
+          "expected": "FAIL"
+        }
       ]
     },
     {
-      "id": "MML-002", "version": "1.0.0",
+      "id": "MML-002",
+      "version": "1.0.0",
       "title": "Elementos dentro del conjunto de MathML Core",
       "description": "Todos los elementos deben pertenecer al conjunto de elementos de MathML Core. La pertenencia al conjunto es definicion del W3C; informarla como REVIEW (y no FAIL) es decision del proyecto, porque MathML Core es un subconjunto y MathML 3 permite mas elementos.",
       "applies_when": "Cuando el MathML es analizable.",
       "expected": "PASS si todos los elementos estan en Core; REVIEW si hay elementos fuera de Core o fuera del espacio de nombres MathML; NOT_APPLICABLE si el MathML no es analizable.",
-      "severity": "warning", "origin": "w3c_normative",
-      "source": {"document": "MathML Core", "url": "https://www.w3.org/TR/mathml-core/", "status": "Candidate Recommendation Snapshot (2025-06-24); no es Recommendation", "note": "Lista de elementos contrastada con el primer borrador publico y con extractos del CR; volver a contrastar con el CR vigente."},
+      "severity": "warning",
+      "origin": "w3c_normative",
+      "source": {
+        "document": "MathML Core",
+        "url": "https://www.w3.org/TR/mathml-core/",
+        "status": "Candidate Recommendation Snapshot (2025-06-24); no es Recommendation",
+        "note": "Lista de elementos contrastada con el primer borrador publico y con extractos del CR; volver a contrastar con el CR vigente."
+      },
       "examples": [
-        {"name": "solo elementos Core", "mathml": "eq", "semantic": null, "expected": "PASS"},
-        {"name": "mfenced no esta en Core", "mathml": "mfenced", "semantic": null, "expected": "REVIEW"},
-        {"name": "mathml no analizable", "mathml": "bad_xml", "semantic": null, "expected": "NOT_APPLICABLE"}
+        {
+          "name": "solo elementos Core",
+          "mathml": "eq",
+          "semantic": null,
+          "expected": "PASS"
+        },
+        {
+          "name": "mfenced no esta en Core",
+          "mathml": "mfenced",
+          "semantic": null,
+          "expected": "REVIEW"
+        },
+        {
+          "name": "mathml no analizable",
+          "mathml": "bad_xml",
+          "semantic": null,
+          "expected": "NOT_APPLICABLE"
+        }
       ]
     },
     {
-      "id": "MML-003", "version": "1.0.0",
+      "id": "MML-003",
+      "version": "1.0.0",
       "title": "Uso del atributo intent (borrador)",
       "description": "El atributo 'intent' se define en MathML 4, que sigue siendo Working Draft. Si aparece, se marca para revision humana y NO se evalua su gramatica ni se le atribuye valor normativo.",
       "applies_when": "Cuando el MathML es analizable.",
       "expected": "REVIEW si algun elemento lleva 'intent'; NOT_APPLICABLE si ninguno lo lleva o el MathML no es analizable.",
-      "severity": "info", "origin": "project_heuristic",
-      "source": {"document": "MathML 4.0", "url": "https://www.w3.org/TR/mathml4/", "status": "W3C Working Draft (27 de octubre de 2026)", "note": "El estado de borrador puede cambiar; la regla es del proyecto, no del W3C."},
+      "severity": "info",
+      "origin": "project_heuristic",
+      "source": {
+        "document": "MathML 4.0",
+        "url": "https://www.w3.org/TR/mathml4/",
+        "status": "W3C Working Draft (27 de octubre de 2026)",
+        "note": "El estado de borrador puede cambiar; la regla es del proyecto, no del W3C."
+      },
       "examples": [
-        {"name": "sin intent", "mathml": "eq", "semantic": null, "expected": "NOT_APPLICABLE"},
-        {"name": "con intent", "mathml": "intent", "semantic": null, "expected": "REVIEW"}
+        {
+          "name": "sin intent",
+          "mathml": "eq",
+          "semantic": null,
+          "expected": "NOT_APPLICABLE"
+        },
+        {
+          "name": "con intent",
+          "mathml": "intent",
+          "semantic": null,
+          "expected": "REVIEW"
+        }
       ]
     },
     {
-      "id": "SEM-001", "version": "1.0.0",
+      "id": "SEM-001",
+      "version": "1.0.0",
       "title": "Interpretacion semantica disponible y valida",
       "description": "Existe un resultado semantico que supero la validacion de esquema.",
       "applies_when": "Siempre.",
       "expected": "PASS si hay interpretacion valida; REVIEW si falta (sin ella no se pueden evaluar las reglas semanticas).",
-      "severity": "warning", "origin": "project_heuristic",
-      "source": {"document": "Proyecto math-semantic-ocr", "url": "", "status": "heuristica propia", "note": ""},
+      "severity": "warning",
+      "origin": "project_heuristic",
+      "source": {
+        "document": "Proyecto math-semantic-ocr",
+        "url": "",
+        "status": "heuristica propia",
+        "note": ""
+      },
       "examples": [
-        {"name": "hay interpretacion", "mathml": "eq", "semantic": "eq_ok", "expected": "PASS"},
-        {"name": "falta interpretacion", "mathml": "eq", "semantic": null, "expected": "REVIEW"}
+        {
+          "name": "hay interpretacion",
+          "mathml": "eq",
+          "semantic": "eq_ok",
+          "expected": "PASS"
+        },
+        {
+          "name": "falta interpretacion",
+          "mathml": "eq",
+          "semantic": null,
+          "expected": "REVIEW"
+        }
       ]
     },
     {
-      "id": "SEM-002", "version": "1.0.0",
+      "id": "SEM-002",
+      "version": "1.0.0",
       "title": "Simbolos de la interpretacion presentes en el MathML",
-      "description": "Cada simbolo de nodo hoja (variable, constante, numero, operador) debe aparecer como contenido de un token (mi, mn, mo, mtext, ms) del MathML. Puede dar falsos positivos con simbolos implicitos (p. ej. la 'd' de dx).",
+      "description": "Cada simbolo de nodo (hoja u operador escrito) debe aparecer como contenido de un token (mi, mn, mo, mtext, ms) del MathML. Puede dar falsos positivos con simbolos implicitos.",
       "applies_when": "Hay interpretacion valida y MathML analizable.",
       "expected": "PASS si todos aparecen; FAIL si alguno no aparece (con los ids como evidencia); NOT_APPLICABLE si faltan datos.",
-      "severity": "warning", "origin": "project_heuristic",
-      "source": {"document": "Proyecto math-semantic-ocr", "url": "", "status": "heuristica propia", "note": ""},
+      "severity": "warning",
+      "origin": "project_heuristic",
+      "source": {
+        "document": "Proyecto math-semantic-ocr",
+        "url": "",
+        "status": "heuristica propia",
+        "note": ""
+      },
       "examples": [
-        {"name": "simbolos presentes", "mathml": "eq", "semantic": "eq_ok", "expected": "PASS"},
-        {"name": "simbolo inventado", "mathml": "eq", "semantic": "eq_ungrounded", "expected": "FAIL"},
-        {"name": "sin interpretacion", "mathml": "eq", "semantic": null, "expected": "NOT_APPLICABLE"},
-        {"name": "mathml no analizable", "mathml": "bad_xml", "semantic": "eq_ok", "expected": "NOT_APPLICABLE"}
+        {
+          "name": "simbolos presentes",
+          "mathml": "eq",
+          "semantic": "eq_ok",
+          "expected": "PASS"
+        },
+        {
+          "name": "simbolo inventado",
+          "mathml": "eq",
+          "semantic": "eq_ungrounded",
+          "expected": "FAIL"
+        },
+        {
+          "name": "sin interpretacion",
+          "mathml": "eq",
+          "semantic": null,
+          "expected": "NOT_APPLICABLE"
+        },
+        {
+          "name": "mathml no analizable",
+          "mathml": "bad_xml",
+          "semantic": "eq_ok",
+          "expected": "NOT_APPLICABLE"
+        }
       ]
     },
     {
-      "id": "SEM-003", "version": "1.0.0",
-      "title": "Igualdad en el MathML reflejada en la interpretacion",
-      "description": "Si el MathML contiene el operador '=', la interpretacion debe contener una relacion de igualdad o un nodo de tipo 'equation'.",
+      "id": "SEM-003",
+      "version": "1.0.0",
+      "title": "Igualdad en el MathML reflejada como intent equality",
+      "description": "Si el MathML contiene el token '=', la interpretacion debe contener un nodo con intent 'equality'.",
       "applies_when": "Hay interpretacion valida y el MathML contiene un token '='.",
-      "expected": "PASS si la igualdad esta reflejada; REVIEW si no; NOT_APPLICABLE si no hay '=' o faltan datos.",
-      "severity": "warning", "origin": "project_heuristic",
-      "source": {"document": "Proyecto math-semantic-ocr", "url": "", "status": "heuristica propia", "note": ""},
+      "expected": "PASS si existe el nodo; REVIEW si no; NOT_APPLICABLE si no hay '=' o faltan datos.",
+      "severity": "warning",
+      "origin": "project_heuristic",
+      "source": {
+        "document": "Proyecto math-semantic-ocr",
+        "url": "",
+        "status": "heuristica propia",
+        "note": ""
+      },
       "examples": [
-        {"name": "igualdad reflejada", "mathml": "eq", "semantic": "eq_ok", "expected": "PASS"},
-        {"name": "igualdad ausente en la interpretacion", "mathml": "eq", "semantic": "no_equality", "expected": "REVIEW"},
-        {"name": "no hay igualdad en el MathML", "mathml": "frac", "semantic": "frac_ok", "expected": "NOT_APPLICABLE"}
+        {
+          "name": "igualdad reflejada",
+          "mathml": "eq",
+          "semantic": "eq_ok",
+          "expected": "PASS"
+        },
+        {
+          "name": "igualdad ausente",
+          "mathml": "eq",
+          "semantic": "no_equality",
+          "expected": "REVIEW"
+        },
+        {
+          "name": "no hay igualdad en el MathML",
+          "mathml": "frac",
+          "semantic": "frac_ok",
+          "expected": "NOT_APPLICABLE"
+        }
       ]
     },
     {
-      "id": "SEM-004", "version": "1.0.0",
-      "title": "Estructuras del MathML reflejadas en el arbol semantico",
-      "description": "mfrac debe corresponder a un nodo 'fraction'; msqrt o mroot a 'root'; msup a 'power'. msup puede ser tambien un indice y no una potencia, por eso la ausencia solo pide revision.",
+      "id": "SEM-004",
+      "version": "1.0.0",
+      "title": "Estructuras del MathML reflejadas en intents",
+      "description": "mfrac debe corresponder a un nodo 'fraction' o 'division'; msqrt o mroot a 'root'; msup a 'power' o 'exponential'. msup puede ser tambien un indice, por eso la ausencia solo pide revision.",
       "applies_when": "Hay interpretacion valida y el MathML contiene mfrac, msqrt, mroot o msup.",
       "expected": "PASS si todas las estructuras presentes tienen nodo correspondiente; REVIEW si falta alguno; NOT_APPLICABLE si no hay tales elementos o faltan datos.",
-      "severity": "warning", "origin": "project_heuristic",
-      "source": {"document": "Proyecto math-semantic-ocr", "url": "", "status": "heuristica propia", "note": "La presentacion MathML no fija la semantica; el mapeo es una correspondencia habitual, no una definicion del W3C."},
+      "severity": "warning",
+      "origin": "project_heuristic",
+      "source": {
+        "document": "Proyecto math-semantic-ocr",
+        "url": "",
+        "status": "heuristica propia",
+        "note": "La presentacion MathML no fija la semantica; el mapeo es una correspondencia habitual, no una definicion del W3C."
+      },
       "examples": [
-        {"name": "fraccion reflejada", "mathml": "frac", "semantic": "frac_ok", "expected": "PASS"},
-        {"name": "fraccion sin nodo", "mathml": "frac", "semantic": "no_structure", "expected": "REVIEW"},
-        {"name": "msup sin nodo power", "mathml": "pow", "semantic": "no_structure", "expected": "REVIEW"},
-        {"name": "sin estructuras relevantes", "mathml": "eq", "semantic": "eq_ok", "expected": "NOT_APPLICABLE"}
+        {
+          "name": "fraccion reflejada",
+          "mathml": "frac",
+          "semantic": "frac_ok",
+          "expected": "PASS"
+        },
+        {
+          "name": "fraccion sin intent",
+          "mathml": "frac",
+          "semantic": "no_structure",
+          "expected": "REVIEW"
+        },
+        {
+          "name": "msup sin power",
+          "mathml": "pow",
+          "semantic": "no_structure",
+          "expected": "REVIEW"
+        },
+        {
+          "name": "msup con power",
+          "mathml": "pow",
+          "semantic": "pow_ok",
+          "expected": "PASS"
+        },
+        {
+          "name": "sin estructuras relevantes",
+          "mathml": "eq",
+          "semantic": "eq_ok",
+          "expected": "NOT_APPLICABLE"
+        }
       ]
     },
     {
-      "id": "SEM-005", "version": "1.0.0",
-      "title": "Ambiguedades declaradas implican revision",
-      "description": "Si la interpretacion declara ambiguedades, 'requires_review' debe ser verdadero.",
+      "id": "SEM-005",
+      "version": "1.0.0",
+      "title": "Ambiguedades y nodos marcados implican revision",
+      "description": "Si hay nodos ambiguos, nodos con review_required o ambiguedades declaradas, review_required del documento debe ser verdadero.",
       "applies_when": "Hay interpretacion valida.",
       "expected": "FAIL si hay ambiguedades y requires_review es falso; PASS en otro caso; NOT_APPLICABLE sin interpretacion.",
-      "severity": "error", "origin": "project_heuristic",
-      "source": {"document": "Proyecto math-semantic-ocr", "url": "", "status": "heuristica propia", "note": ""},
+      "severity": "error",
+      "origin": "project_heuristic",
+      "source": {
+        "document": "Proyecto math-semantic-ocr",
+        "url": "",
+        "status": "heuristica propia",
+        "note": ""
+      },
       "examples": [
-        {"name": "ambiguedad sin revision", "mathml": "eq", "semantic": "amb_inconsistent", "expected": "FAIL"},
-        {"name": "ambiguedad con revision", "mathml": "eq", "semantic": "amb_ok", "expected": "PASS"},
-        {"name": "sin ambiguedades", "mathml": "eq", "semantic": "eq_ok", "expected": "PASS"}
+        {
+          "name": "ambiguedad sin revision",
+          "mathml": "eq",
+          "semantic": "amb_inconsistent",
+          "expected": "FAIL"
+        },
+        {
+          "name": "ambiguedad con revision",
+          "mathml": "xy",
+          "semantic": "amb_ok",
+          "expected": "PASS"
+        },
+        {
+          "name": "sin ambiguedades",
+          "mathml": "eq",
+          "semantic": "eq_ok",
+          "expected": "PASS"
+        }
       ]
     },
     {
-      "id": "SEM-006", "version": "1.0.0",
+      "id": "SEM-006",
+      "version": "1.0.0",
       "title": "Dependencia del contexto con supuestos declarados",
-      "description": "Si hay nodos o relaciones marcados como 'context_dependent', la interpretacion debe declarar al menos un supuesto.",
+      "description": "Si hay nodos o enlaces 'context_dependent', la interpretacion debe declarar al menos un supuesto.",
       "applies_when": "Hay interpretacion valida con elementos dependientes del contexto.",
       "expected": "PASS si hay supuestos; REVIEW si no; NOT_APPLICABLE si no hay elementos dependientes del contexto o faltan datos.",
-      "severity": "warning", "origin": "project_heuristic",
-      "source": {"document": "Proyecto math-semantic-ocr", "url": "", "status": "heuristica propia", "note": ""},
+      "severity": "warning",
+      "origin": "project_heuristic",
+      "source": {
+        "document": "Proyecto math-semantic-ocr",
+        "url": "",
+        "status": "heuristica propia",
+        "note": ""
+      },
       "examples": [
-        {"name": "contexto sin supuestos", "mathml": "eq", "semantic": "ctx_no_assumption", "expected": "REVIEW"},
-        {"name": "contexto con supuestos", "mathml": "eq", "semantic": "ctx_ok", "expected": "PASS"},
-        {"name": "sin dependencia de contexto", "mathml": "eq", "semantic": "eq_ok", "expected": "NOT_APPLICABLE"}
+        {
+          "name": "contexto sin supuestos",
+          "mathml": "eq",
+          "semantic": "ctx_no_assumption",
+          "expected": "REVIEW"
+        },
+        {
+          "name": "contexto con supuestos",
+          "mathml": "eq",
+          "semantic": "ctx_ok",
+          "expected": "PASS"
+        },
+        {
+          "name": "sin dependencia de contexto",
+          "mathml": "eq",
+          "semantic": "eq_ok",
+          "expected": "NOT_APPLICABLE"
+        }
       ]
     },
     {
-      "id": "SEM-007", "version": "1.0.0",
+      "id": "SEM-007",
+      "version": "1.0.0",
       "title": "Marca de revision declarada por el LLM",
       "description": "Traslada la conclusion del LLM sobre si su propia interpretacion requiere revision. Es una conclusion del modelo, no una verificacion independiente.",
       "applies_when": "Hay interpretacion valida.",
       "expected": "REVIEW si requires_review es verdadero; PASS en otro caso; NOT_APPLICABLE sin interpretacion.",
-      "severity": "info", "origin": "llm_derived",
-      "source": {"document": "Salida del agente semantico", "url": "", "status": "conclusion del LLM", "note": ""},
+      "severity": "info",
+      "origin": "llm_derived",
+      "source": {
+        "document": "Salida del agente semantico",
+        "url": "",
+        "status": "conclusion del LLM",
+        "note": ""
+      },
       "examples": [
-        {"name": "el LLM pide revision", "mathml": "eq", "semantic": "llm_review", "expected": "REVIEW"},
-        {"name": "el LLM no pide revision", "mathml": "eq", "semantic": "eq_ok", "expected": "PASS"}
+        {
+          "name": "el LLM pide revision",
+          "mathml": "eq",
+          "semantic": "llm_review",
+          "expected": "REVIEW"
+        },
+        {
+          "name": "el LLM no pide revision",
+          "mathml": "eq",
+          "semantic": "eq_ok",
+          "expected": "PASS"
+        }
+      ]
+    },
+    {
+      "id": "SEM-008",
+      "version": "1.0.0",
+      "title": "Arbol conforme al vocabulario controlado",
+      "description": "Revalida el arbol (ids, ciclos, intents, tipos, roles, aridad, propiedades, ambiguedad) contra intent_vocabulary.json, con independencia de quien lo haya producido.",
+      "applies_when": "Hay interpretacion valida.",
+      "expected": "PASS si no hay errores estructurales; FAIL si los hay (con los ids como evidencia); NOT_APPLICABLE sin interpretacion.",
+      "severity": "error",
+      "origin": "project_heuristic",
+      "source": {
+        "document": "Proyecto math-semantic-ocr (intent_vocabulary.json)",
+        "url": "",
+        "status": "heuristica propia",
+        "note": "El vocabulario es interno; no son valores oficiales de MathML ni del atributo intent."
+      },
+      "examples": [
+        {
+          "name": "arbol valido",
+          "mathml": "eq",
+          "semantic": "eq_ok",
+          "expected": "PASS"
+        },
+        {
+          "name": "intent fuera del vocabulario",
+          "mathml": "eq",
+          "semantic": "bad_vocab",
+          "expected": "FAIL"
+        },
+        {
+          "name": "referencia circular",
+          "mathml": "eq",
+          "semantic": "cycle",
+          "expected": "FAIL"
+        },
+        {
+          "name": "ambiguedad bien formada",
+          "mathml": "xy",
+          "semantic": "amb_ok",
+          "expected": "PASS"
+        },
+        {
+          "name": "sin interpretacion",
+          "mathml": "eq",
+          "semantic": null,
+          "expected": "NOT_APPLICABLE"
+        }
       ]
     }
   ]
