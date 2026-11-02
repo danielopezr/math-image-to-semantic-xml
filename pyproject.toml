@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "image-to-mathml"
+version = "0.1.0"
+description = "Local equation recognition to accessible MathML with W3C intent attributes"
+requires-python = ">=3.10"
+dependencies = [
+  "requests>=2.31",
+  "lxml>=5.0",
+  "Pillow>=10.0",
+  "latex2mathml>=3.77",
+]
+
+[project.optional-dependencies]
+pix2tex = ["pix2tex>=0.1.4"]
+texify = ["texify>=0.2.1"]
+dev = ["pytest>=8.0", "ruff>=0.6"]
+
+[project.scripts]
+image-to-mathml = "image_to_mathml.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+image_to_mathml = ["data/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

@@ -1,0 +1,2218 @@
+{
+  "schema_version": 1,
+  "source": "https://w3c.github.io/mathml-docs/intent-core-concepts/",
+  "generated_at": "2026-11-02T17:21:00+00:00",
+  "note": "W3C MathML intent core concepts (core list + default fixity table).",
+  "concepts": {
+    "absolute-value": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "adjugate": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "and": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "angle": {
+      "signatures": [
+        {
+          "fixity": "prefix",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "angle-measure": {
+      "signatures": [
+        {
+          "fixity": "prefix",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "annotation": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "applied-to": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "approximately": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "arc": {
+      "signatures": [
+        {
+          "fixity": "prefix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "arc-hyperbolic-cosecant": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "arc-hyperbolic-cosine": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "arc-hyperbolic-cotangent": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "arc-hyperbolic-secant": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "arc-hyperbolic-sine": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "arc-hyperbolic-tangent": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "arccosecant": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "arccosine": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "arccotangent": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "arcsecant": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "arcsine": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "arctangent": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "area": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "binomial-coefficient": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "blank": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 0,
+          "max_arity": 0
+        }
+      ],
+      "kind": "core"
+    },
+    "braced-group": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "cardinality": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "cartesian-coordinate": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 2,
+          "max_arity": null
+        }
+      ],
+      "kind": "core"
+    },
+    "cartesian-product": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "ceiling": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "change": {
+      "signatures": [
+        {
+          "fixity": "prefix",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "closed-interval": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "closed-open-interval": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "codomain": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "complement": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "complex-arg": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "complex-conjugate": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "composed-with": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "conditional-probability": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "congruent": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "constraint": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "coordinate": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 2,
+          "max_arity": null
+        }
+      ],
+      "kind": "core"
+    },
+    "cosecant": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "cosine": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "cotangent": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "cross-product": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "curl": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 0,
+          "max_arity": null
+        }
+      ],
+      "kind": "core"
+    },
+    "defined-as": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "definite-integral": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        },
+        {
+          "fixity": "function",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "derivative": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 3,
+          "max_arity": 3
+        }
+      ],
+      "kind": "core"
+    },
+    "determinant": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "diameter": {
+      "signatures": [
+        {
+          "fixity": "nofix",
+          "min_arity": 0,
+          "max_arity": 0
+        }
+      ],
+      "kind": "core"
+    },
+    "differential-d": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 0,
+          "max_arity": 0
+        }
+      ],
+      "kind": "core"
+    },
+    "dimensional-product": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": null
+        }
+      ],
+      "kind": "core"
+    },
+    "direct-product": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "directed-line-segment": {
+      "signatures": [
+        {
+          "fixity": "prefix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "distance": {
+      "signatures": [
+        {
+          "fixity": "nofix",
+          "min_arity": 0,
+          "max_arity": 0
+        }
+      ],
+      "kind": "core"
+    },
+    "divergence": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 0,
+          "max_arity": null
+        }
+      ],
+      "kind": "core"
+    },
+    "divided-by": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "divides": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "does-not-belong-to": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "does-not-divide": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "domain": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "dot-product": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "downwards-diagonal-ellipsis": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "element-of": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "ellipsis": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "embellished-name": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "empty-set": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 0,
+          "max_arity": 0
+        }
+      ],
+      "kind": "core"
+    },
+    "equals": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "equivalent-to": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "evaluated-at": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "evaluates-to": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "exponential": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "exponential-e": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 0,
+          "max_arity": 0
+        }
+      ],
+      "kind": "core"
+    },
+    "factorial": {
+      "signatures": [
+        {
+          "fixity": "postfix",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "fenced-group": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "floor": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "for-all": {
+      "signatures": [
+        {
+          "fixity": "prefix",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "fraction": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "fractional-part": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "given": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "golden-ratio": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 0,
+          "max_arity": 0
+        }
+      ],
+      "kind": "core"
+    },
+    "gradient": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 0,
+          "max_arity": null
+        }
+      ],
+      "kind": "core"
+    },
+    "greater-than": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "greater-than-or-equal-to": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "greatest-common-divisor": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 2,
+          "max_arity": null
+        }
+      ],
+      "kind": "core"
+    },
+    "highlight": {
+      "signatures": [
+        {
+          "fixity": "postfix",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "hyperbolic-cosecant": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "hyperbolic-cosine": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "hyperbolic-cotangent": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "hyperbolic-secant": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "hyperbolic-sine": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "hyperbolic-tangent": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "identically-equals": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "identity-matrix": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 0,
+          "max_arity": 0
+        }
+      ],
+      "kind": "core"
+    },
+    "if-and-only-if": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "image": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "imaginary-i": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 0,
+          "max_arity": 0
+        }
+      ],
+      "kind": "core"
+    },
+    "imaginary-part": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "implies": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "indexed-by": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "inner-product": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "intersection": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "inverse": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        },
+        {
+          "fixity": "postfix",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "invisible-separator": {
+      "signatures": [
+        {
+          "fixity": "silent",
+          "min_arity": 0,
+          "max_arity": 0
+        }
+      ],
+      "kind": "core"
+    },
+    "invisible-times": {
+      "signatures": [
+        {
+          "fixity": "silent",
+          "min_arity": 0,
+          "max_arity": 0
+        }
+      ],
+      "kind": "core"
+    },
+    "laplacian": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 0,
+          "max_arity": null
+        }
+      ],
+      "kind": "core"
+    },
+    "least-common-denominator": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 2,
+          "max_arity": null
+        }
+      ],
+      "kind": "core"
+    },
+    "least-common-multiple": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 2,
+          "max_arity": null
+        }
+      ],
+      "kind": "core"
+    },
+    "length": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "less-than": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "less-than-or-equal-to": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "limit": {
+      "signatures": [
+        {
+          "fixity": "prefix",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "line": {
+      "signatures": [
+        {
+          "fixity": "prefix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "line-segment": {
+      "signatures": [
+        {
+          "fixity": "prefix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "list": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 0,
+          "max_arity": null
+        }
+      ],
+      "kind": "core"
+    },
+    "list-separator": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "logarithm": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        },
+        {
+          "fixity": "function",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "magnitude": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "maps-to": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "matrix": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "max": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": null
+        }
+      ],
+      "kind": "core"
+    },
+    "mean": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "measured-angle": {
+      "signatures": [
+        {
+          "fixity": "prefix",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "median": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "member-of": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "min": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": null
+        }
+      ],
+      "kind": "core"
+    },
+    "minus": {
+      "signatures": [
+        {
+          "fixity": "prefix",
+          "min_arity": 1,
+          "max_arity": 1
+        },
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "minus-or-plus": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "mixed-fraction": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "mode": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "natural-logarithm": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "norm": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "not": {
+      "signatures": [
+        {
+          "fixity": "prefix",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "not-equal-to": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "not-member-of": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "not-parallel-to": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "not-subset": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "not-superset": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "number-of": {
+      "signatures": [
+        {
+          "fixity": "prefix",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "obtained-from": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "open-closed-interval": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "open-interval": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "or": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "ordered-pair": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "outer-product": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "parallel-to": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "partial-derivative": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 3,
+          "max_arity": null
+        },
+        {
+          "fixity": "prefix",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "percent": {
+      "signatures": [
+        {
+          "fixity": "postfix",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "permutation-cycle": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 2,
+          "max_arity": null
+        }
+      ],
+      "kind": "core"
+    },
+    "perpendicular": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "plus": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "plus-or-minus": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "pochhammer": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "point": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": null
+        }
+      ],
+      "kind": "core"
+    },
+    "polar-coordinate": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "power": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "precedes": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "probability": {
+      "signatures": [
+        {
+          "fixity": "nofix",
+          "min_arity": 0,
+          "max_arity": 0
+        }
+      ],
+      "kind": "core"
+    },
+    "product": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        },
+        {
+          "fixity": "function",
+          "min_arity": 2,
+          "max_arity": 2
+        },
+        {
+          "fixity": "function",
+          "min_arity": 3,
+          "max_arity": 3
+        }
+      ],
+      "kind": "core"
+    },
+    "proportional": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "quotient": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "radius": {
+      "signatures": [
+        {
+          "fixity": "nofix",
+          "min_arity": 0,
+          "max_arity": 0
+        }
+      ],
+      "kind": "core"
+    },
+    "range-separator": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "rate": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "ratio": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "ray": {
+      "signatures": [
+        {
+          "fixity": "prefix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "real-part": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "remainder": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "repeating-decimal": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "right-angle": {
+      "signatures": [
+        {
+          "fixity": "prefix",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "root": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "round": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "secant": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "set": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "set-difference": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 2,
+          "max_arity": 2
+        },
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "set-of-complex-numbers": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 0,
+          "max_arity": 0
+        }
+      ],
+      "kind": "core"
+    },
+    "set-of-integers": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 0,
+          "max_arity": 0
+        }
+      ],
+      "kind": "core"
+    },
+    "set-of-natural-numbers": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 0,
+          "max_arity": 0
+        }
+      ],
+      "kind": "core"
+    },
+    "set-of-primes": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 0,
+          "max_arity": 0
+        }
+      ],
+      "kind": "core"
+    },
+    "set-of-rationals": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 0,
+          "max_arity": 0
+        }
+      ],
+      "kind": "core"
+    },
+    "set-of-reals": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 0,
+          "max_arity": 0
+        }
+      ],
+      "kind": "core"
+    },
+    "similar": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "sine": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "span": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "spherical-coordinate": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 3,
+          "max_arity": 3
+        }
+      ],
+      "kind": "core"
+    },
+    "square-root-of": {
+      "signatures": [
+        {
+          "fixity": "prefix",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "standard-deviation": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "subset": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "subset-or-equal": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "succeeds": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "such-that": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "sum": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        },
+        {
+          "fixity": "function",
+          "min_arity": 2,
+          "max_arity": 2
+        },
+        {
+          "fixity": "function",
+          "min_arity": 3,
+          "max_arity": 3
+        }
+      ],
+      "kind": "core"
+    },
+    "superset": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "superset-or-equal": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "tangent": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "tends-to": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "tends-to-from-above": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "tends-to-from-below": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "there-does-not-exist": {
+      "signatures": [
+        {
+          "fixity": "prefix",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "there-exists": {
+      "signatures": [
+        {
+          "fixity": "prefix",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "tilde": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "time-separator": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "times": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "translation": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "transpose": {
+      "signatures": [
+        {
+          "fixity": "postfix",
+          "min_arity": 1,
+          "max_arity": 1
+        },
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "tuple": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 0,
+          "max_arity": null
+        }
+      ],
+      "kind": "core"
+    },
+    "union": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "unit-vector": {
+      "signatures": [
+        {
+          "fixity": "prefix",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "upwards-diagonal-ellipsis": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "variance": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "vector": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        }
+      ],
+      "kind": "core"
+    },
+    "vertical-ellipsis": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    },
+    "volume": {
+      "signatures": [
+        {
+          "fixity": "function",
+          "min_arity": 1,
+          "max_arity": 1
+        },
+        {
+          "fixity": "nofix",
+          "min_arity": 0,
+          "max_arity": 0
+        }
+      ],
+      "kind": "core"
+    },
+    "xor": {
+      "signatures": [
+        {
+          "fixity": "infix",
+          "min_arity": 2,
+          "max_arity": 2
+        }
+      ],
+      "kind": "core"
+    }
+  }
+}

@@ -1,0 +1,27 @@
+[
+  {
+    "latex": "\\frac{a}{b}",
+    "area": "álgebra",
+    "topic": "fracciones algebraicas"
+  },
+  {
+    "latex": "f(x)=\\frac{1}{1+e^{-x}}",
+    "area": "análisis matemático",
+    "topic": "funciones"
+  },
+  {
+    "latex": "\\Gamma(x)=\\int_0^\\infty t^{x-1}e^{-t}\\,dt",
+    "area": "análisis matemático",
+    "topic": "función gamma"
+  },
+  {
+    "latex": "\\sin^2(x)+\\cos^2(x)=1",
+    "area": "trigonometría",
+    "topic": "identidades trigonométricas"
+  },
+  {
+    "latex": "\\sqrt{x^2+y^2}",
+    "area": "geometría analítica",
+    "topic": "distancia euclidiana"
+  }
+]
