@@ -16,6 +16,7 @@ from .mathml.validator import validate_mathml
 from .models import EquationRequest, Flow, MathContext
 from .pipeline import EquationPipeline, compare_flows
 
+
 def _settings_from_args(args: argparse.Namespace) -> Settings:
     changes: dict[str, object] = {}
     if getattr(args, "model", None):
@@ -37,6 +38,12 @@ def _settings_from_args(args: argparse.Namespace) -> Settings:
         changes["max_repair_attempts"] = args.max_repairs
     if getattr(args, "ocr", None):
         changes["ocr_backend"] = args.ocr
+    if getattr(args, "no_preprocess", False):
+        changes["ocr_preprocess"] = False
+    if getattr(args, "preprocess_profile", None):
+        changes["ocr_preprocess_profile"] = args.preprocess_profile
+        if args.preprocess_profile == "off":
+            changes["ocr_preprocess"] = False
     if getattr(args, "strict_core", False):
         changes["allow_open_concepts"] = False
     if getattr(args, "allow_open_concepts", False):
@@ -48,6 +55,7 @@ def _settings_from_args(args: argparse.Namespace) -> Settings:
             if item.strip()
         )
     return replace(Settings.from_env(), **changes)
+
 
 def _read_latex(args: argparse.Namespace) -> str | None:
     latex = getattr(args, "latex", None)
@@ -63,6 +71,7 @@ def _read_latex(args: argparse.Namespace) -> str | None:
             "Provide --latex, --image, or pipe a LaTeX expression on stdin."
         )
     return None
+
 
 def _request_from_args(args: argparse.Namespace) -> EquationRequest:
     latex = _read_latex(args)
@@ -81,6 +90,7 @@ def _request_from_args(args: argparse.Namespace) -> EquationRequest:
         max_repair_attempts=getattr(args, "max_repairs", None),
     )
 
+
 def _print_report(result, stream=sys.stderr) -> None:
     report = result.validation
     for issue in report.issues:
@@ -91,6 +101,17 @@ def _print_report(result, stream=sys.stderr) -> None:
         f"{report.redundant_mrows} redundant mrow(s)",
         file=stream,
     )
+
+
+def _format_convert_output(result) -> str:
+    lines = []
+    if result.ocr_backend != "none":
+        lines.append(f"LaTeX OCR ({result.ocr_backend}): {result.latex}")
+    lines.append(f"MathML structure: {result.structure_source}")
+    lines.append("")
+    lines.append(result.mathml)
+    return "\n".join(lines)
+
 
 def cmd_convert(args: argparse.Namespace) -> int:
     settings = _settings_from_args(args)
@@ -104,7 +125,7 @@ def cmd_convert(args: argparse.Namespace) -> int:
     if getattr(args, "json", False):
         print(json.dumps(result.as_dict(), ensure_ascii=False, indent=2))
     else:
-        print(result.mathml)
+        print(_format_convert_output(result))
 
     if not getattr(args, "quiet", False):
         for warning in result.warnings:
@@ -114,17 +135,29 @@ def cmd_convert(args: argparse.Namespace) -> int:
 
     return 0 if result.validation.ok else 2
 
+
 def _comparison_markdown(results: dict[str, object]) -> str:
-    lines = [
-        "# Comparación de flujos",
-        "",
-        "| flujo | XML válido | aceptable | intents | errores | warnings | intentos | segundos |",
-        "|---|---|---|---|---|---|---|---|",
-    ]
+    lines = ["# Comparación de flujos", ""]
+    latex_ocr = next(
+        (result.latex for result in results.values() if result.ocr_backend != "none"),
+        None,
+    )
+    if latex_ocr is not None:
+        lines.append(f"LaTeX OCR: {latex_ocr}")
+        lines.append("")
+    lines.extend(
+        [
+            (
+                "| flujo | estructura | XML válido | aceptable | intents | "
+                "errores | warnings | intentos | segundos |"
+            ),
+            "|---|---|---|---|---|---|---|---|---|",
+        ]
+    )
     for name, result in results.items():
         report = result.validation
         lines.append(
-            f"| {name} | {'sí' if report.ok else 'no'} | "
+            f"| {name} | {result.structure_source} | {'sí' if report.ok else 'no'} | "
             f"{'sí' if report.acceptable else 'no'} | {report.intent_count} | "
             f"{len(report.errors)} | {len(report.warnings)} | "
             f"{result.attempts} | {result.elapsed_seconds:.2f} |"
@@ -136,6 +169,7 @@ def _comparison_markdown(results: dict[str, object]) -> str:
             lines.extend(f"- {warning}" for warning in result.warnings)
             lines.append("")
     return "\n".join(lines)
+
 
 def cmd_compare(args: argparse.Namespace) -> int:
     settings = _settings_from_args(args)
@@ -167,6 +201,7 @@ def cmd_compare(args: argparse.Namespace) -> int:
         print(_comparison_markdown(results))
 
     return 0 if all(result.validation.ok for result in results.values()) else 2
+
 
 def cmd_check(args: argparse.Namespace) -> int:
     settings = _settings_from_args(args)
@@ -205,6 +240,7 @@ def cmd_check(args: argparse.Namespace) -> int:
         )
     return 0 if report.ok else 1
 
+
 def cmd_doctor(args: argparse.Namespace) -> int:
     settings = _settings_from_args(args)
     modules = {
@@ -214,6 +250,9 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         "Pillow": importlib.util.find_spec("PIL") is not None,
         "pix2tex": importlib.util.find_spec("pix2tex") is not None,
         "texify": importlib.util.find_spec("texify") is not None,
+        "rapid_latex_ocr": importlib.util.find_spec("rapid_latex_ocr") is not None,
+        "pix2text": importlib.util.find_spec("pix2text") is not None,
+        "paddleocr": importlib.util.find_spec("paddleocr") is not None,
     }
     client = build_llm(settings)
     available = client.is_available()
@@ -233,6 +272,11 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     payload = {
         "python": sys.version.split()[0],
         "modules": modules,
+        "ocr": {
+            "backend": settings.ocr_backend,
+            "preprocess": settings.ocr_preprocess,
+            "preprocess_profile": settings.ocr_preprocess_profile,
+        },
         "llm": {
             "backend": settings.llm_backend,
             "base_url": getattr(client, "base_url", settings.ollama_base_url),
@@ -248,6 +292,12 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         print(f"Python: {payload['python']}")
         for name, installed in modules.items():
             print(f"{name}: {'installed' if installed else 'not installed'}")
+        print(f"OCR backend: {settings.ocr_backend}")
+        preprocess_state = "enabled" if settings.ocr_preprocess else "disabled"
+        print(
+            f"OCR preprocessing: {preprocess_state} "
+            f"(profile: {settings.ocr_preprocess_profile})"
+        )
         print(f"LLM backend: {settings.llm_backend}")
         print(f"LLM URL: {payload['llm']['base_url']}")
         print(f"LLM reachable: {'yes' if available else 'no'}")

@@ -169,3 +169,37 @@ def test_compare_flows_returns_three_results():
     )
     assert set(results) == {"hybrid", "direct", "offline"}
     assert results["offline"].validation.ok
+
+
+def test_hybrid_structure_source_is_latex2mathml():
+    response = (
+        f'<math {NS}><mrow><mfrac intent="fraction($num,$den)">'
+        '<mi arg="num">a</mi><mi arg="den">b</mi></mfrac></mrow></math>'
+    )
+    pipeline = EquationPipeline(llm=FakeLLM(response))
+    result = pipeline.run(EquationRequest(latex=r"\frac{a}{b}", flow=Flow.HYBRID))
+
+    assert result.structure_source == "latex2mathml"
+    assert result.as_dict()["structure_source"] == "latex2mathml"
+
+
+def test_direct_structure_source_is_llm_when_accepted():
+    response = (
+        f'<math {NS}><mrow intent="$name($var)">'
+        '<mi arg="name">f</mi><mo>(</mo><mi arg="var">x</mi><mo>)</mo>'
+        "</mrow></math>"
+    )
+    pipeline = EquationPipeline(llm=FakeLLM(response))
+    result = pipeline.run(EquationRequest(latex="f(x)", flow=Flow.DIRECT))
+
+    assert result.structure_source == "llm"
+    assert result.as_dict()["structure_source"] == "llm"
+
+
+def test_direct_fallback_structure_source_is_latex2mathml():
+    pipeline = EquationPipeline(llm=FakeLLM("not MathML"))
+    result = pipeline.run(
+        EquationRequest(latex=r"\frac{a}{b}", flow=Flow.DIRECT, max_repair_attempts=0)
+    )
+
+    assert result.structure_source == "latex2mathml"

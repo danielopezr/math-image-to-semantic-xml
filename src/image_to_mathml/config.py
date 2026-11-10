@@ -59,6 +59,8 @@ class Settings:
         "error-function",
     )
     ocr_backend: str = "auto"
+    ocr_preprocess: bool = True
+    ocr_preprocess_profile: str = "safe"
     llm_backend: str = "ollama"
     openai_base_url: str = "http://localhost:8000/v1"
     openai_api_key: str = "not-needed"
@@ -87,6 +89,11 @@ class Settings:
                 cls.allowed_open_concepts,
             ),
             ocr_backend=os.getenv("IMAGE_TO_MATHML_OCR", cls.ocr_backend),
+            ocr_preprocess=_env_bool("IMAGE_TO_MATHML_PREPROCESS", cls.ocr_preprocess),
+            ocr_preprocess_profile=os.getenv(
+                "IMAGE_TO_MATHML_PREPROCESS_PROFILE",
+                cls.ocr_preprocess_profile,
+            ),
             llm_backend=os.getenv("IMAGE_TO_MATHML_LLM_BACKEND", cls.llm_backend),
             openai_base_url=os.getenv("OPENAI_BASE_URL", cls.openai_base_url),
             openai_api_key=os.getenv("OPENAI_API_KEY", cls.openai_api_key),

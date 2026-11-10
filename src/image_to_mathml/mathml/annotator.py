@@ -45,10 +45,10 @@ FUNCTION_CONCEPTS: dict[str, str] = {
 }
 
 OPERATOR_INTENTS: dict[str, str] = {
-   # "+": "plus",
-   # "\u2212": "minus",
-   # "-": "minus",
-   # "=": "equals",
+    # "+": "plus",
+    # "\u2212": "minus",
+    # "-": "minus",
+    # "=": "equals",
     "\u00d7": "times",
     "\u00b7": "times",
     "\u00f7": "divided-by",

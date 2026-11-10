@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import argparse
-import importlib.util
 import sys
-from dataclasses import replace
-from pathlib import Path
+
 from . import __version__
-from .cli_commands import cmd_convert, cmd_compare, cmd_check, cmd_doctor
+from .cli_commands import cmd_check, cmd_compare, cmd_convert, cmd_doctor
 from .models import Flow
+from .ocr.factory import OCR_BACKENDS
+
 
 def _add_common(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--latex", "-l", help="LaTeX expression, or '-' for stdin")
@@ -28,7 +28,24 @@ def _add_common(parser: argparse.ArgumentParser) -> None:
         default=Flow.HYBRID.value,
         help="Generation flow (default: hybrid)",
     )
-    parser.add_argument("--ocr", choices=["auto", "texify", "pix2tex", "none"])
+    parser.add_argument(
+        "--ocr",
+        choices=OCR_BACKENDS,
+        metavar="BACKEND",
+        help="Equation OCR backend: auto, texify, pix2tex, rapid_latex_ocr, "
+        "pix2text, paddleocr or none (default: auto)",
+    )
+    parser.add_argument(
+        "--no-preprocess",
+        action="store_true",
+        help="Disable contrast, deskew, crop and sharpening before OCR",
+    )
+    parser.add_argument(
+        "--preprocess-profile",
+        choices=["safe", "standard", "aggressive", "off"],
+        default=None,
+        help="Image preprocessing profile (default: safe: only polarity)",
+    )
     parser.add_argument(
         "--strict-core",
         action="store_true",

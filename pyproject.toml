@@ -17,6 +17,9 @@ dependencies = [
 [project.optional-dependencies]
 pix2tex = ["pix2tex>=0.1.4"]
 texify = ["texify>=0.2.1"]
+rapid-latex-ocr = ["rapid_latex_ocr>=0.0.9"]
+pix2text = ["pix2text>=1.1.7"]
+paddleocr = ["paddleocr>=3.7.0"]
 dev = ["pytest>=8.0", "ruff>=0.6"]
 
 [project.scripts]

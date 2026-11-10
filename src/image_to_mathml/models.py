@@ -149,11 +149,20 @@ class PipelineResult:
     elapsed_seconds: float = 0.0
     trace: list[str] = field(default_factory=list)
 
+    @property
+    def structure_source(self) -> str:
+        """Return which component produced the MathML structure."""
+
+        if self.flow is Flow.DIRECT and self.llm_used:
+            return "llm"
+        return "latex2mathml"
+
     def as_dict(self) -> dict[str, Any]:
         return {
             "latex": self.latex,
             "mathml": self.mathml,
             "flow": self.flow.value,
+            "structure_source": self.structure_source,
             "attempts": self.attempts,
             "llm_used": self.llm_used,
             "ocr_backend": self.ocr_backend,

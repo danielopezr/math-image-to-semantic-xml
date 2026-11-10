@@ -20,6 +20,9 @@ Optional OCR backends:
 ```bash
 .venv/bin/python -m pip install -e '.[texify]'
 .venv/bin/python -m pip install -e '.[pix2tex]'
+.venv/bin/python -m pip install -e '.[rapid-latex-ocr]'
+.venv/bin/python -m pip install -e '.[pix2text]'
+.venv/bin/python -m pip install -e '.[paddleocr]'
 ```
 
 Development tools:
@@ -52,6 +55,72 @@ Supported flows:
 
 The default flow is `hybrid`.
 
+## OCR backends
+
+The image-to-LaTeX stage is pluggable. `--ocr` (or `IMAGE_TO_MATHML_OCR`)
+accepts:
+
+| Backend | Extra | Engine | Notes |
+|---|---|---|---|
+| `texify` | `.[texify]` | PyTorch/Transformers | Default in `auto`. Adapter shims the config crash seen with `transformers>=4.45`. |
+| `pix2text` | `.[pix2text]` | ONNX or PyTorch (MFR) | `LatexOCR` formula model, good accuracy, downloads on first use. |
+| `pix2tex` | `.[pix2tex]` | PyTorch | Also known as LaTeX-OCR. |
+| `paddleocr` | `.[paddleocr]` | PaddlePaddle | PP-FormulaNet via PaddleOCR 3.x; heavier install. |
+| `rapid_latex_ocr` | `.[rapid-latex-ocr]` | ONNX | Lightweight, no PyTorch; its package pins `numpy<2`. |
+| `none` | - | - | OCR disabled; pass `--latex` instead. |
+
+`auto` uses the first installed backend in this order: `texify`, `pix2text`,
+`pix2tex`, `paddleocr`, `rapid_latex_ocr`. Aliases such as `latexocr`,
+`rapidocr`, `p2t` and `ppformulanet` are accepted by the Python API and the
+environment variable.
+
+OCR-specific environment variables:
+
+- `IMAGE_TO_MATHML_OCR_DEVICE`: `cpu` or `cuda` for texify and pix2text.
+- `IMAGE_TO_MATHML_TEXIFY_MODEL`: Hugging Face checkpoint (default `vikp/texify`).
+- `IMAGE_TO_MATHML_PIX2TEXT_MODEL`: MFR model name (default `mfr-1.5`).
+- `IMAGE_TO_MATHML_PIX2TEXT_BACKEND`: `onnx` (default) or `pytorch`.
+- `IMAGE_TO_MATHML_PADDLEOCR_MODEL`: default `PP-FormulaNet_plus-M`.
+
+## Image preprocessing
+
+Every OCR backend can run an image-enhancement pass before recognition. The
+default profile is intentionally minimal because aggressive transformations can
+degrade already-clean formula images:
+
+- `safe` (default): EXIF orientation correction and background polarity
+  normalisation only.
+- `standard`: adds border cropping, small-angle deskew, upscaling, autocontrast
+  and unsharp-mask sharpening.
+- `aggressive`: adds CLAHE and median denoising on top of `standard`.
+- `off`: disables preprocessing completely.
+
+Select a profile with `--preprocess-profile standard` or
+`IMAGE_TO_MATHML_PREPROCESS_PROFILE=standard`. `--no-preprocess` (or
+`IMAGE_TO_MATHML_PREPROCESS=false`) is equivalent to `off`.
+
+Individual steps can be overridden through environment variables:
+
+- `IMAGE_TO_MATHML_PREPROCESS_PROFILE`
+- `IMAGE_TO_MATHML_PREPROCESS_POLARITY`
+- `IMAGE_TO_MATHML_PREPROCESS_CROP`
+- `IMAGE_TO_MATHML_PREPROCESS_PADDING`
+- `IMAGE_TO_MATHML_PREPROCESS_DESKEW`
+- `IMAGE_TO_MATHML_PREPROCESS_MAX_ANGLE`
+- `IMAGE_TO_MATHML_PREPROCESS_CONTRAST`
+- `IMAGE_TO_MATHML_PREPROCESS_CLAHE`
+- `IMAGE_TO_MATHML_PREPROCESS_SHARPEN`
+- `IMAGE_TO_MATHML_PREPROCESS_DENOISE`
+- `IMAGE_TO_MATHML_PREPROCESS_UPSCALE`
+- `IMAGE_TO_MATHML_PREPROCESS_MIN_SIDE`
+- `IMAGE_TO_MATHML_PREPROCESS_BINARIZE`
+
+Set `IMAGE_TO_MATHML_PREPROCESS_DEBUG_DIR` to override the output directory.
+By default, the exact image sent to the OCR engine is written to
+`results/preprocessed/<image>_preprocessed.png`. Deskew needs NumPy and CLAHE
+needs OpenCV; when they are unavailable the pipeline silently keeps the
+Pillow-only steps.
+
 ## CLI
 
 ```bash
@@ -61,6 +130,10 @@ image-to-mathml compare --latex '\frac{a}{b}' --output-dir out
 image-to-mathml check --file equation.mathml
 image-to-mathml doctor
 ```
+
+`convert` prints the OCR LaTeX (when `--image` is used), the component that
+generated the MathML structure (`llm` or `latex2mathml`) and the MathML itself.
+`--json` includes the same information under `latex` and `structure_source`.
 
 ### Required input
 
@@ -82,7 +155,10 @@ input.
 - `--context-text`: surrounding OCR text.
 - `--lang`: reader language, default `es`.
 - `--flow`: `direct`, `hybrid`, `auto`, or `offline`; default `hybrid`.
-- `--ocr`: `auto`, `texify`, `pix2tex`, or `none`.
+- `--ocr`: `auto`, `texify`, `pix2tex`, `rapid_latex_ocr`, `pix2text`,
+  `paddleocr`, or `none`.
+- `--no-preprocess`: disable contrast, deskew, crop and sharpening before OCR.
+- `--preprocess-profile`: `safe` (default), `standard`, `aggressive`, or `off`.
 - `--strict-core`: reject open concepts, including `gamma-function`.
 - `--allow-open-concepts`: allow any documented W3C open concept.
 - `--allowed-open-concepts`: comma-separated open concepts to allow, for example

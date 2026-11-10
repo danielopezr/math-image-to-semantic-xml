@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
-from .base import OCRError
+from .base import OCRError, coerce_latex
+from .preprocess import PreprocessConfig, preprocess_image
 
 
 class Pix2TexOCR:
     name = "pix2tex"
 
-    def __init__(self) -> None:
+    def __init__(self, preprocess: PreprocessConfig | None = None) -> None:
         self._model = None
+        self.preprocess = preprocess or PreprocessConfig.from_env()
 
     def _load(self):
         if self._model is not None:
@@ -28,19 +30,10 @@ class Pix2TexOCR:
         return self._model
 
     def image_to_latex(self, image_path: str) -> str:
-        try:
-            from PIL import Image
-        except ImportError as exc:  # pragma: no cover
-            raise OCRError("Pillow is required for image input") from exc
         model = self._load()
-        try:
-            image = Image.open(image_path).convert("RGB")
-        except Exception as exc:
-            raise OCRError(f"Could not open image {image_path!r}: {exc}") from exc
+        image = preprocess_image(image_path, self.preprocess)
         try:
             latex = model(image)
         except Exception as exc:  # pragma: no cover - runtime/model errors
             raise OCRError(f"pix2tex failed on {image_path!r}: {exc}") from exc
-        if not latex or not latex.strip():
-            raise OCRError("pix2tex returned an empty LaTeX string")
-        return latex.strip()
+        return coerce_latex(latex, self.name)

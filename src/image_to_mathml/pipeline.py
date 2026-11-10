@@ -28,6 +28,7 @@ from .mathml.validator import (
 from .models import EquationRequest, Flow, MathContext, PipelineResult
 from .ocr.base import OCREngine
 from .ocr.factory import build_ocr
+from .ocr.preprocess import PreprocessConfig
 
 
 class EquationPipeline:
@@ -116,11 +117,18 @@ class EquationPipeline:
         engine = self.ocr
         if engine is None:
             backend = request.ocr_backend or self.settings.ocr_backend
-            engine = build_ocr(backend)
+            engine = build_ocr(
+                backend,
+                preprocess=PreprocessConfig.from_env(
+                    enabled=self.settings.ocr_preprocess,
+                    profile=self.settings.ocr_preprocess_profile,
+                ),
+            )
         if engine is None:
             raise ValueError(
-                "An image was provided but OCR is disabled. Install texify/pix2tex "
-                "or pass the recognised LaTeX directly."
+                "An image was provided but OCR is disabled. Install a supported "
+                "OCR backend (texify, pix2tex, rapid_latex_ocr, pix2text or "
+                "paddleocr) or pass the recognised LaTeX directly."
             )
         latex = clean_latex(engine.image_to_latex(request.image_path))
         if not latex:
