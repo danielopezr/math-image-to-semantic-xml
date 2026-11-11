@@ -159,8 +159,12 @@ image-to-mathml doctor
 
 `convert` prints the OCR LaTeX (when `--image` is used), the component that
 generated the MathML structure (`llm` or `latex2mathml`), every MathML structure
-returned by the LLM during each attempt, and the final MathML. `--json` exposes
-the same structures under `llm_outputs`.
+returned by the LLM during each attempt, and the final MathML. It also reports
+per-phase timings with the tool that executed each phase, the time of every LLM
+attempt, the attempts total/average, and the total pipeline time. If the direct
+flow needs `latex2mathml` after the LLM attempts, that fallback is labelled in
+the timing report. `--json` exposes the same information under `llm_outputs`,
+`timings` and `timing_summary`.
 
 ### Required input
 

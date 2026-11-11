@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
+from .timing import PhaseTiming
+
 
 class Flow(str, Enum):
     """Supported generation strategies."""
@@ -169,6 +171,7 @@ class PipelineResult:
     elapsed_seconds: float = 0.0
     trace: list[str] = field(default_factory=list)
     llm_outputs: list[LLMOutput] = field(default_factory=list)
+    timings: list[PhaseTiming] = field(default_factory=list)
 
     @property
     def structure_source(self) -> str:
@@ -191,5 +194,27 @@ class PipelineResult:
             "warnings": self.warnings,
             "trace": self.trace,
             "llm_outputs": [output.as_dict() for output in self.llm_outputs],
+            "timings": [timing.as_dict() for timing in self.timings],
+            "timing_summary": self.timing_summary(),
             "validation": self.validation.as_dict(),
+        }
+
+    def timing_summary(self) -> dict[str, Any]:
+        attempts = [timing for timing in self.timings if timing.phase == "attempt"]
+        attempts_total = round(sum(timing.duration_ms for timing in attempts), 3)
+        phase_totals: dict[str, float] = {}
+        for timing in self.timings:
+            if timing.attempt is not None or timing.phase == "attempt":
+                continue
+            phase_totals[timing.phase] = round(
+                phase_totals.get(timing.phase, 0.0) + timing.duration_ms, 3
+            )
+        return {
+            "total_ms": round(self.elapsed_seconds * 1000, 3),
+            "phase_totals_ms": phase_totals,
+            "attempt_count": len(attempts),
+            "attempts_total_ms": attempts_total,
+            "attempts_average_ms": (
+                round(attempts_total / len(attempts), 3) if attempts else 0.0
+            ),
         }

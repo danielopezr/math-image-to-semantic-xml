@@ -128,12 +128,71 @@ def _format_llm_outputs(result) -> list[str]:
     return lines
 
 
+def _timing_note(timing) -> str:
+    note = getattr(timing, "note", "")
+    return f" ({note})" if note else ""
+
+
+def _timing_group(timing) -> str:
+    group = getattr(timing, "group", "")
+    return f"[{group}] " if group else ""
+
+
+def _format_timings(result) -> list[str]:
+    timings = getattr(result, "timings", None) or []
+    if not timings:
+        return []
+
+    lines = ["Timings:"]
+    for timing in timings:
+        if timing.attempt is not None or timing.phase == "attempt":
+            continue
+        lines.append(
+            f"- {_timing_group(timing)}{timing.phase} [{timing.tool}]"
+            f"{_timing_note(timing)}: {timing.duration_ms:.1f} ms"
+        )
+
+    attempts = [timing for timing in timings if timing.phase == "attempt"]
+    if attempts:
+        lines.append("Attempts:")
+        per_attempt: dict[tuple[str, int], list[object]] = {}
+        for timing in timings:
+            if timing.attempt is not None and timing.phase != "attempt":
+                key = (getattr(timing, "group", ""), timing.attempt)
+                per_attempt.setdefault(key, []).append(timing)
+        for total in attempts:
+            key = (getattr(total, "group", ""), total.attempt)
+            lines.append(
+                f"- {_timing_group(total)}attempt {total.attempt} total "
+                f"[{total.tool}]: {total.duration_ms:.1f} ms"
+            )
+            for timing in per_attempt.get(key, []):
+                lines.append(
+                    f"    {timing.phase} [{timing.tool}]"
+                    f"{_timing_note(timing)}: {timing.duration_ms:.1f} ms"
+                )
+        attempts_total = sum(timing.duration_ms for timing in attempts)
+        lines.append(
+            f"- attempts total: {attempts_total:.1f} ms; average: "
+            f"{attempts_total / len(attempts):.1f} ms ({len(attempts)} attempts)"
+        )
+
+    summary = (
+        result.timing_summary()
+        if hasattr(result, "timing_summary")
+        else {"total_ms": getattr(result, "elapsed_seconds", 0.0) * 1000}
+    )
+    lines.append(f"- total pipeline: {summary.get('total_ms', 0.0):.1f} ms")
+    return lines
+
+
 def _format_convert_output(result) -> str:
     lines = []
     if result.ocr_backend != "none":
         lines.append(f"LaTeX OCR ({result.ocr_backend}): {result.latex}")
     lines.append(f"MathML structure: {result.structure_source}")
     lines.extend(_format_llm_outputs(result))
+    lines.extend(_format_timings(result))
     lines.append("")
     lines.append(result.mathml)
     return "\n".join(lines)
@@ -193,6 +252,12 @@ def _comparison_markdown(results: dict[str, object]) -> str:
         if result.warnings:
             lines.append(f"## {name}: advertencias")
             lines.extend(f"- {warning}" for warning in result.warnings)
+            lines.append("")
+    for name, result in results.items():
+        timing_lines = _format_timings(result)
+        if timing_lines:
+            lines.append(f"## {name}: tiempos")
+            lines.extend(timing_lines)
             lines.append("")
     for name, result in results.items():
         outputs = getattr(result, "llm_outputs", None) or []

@@ -389,3 +389,45 @@ def test_direct_vision_falls_back_to_latex_when_available():
     assert 'intent="fraction($num,$den)"' in result.mathml
     assert any("deterministic fallback" in warning for warning in result.warnings)
     assert len(result.llm_outputs) == 1
+
+
+def test_offline_flow_records_phase_timings():
+    pipeline = EquationPipeline()
+    result = pipeline.run(EquationRequest(latex=r"\frac{a}{b}", flow=Flow.OFFLINE))
+
+    phases = {timing.phase for timing in result.timings}
+    assert {
+        "latex2mathml",
+        "normalize",
+        "deterministic-annotation",
+        "validate",
+    } <= phases
+    assert any(timing.tool == "latex2mathml" for timing in result.timings)
+    summary = result.as_dict()["timing_summary"]
+    assert summary["attempt_count"] == 0
+    assert summary["total_ms"] >= 0
+
+
+def test_direct_flow_records_each_attempt_and_fallback_timing():
+    pipeline = EquationPipeline(llm=FakeLLM("not mathml"))
+    result = pipeline.run(
+        EquationRequest(
+            latex=r"\frac{a}{b}",
+            flow=Flow.DIRECT,
+            max_repair_attempts=1,
+        )
+    )
+
+    attempts = [timing for timing in result.timings if timing.phase == "attempt"]
+    assert [timing.attempt for timing in attempts] == [1, 2]
+    assert any(
+        timing.phase == "llm" and timing.attempt == 1 for timing in result.timings
+    )
+    assert any(
+        timing.phase == "latex2mathml" and "fallback" in timing.note
+        for timing in result.timings
+    )
+    summary = result.as_dict()["timing_summary"]
+    assert summary["attempt_count"] == 2
+    assert summary["attempts_total_ms"] >= 0
+    assert summary["attempts_average_ms"] >= 0
