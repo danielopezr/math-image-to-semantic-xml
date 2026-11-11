@@ -11,52 +11,69 @@ _CORE_NAMES = ", ".join(get_registry().names())
 def _structure_rules(
     allow_open_concepts: bool, allow_all_open_concepts: bool = False
 ) -> str:
-    function_rule = """9. A recognised named function must use its core concept
+    function_rule = """11. A recognised named function must use its core concept
    name instead of a generic application (for example sine for sin)."""
     if not allow_open_concepts:
-        concept_rule = f"""8. Use only the following W3C intent core concept names.
+        concept_rule = f"""10. Use only the following W3C intent core concept names.
    Do NOT use open concepts. Core names are:
    {_CORE_NAMES}"""
     elif allow_all_open_concepts:
-        concept_rule = f"""8. Use only names from the W3C intent registries. Do not
+        concept_rule = f"""10. Use only names from the W3C intent registries. Do not
    invent names. Core names are:
    {_CORE_NAMES}
    Any documented W3C open concept is allowed when it is the correct meaning,
    but prefer a core concept whenever one exists."""
     else:
-        concept_rule = f"""8. Use only names from the W3C intent registries. Do not
+        concept_rule = f"""10. Use only names from the W3C intent registries. Do not
    invent names. Core names are:
    {_CORE_NAMES}
    The only open concepts allowed by the current policy are gamma-function,
    beta-function and error-function. Do not use any other open concept."""
 
     return f"""Hard output contract:
-1. Return ONLY one MathML document. No Markdown fences, no comments, no explanation.
+1. Return ONLY one MathML Presentation document. Never use Content MathML
+   elements such as <apply>, <ci>, <cn>, <csymbol>, <lambda>, <bvar>,
+   <condition>, <declare>, <reln>, <fn> or <domainofapplication>.
+   No Markdown fences, no comments, no explanation.
 2. The root must be <math xmlns="http://www.w3.org/1998/Math/MathML">.
-3. The <math> root MUST NOT have a display attribute.
-4. The <math> root MUST contain exactly one <mrow> and that <mrow> must wrap the
+   All elements must be in that MathML namespace. Do not use prefixes, foreign
+   namespaces, custom elements or invented tag names.
+3. Use only these Presentation MathML elements: <math>, <mrow>, <mi>, <mn>,
+   <mo>, <mtext>, <ms>, <mspace>, <mglyph>, <mfrac>, <msqrt>, <mroot>,
+   <mstyle>, <merror>, <mpadded>, <mphantom>, <menclose>, <msub>, <msup>,
+   <msubsup>, <munder>, <mover>, <munderover>, <mmultiscripts>, <mprescripts>,
+   <none>, <mtable>, <mtr>, <mtd>, <mlabeledtr>, <maction>. Never emit
+   <semantics>, <annotation>, <annotation-xml> or any Content MathML element.
+4. Never use <mfenced>; it is deprecated. Write parentheses, brackets and
+   braces explicitly with <mo> tokens, for example <mo>(</mo> and <mo>)</mo>.
+5. The <math> root MUST NOT have a display attribute.
+6. The <math> root MUST contain exactly one <mrow> and that <mrow> must wrap the
    entire expression.
-5. Preserve the mathematical structure and every symbol faithfully.
-6. Do not wrap simple tokens in an unnecessary <mrow>. Use <mrow> only for real
+7. Preserve the mathematical structure and every symbol faithfully.
+8. Do not wrap simple tokens in an unnecessary <mrow>. Use <mrow> only for real
    grouping or when the <mrow> carries intent/arg attributes.
-7. Every $reference in an intent must have a matching arg="reference" on a
+9. Every $reference in an intent must have a matching arg="reference" on a
    descendant element.
 {concept_rule}
 {function_rule}
-10. A generic function application such as f(x) must use
-    intent="$name($var)" on the enclosing <mrow>, with arg="name" on the <mi>
-    that represents f and arg="var" on the element that represents x.
-11. Put intent and arg on the smallest element that owns the meaning. Prefer
+12. A generic function application such as f(x) must use
+    intent="$name($var)" on the enclosing <mrow>, with arg="name" on the element
+    that represents the complete function name and arg="var" on the element
+    that represents the argument. Indexed function names written in LaTeX as
+    f_{{i}} or f_{{i+1}} are still generic names: keep the complete indexed
+    symbol as the name and use the same $name($var) pattern. Never invent a
+    concept name for an indexed function. Examples:
+    f_{{i}}(x): <mrow intent="$name($var)"><msub arg="name"><mi>f</mi><mi>i</mi></msub><mo>(</mo><mi arg="var">x</mi><mo>)</mo></mrow>
+    f_{{i+1}}(x): <mrow intent="$name($var)"><msub arg="name"><mi>f</mi><mrow><mi>i</mi><mo>+</mo><mn>1</mn></mrow></msub><mo>(</mo><mi arg="var">x</mi><mo>)</mo></mrow>
+13. Put intent and arg on the smallest element that owns the meaning. Prefer
     <mfrac intent="fraction($num,$den)"> rather than an extra wrapper.
-12. Only add intent attributes for operators tag <mo> when the context needs it for
-    avoid any ambiguity, prefer the default fallback instead, e.g. do not add intent for
-    equal, plus, minus and other common basic operations when the identified semantic meaning 
-    is the default. Example:
-    Avoid: <mo intent="equals">=</mo>, prefers <mo>=</mo>, add intent when the context requires
-    a diferent meaning from the defualt equals. Use only the intent fraction($num, den) when the
-    representation doesn't use the <mfrac> tag, for example for presentation in the form a/b, in
-    order to guarantee the correct reading from the reading tool as 'a over b'.
-13. It is okey if for one simple equation the final output MathML document doesn't have any intent.
+14. Add intent to an <mo> only when the context requires a meaning different
+    from its default reading. Do not annotate common operators such as equals,
+    plus or minus in their default meaning. Example: prefer <mo>=</mo> over
+    <mo intent="equals">=</mo>. Use the intent fraction($num,$den) only when
+    the source uses a linear form such as a/b instead of <mfrac>, so it reads
+    as "a over b".
+15. It is acceptable for a simple equation to have no intent attribute.
 """
 
 
@@ -81,6 +98,12 @@ LaTeX: \\frac{{a}}{{b}}
 
 LaTeX: f(x)
 <math xmlns="http://www.w3.org/1998/Math/MathML"><mrow intent="$name($var)"><mi arg="name">f</mi><mo>(</mo><mi arg="var">x</mi><mo>)</mo></mrow></math>
+
+LaTeX: f_{{i}}(x)
+<math xmlns="http://www.w3.org/1998/Math/MathML"><mrow intent="$name($var)"><msub arg="name"><mi>f</mi><mi>i</mi></msub><mo>(</mo><mi arg="var">x</mi><mo>)</mo></mrow></math>
+
+LaTeX: f_{{i+1}}(x)
+<math xmlns="http://www.w3.org/1998/Math/MathML"><mrow intent="$name($var)"><msub arg="name"><mi>f</mi><mrow><mi>i</mi><mo>+</mo><mn>1</mn></mrow></msub><mo>(</mo><mi arg="var">x</mi><mo>)</mo></mrow></math>
 {gamma_example}
 LaTeX: \\sin(x)
 <math xmlns="http://www.w3.org/1998/Math/MathML"><mrow intent="sine($arg)"><mi>sin</mi><mo>(</mo><mi arg="arg">x</mi><mo>)</mo></mrow></math>
@@ -104,12 +127,17 @@ Example:
 Base MathML:
 <math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mfrac><mi>a</mi><mi>b</mi></mfrac></mrow></math>
 Annotated MathML:
-<math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mfrac"><mi>a</mi><mi>b</mi></mfrac></mrow></math>
+<math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mfrac intent="fraction($num,$den)"><mi arg="num">a</mi><mi arg="den">b</mi></mfrac></mrow></math>
 
 Base MathML:
 <math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mi>f</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>
 Annotated MathML:
 <math xmlns="http://www.w3.org/1998/Math/MathML"><mrow intent="$name($var)"><mi arg="name">f</mi><mo>(</mo><mi arg="var">x</mi><mo>)</mo></mrow></math>
+
+Base MathML:
+<math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><msub><mi>f</mi><mi>i</mi></msub><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>
+Annotated MathML:
+<math xmlns="http://www.w3.org/1998/Math/MathML"><mrow intent="$name($var)"><msub arg="name"><mi>f</mi><mi>i</mi></msub><mo>(</mo><mi arg="var">x</mi><mo>)</mo></mrow></math>
 """
     )
 
@@ -130,6 +158,49 @@ def _feedback_block(feedback: list[str] | None) -> str:
         f"{lines}\n"
         "Return a complete corrected MathML document. Do not explain.\n"
     )
+
+
+def _vision_system(
+    allow_open_concepts: bool, allow_all_open_concepts: bool = False
+) -> str:
+    return (
+        "You are a meticulous MathML 4 accessibility engineer. You receive an "
+        "image of a mathematical equation. Read the image and return directly "
+        "its Presentation MathML annotated with W3C intent attributes. Do not "
+        "transcribe the image to LaTeX first and do not include any LaTeX in "
+        "your answer.\n"
+        + _structure_rules(allow_open_concepts, allow_all_open_concepts)
+        + """
+Examples of valid final outputs:
+<math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mfrac intent="fraction($num,$den)"><mi arg="num">a</mi><mi arg="den">b</mi></mfrac></mrow></math>
+
+<math xmlns="http://www.w3.org/1998/Math/MathML"><mrow intent="$name($var)"><mi arg="name">f</mi><mo>(</mo><mi arg="var">x</mi><mo>)</mo></mrow></math>
+
+<math xmlns="http://www.w3.org/1998/Math/MathML"><mrow intent="$name($var)"><msub arg="name"><mi>f</mi><mi>i</mi></msub><mo>(</mo><mi arg="var">x</mi><mo>)</mo></mrow></math>
+"""
+    )
+
+
+def vision_messages(
+    context: MathContext,
+    feedback: list[str] | None = None,
+    *,
+    allow_open_concepts: bool = True,
+    allow_all_open_concepts: bool = False,
+) -> list[dict[str, str]]:
+    user = (
+        "Read the mathematical equation in the attached image and return its "
+        "complete Presentation MathML with W3C intent attributes.\n\n"
+        f"{_context_block(context)}\n"
+        f"{_feedback_block(feedback)}"
+    )
+    return [
+        {
+            "role": "system",
+            "content": _vision_system(allow_open_concepts, allow_all_open_concepts),
+        },
+        {"role": "user", "content": user},
+    ]
 
 
 def direct_messages(

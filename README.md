@@ -32,13 +32,19 @@ Development tools:
 ```
 
 The default local LLM backend is Ollama at `http://localhost:11434` with
-model `qwen2.5:3b`. Other OpenAI-compatible local servers (vLLM, LM Studio,
-Jan, llama.cpp, LocalAI) can be selected with `--backend`.
+text model `qwen2.5:3b`. The vision flow uses `qwen3-vl:4b-instruct` by default
+and can be changed with `--vision-model` or
+`IMAGE_TO_MATHML_OLLAMA_VISION_MODEL`. Other OpenAI-compatible local servers
+(vLLM, LM Studio, Jan, llama.cpp, LocalAI) can be selected with `--backend`.
 
 ## Pipeline flow
 
 ```text
-OCR (optional) -> LaTeX cleanup -> MathML generation/annotation ->
+image -> vision LLM -> annotated MathML -> normalisation -> validation -> repair
+```
+
+```text
+image -> OCR -> LaTeX cleanup -> MathML generation/annotation ->
 normalisation -> validation -> repair/retry -> deterministic fallback
 ```
 
@@ -49,11 +55,18 @@ Supported flows:
 - `hybrid`: `latex2mathml` builds the Presentation MathML skeleton, then the
   LLM adds `intent` and `arg` attributes. Invalid LLM annotations are pruned
   and rebuilt deterministically.
-- `direct`: the LLM converts LaTeX directly into annotated MathML.
+- `direct`: the LLM converts LaTeX directly into annotated MathML. With
+  `--direct-vision`, the Ollama vision agent reads the image directly instead
+  and keeps the direct flow's deterministic fallback.
 - `auto`: runs the hybrid flow first; runs the direct flow only if hybrid is
   not acceptable.
+- `vision`: the Ollama vision model reads the image and produces annotated
+  MathML directly, without OCR or an intermediate LaTeX string. There is no
+  deterministic fallback in this flow: if validation fails after the repair
+  attempts, the last MathML candidate produced by the model is returned.
 
-The default flow is `hybrid`.
+The default flow is `hybrid`. The `vision` flow requires `--image` and ignores
+`--ocr`.
 
 ## OCR backends
 
@@ -67,12 +80,15 @@ accepts:
 | `pix2tex` | `.[pix2tex]` | PyTorch | Also known as LaTeX-OCR. |
 | `paddleocr` | `.[paddleocr]` | PaddlePaddle | PP-FormulaNet via PaddleOCR 3.x; heavier install. |
 | `rapid_latex_ocr` | `.[rapid-latex-ocr]` | ONNX | Lightweight, no PyTorch; its package pins `numpy<2`. |
+| `ollama_vision` | - | Ollama + Qwen3-VL | Sends the image directly to Ollama `/api/chat`. Low-RAM option; needs no extra Python package. |
 | `none` | - | - | OCR disabled; pass `--latex` instead. |
 
-`auto` uses the first installed backend in this order: `texify`, `pix2text`,
-`pix2tex`, `paddleocr`, `rapid_latex_ocr`. Aliases such as `latexocr`,
-`rapidocr`, `p2t` and `ppformulanet` are accepted by the Python API and the
-environment variable.
+`auto` uses the first available backend in this order: `texify`, `pix2text`,
+`pix2tex`, `paddleocr`, `rapid_latex_ocr`, `ollama_vision`. Aliases such as
+`latexocr`, `rapidocr`, `p2t`, `ppformulanet` and `ollama` are accepted by
+`--ocr`, the Python API and the environment variable. Because `ollama_vision` only needs the
+base `requests` dependency, it is the automatic fallback when no specialized
+equation OCR package is installed.
 
 OCR-specific environment variables:
 
@@ -81,6 +97,16 @@ OCR-specific environment variables:
 - `IMAGE_TO_MATHML_PIX2TEXT_MODEL`: MFR model name (default `mfr-1.5`).
 - `IMAGE_TO_MATHML_PIX2TEXT_BACKEND`: `onnx` (default) or `pytorch`.
 - `IMAGE_TO_MATHML_PADDLEOCR_MODEL`: default `PP-FormulaNet_plus-M`.
+- `IMAGE_TO_MATHML_OLLAMA_VISION_MODEL`: default `qwen3-vl:4b-instruct`; use
+  `qwen3-vl:2b` on very low-RAM machines.
+- `IMAGE_TO_MATHML_OLLAMA_VISION_BASE_URL`: default `OLLAMA_BASE_URL` or
+  `http://localhost:11434`.
+- `IMAGE_TO_MATHML_OLLAMA_VISION_TIMEOUT`: default `180` seconds.
+- `IMAGE_TO_MATHML_OLLAMA_VISION_NUM_CTX`: context window, default `4096`.
+- `IMAGE_TO_MATHML_OLLAMA_VISION_NUM_PREDICT`: maximum output tokens, default
+  `1024`.
+- `IMAGE_TO_MATHML_OLLAMA_VISION_MAX_SIDE`: resize larger images to this maximum
+  side before sending, default `1600`; use `0` to disable.
 
 ## Image preprocessing
 
@@ -132,8 +158,9 @@ image-to-mathml doctor
 ```
 
 `convert` prints the OCR LaTeX (when `--image` is used), the component that
-generated the MathML structure (`llm` or `latex2mathml`) and the MathML itself.
-`--json` includes the same information under `latex` and `structure_source`.
+generated the MathML structure (`llm` or `latex2mathml`), every MathML structure
+returned by the LLM during each attempt, and the final MathML. `--json` exposes
+the same structures under `llm_outputs`.
 
 ### Required input
 
@@ -154,9 +181,11 @@ input.
 - `--topic`: topic detected by the previous stage.
 - `--context-text`: surrounding OCR text.
 - `--lang`: reader language, default `es`.
-- `--flow`: `direct`, `hybrid`, `auto`, or `offline`; default `hybrid`.
+- `--flow`: `direct`, `hybrid`, `auto`, `vision`, or `offline`; default
+  `hybrid`.
 - `--ocr`: `auto`, `texify`, `pix2tex`, `rapid_latex_ocr`, `pix2text`,
-  `paddleocr`, or `none`.
+  `paddleocr`, `ollama_vision`, or `none`; aliases such as `ollama` and
+  `qwen3-vl` are also accepted.
 - `--no-preprocess`: disable contrast, deskew, crop and sharpening before OCR.
 - `--preprocess-profile`: `safe` (default), `standard`, `aggressive`, or `off`.
 - `--strict-core`: reject open concepts, including `gamma-function`.
@@ -164,7 +193,13 @@ input.
 - `--allowed-open-concepts`: comma-separated open concepts to allow, for example
   `gamma-function,airy-function`.
 - `--max-repairs`: maximum repair attempts for LLM flows.
-- `--model`: LLM model name.
+- `--model`: text LLM model name.
+- `--vision-model`: Ollama vision model for the vision agent (default
+  `qwen3-vl:4b-instruct`).
+- `--direct-vision`: in `--flow direct`, use the Ollama vision agent on the
+  image instead of the text model on LaTeX. Requires `--image`; falls back to
+  the deterministic LaTeX annotator when an OCR LaTeX representation is
+  available.
 - `--backend`: `ollama`, `openai`, `openai-compatible`, `vllm`, `vert`, or
   `lmstudio`.
 - `--base-url`: LLM server base URL.
@@ -197,6 +232,30 @@ Generated MathML must satisfy:
 - generic `f(x)` uses `intent="$name($var)"`.
 
 ## Examples
+
+Image -> LaTeX with the Ollama vision OCR backend:
+
+```bash
+ollama pull qwen3-vl:4b-instruct
+image-to-mathml convert --image equation.png --ocr ollama_vision --flow hybrid
+```
+
+Direct image -> annotated MathML with the vision flow (no intermediate LaTeX):
+
+```bash
+image-to-mathml convert --image equation.png --flow vision
+```
+
+Direct flow using the vision agent with deterministic fallback:
+
+```bash
+image-to-mathml convert --image equation.png --flow direct --direct-vision
+```
+
+For very low RAM, pull `qwen3-vl:2b` and use
+`--vision-model qwen3-vl:2b` or
+`IMAGE_TO_MATHML_OLLAMA_VISION_MODEL=qwen3-vl:2b`. The same vision agent can be
+selected in the direct flow with `IMAGE_TO_MATHML_DIRECT_VISION=1`.
 
 Offline deterministic conversion:
 

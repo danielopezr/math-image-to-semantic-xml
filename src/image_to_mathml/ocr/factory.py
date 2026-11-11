@@ -15,6 +15,7 @@ OCR_BACKENDS = (
     "rapid_latex_ocr",
     "pix2text",
     "paddleocr",
+    "ollama_vision",
     "none",
 )
 
@@ -34,10 +35,23 @@ _ALIASES = {
     "pp_formulanet": "paddleocr",
     "pp_formula_net": "paddleocr",
     "formulanet": "paddleocr",
+    "ollama": "ollama_vision",
+    "vision": "ollama_vision",
+    "qwen3vl": "ollama_vision",
+    "qwen3_vl": "ollama_vision",
 }
 
+OCR_BACKEND_CHOICES = tuple(dict.fromkeys((*OCR_BACKENDS, *_ALIASES)))
+
 # Highest-quality/commonly-installed first.  ``auto`` picks the first available.
-_AUTO_ORDER = ("texify", "pix2text", "pix2tex", "paddleocr", "rapid_latex_ocr")
+_AUTO_ORDER = (
+    "texify",
+    "pix2text",
+    "pix2tex",
+    "paddleocr",
+    "rapid_latex_ocr",
+    "ollama_vision",
+)
 
 _MODULES = {
     "texify": "texify",
@@ -45,6 +59,7 @@ _MODULES = {
     "rapid_latex_ocr": "rapid_latex_ocr",
     "pix2text": "pix2text",
     "paddleocr": "paddleocr",
+    "ollama_vision": "requests",
 }
 
 _INSTALL_HINTS = {
@@ -53,6 +68,7 @@ _INSTALL_HINTS = {
     "rapid_latex_ocr": "pip install -e '.[rapid-latex-ocr]'",
     "pix2text": "pip install -e '.[pix2text]'",
     "paddleocr": "pip install -e '.[paddleocr]'",
+    "ollama_vision": "ollama pull qwen3-vl:4b-instruct",
 }
 
 
@@ -91,6 +107,10 @@ def _make(
         from .paddleocr import PaddleOCRFormula
 
         return PaddleOCRFormula(model_name=model, preprocess=preprocess)
+    if name == "ollama_vision":
+        from .ollama_vision import OllamaVisionOCR
+
+        return OllamaVisionOCR(model=model, preprocess=preprocess)
     raise AssertionError(f"unhandled OCR backend: {name}")
 
 
@@ -113,9 +133,10 @@ def build_ocr(
                 return _make(candidate, device, model, preprocess)
         hints = ", ".join(f"`{_INSTALL_HINTS[candidate]}`" for candidate in _AUTO_ORDER)
         raise OCRError(
-            "No equation OCR backend is installed. Install one of texify, "
-            f"pix2tex, rapid_latex_ocr, pix2text or paddleocr ({hints}), "
-            "or pass the LaTeX directly with --latex."
+            "No equation OCR backend is available. Install one of texify, "
+            f"pix2tex, rapid_latex_ocr, pix2text or paddleocr, or pull an "
+            f"Ollama vision model ({hints}), or pass the LaTeX directly "
+            "with --latex."
         )
 
     if name not in _MODULES:

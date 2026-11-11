@@ -46,6 +46,10 @@ class Settings:
 
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "qwen2.5:3b"
+    ollama_vision_model: str = "qwen3-vl:4b-instruct"
+    ollama_vision_num_predict: int = 1024
+    ollama_vision_num_ctx: int = 4096
+    ollama_vision_max_side: int = 1600
     ollama_timeout: float = 180.0
     temperature: float = 0.0
     num_predict: int = 1600
@@ -59,6 +63,7 @@ class Settings:
         "error-function",
     )
     ocr_backend: str = "auto"
+    direct_vision: bool = False
     ocr_preprocess: bool = True
     ocr_preprocess_profile: str = "safe"
     llm_backend: str = "ollama"
@@ -70,6 +75,21 @@ class Settings:
         return cls(
             ollama_base_url=os.getenv("OLLAMA_BASE_URL", cls.ollama_base_url),
             ollama_model=os.getenv("OLLAMA_MODEL", cls.ollama_model),
+            ollama_vision_model=os.getenv(
+                "IMAGE_TO_MATHML_OLLAMA_VISION_MODEL", cls.ollama_vision_model
+            ),
+            ollama_vision_num_predict=_env_int(
+                "IMAGE_TO_MATHML_OLLAMA_VISION_NUM_PREDICT",
+                cls.ollama_vision_num_predict,
+            ),
+            ollama_vision_num_ctx=_env_int(
+                "IMAGE_TO_MATHML_OLLAMA_VISION_NUM_CTX",
+                cls.ollama_vision_num_ctx,
+            ),
+            ollama_vision_max_side=_env_int(
+                "IMAGE_TO_MATHML_OLLAMA_VISION_MAX_SIDE",
+                cls.ollama_vision_max_side,
+            ),
             ollama_timeout=_env_float("OLLAMA_TIMEOUT", cls.ollama_timeout),
             temperature=_env_float("OLLAMA_TEMPERATURE", cls.temperature),
             num_predict=_env_int("OLLAMA_NUM_PREDICT", cls.num_predict),
@@ -89,6 +109,7 @@ class Settings:
                 cls.allowed_open_concepts,
             ),
             ocr_backend=os.getenv("IMAGE_TO_MATHML_OCR", cls.ocr_backend),
+            direct_vision=_env_bool("IMAGE_TO_MATHML_DIRECT_VISION", cls.direct_vision),
             ocr_preprocess=_env_bool("IMAGE_TO_MATHML_PREPROCESS", cls.ocr_preprocess),
             ocr_preprocess_profile=os.getenv(
                 "IMAGE_TO_MATHML_PREPROCESS_PROFILE",

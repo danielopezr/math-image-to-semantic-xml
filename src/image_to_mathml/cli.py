@@ -8,7 +8,7 @@ import sys
 from . import __version__
 from .cli_commands import cmd_check, cmd_compare, cmd_convert, cmd_doctor
 from .models import Flow
-from .ocr.factory import OCR_BACKENDS
+from .ocr.factory import OCR_BACKEND_CHOICES
 
 
 def _add_common(parser: argparse.ArgumentParser) -> None:
@@ -26,14 +26,16 @@ def _add_common(parser: argparse.ArgumentParser) -> None:
         "--flow",
         choices=[flow.value for flow in Flow],
         default=Flow.HYBRID.value,
-        help="Generation flow (default: hybrid)",
+        help="Generation flow (default: hybrid). Use vision for direct "
+        "image-to-MathML without an intermediate LaTeX step.",
     )
     parser.add_argument(
         "--ocr",
-        choices=OCR_BACKENDS,
+        choices=OCR_BACKEND_CHOICES,
         metavar="BACKEND",
         help="Equation OCR backend: auto, texify, pix2tex, rapid_latex_ocr, "
-        "pix2text, paddleocr or none (default: auto)",
+        "pix2text, paddleocr, ollama_vision or none (default: auto). "
+        "Aliases: ollama, vision, qwen3-vl",
     )
     parser.add_argument(
         "--no-preprocess",
@@ -65,6 +67,17 @@ def _add_common(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument("--max-repairs", type=int, default=None)
     parser.add_argument("--model", default=None)
+    parser.add_argument(
+        "--vision-model",
+        default=None,
+        help="Ollama vision model for the vision agent (default: qwen3-vl:4b-instruct)",
+    )
+    parser.add_argument(
+        "--direct-vision",
+        action="store_true",
+        help="In --flow direct, use the Ollama vision agent on the image instead "
+        "of the text model on LaTeX",
+    )
     parser.add_argument(
         "--backend",
         default=None,

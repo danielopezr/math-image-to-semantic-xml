@@ -68,3 +68,35 @@ def test_does_not_add_unnecessary_mrow_for_plain_fraction():
     annotate_tree(root)
     result = serialize_mathml(root)
     assert result.count("<mrow") == 1
+
+
+def test_annotates_indexed_generic_function_names():
+    subscript = _annotated(r"f_{i}(x)")
+    assert 'intent="$name($var)"' in subscript
+    assert '<msub arg="name">' in subscript
+    assert '<mi arg="var">x</mi>' in subscript
+
+    expression = _annotated(r"f_{i+1}(x)")
+    assert 'intent="$name($var)"' in expression
+    assert '<msub arg="name">' in expression
+    assert '<mi arg="var">x</mi>' in expression
+
+
+def test_does_not_annotate_basic_operators_with_default_meaning():
+    result = _annotated("a+b=c")
+    assert 'intent="plus"' not in result
+    assert 'intent="equals"' not in result
+    assert "intent=" not in result
+
+    product = _annotated(r"a \times b")
+    assert 'intent="times"' not in product
+    assert "intent=" not in product
+
+    division = _annotated("a/b")
+    assert 'intent="divided-by"' not in division
+    assert 'intent="fraction($num,$den)"' in division
+    assert 'arg="num"' in division
+    assert 'arg="den"' in division
+
+    compound = _annotated("a/b+c")
+    assert "intent=" not in compound

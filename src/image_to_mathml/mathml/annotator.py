@@ -4,7 +4,9 @@ This module does not try to replace the language model.  It recognises the
 unambiguous structures produced by ``latex2mathml`` (fractions, powers, roots,
 named function applications and generic ``f(x)`` applications) so the pipeline
 can always return a useful accessible expression when the local model is not
-available or its answer does not validate.
+available or its answer does not validate. It deliberately leaves bare
+operators unannotated unless a structural rule gives them a non-default
+meaning, matching the agent prompts.
 """
 
 from __future__ import annotations
@@ -44,28 +46,6 @@ FUNCTION_CONCEPTS: dict[str, str] = {
     "beta": "beta-function",
 }
 
-OPERATOR_INTENTS: dict[str, str] = {
-    # "+": "plus",
-    # "\u2212": "minus",
-    # "-": "minus",
-    # "=": "equals",
-    "\u00d7": "times",
-    "\u00b7": "times",
-    "\u00f7": "divided-by",
-    "/": "divided-by",
-    "\u2264": "less-than-or-equal-to",
-    "\u2265": "greater-than-or-equal-to",
-    "\u2260": "not-equal-to",
-    "<": "less-than",
-    ">": "greater-than",
-    "\u2208": "element-of",
-    "\u2209": "does-not-belong-to",
-    "\u222a": "union",
-    "\u2229": "intersection",
-    "\u2211": "sum",
-    "\u220f": "product",
-}
-
 
 def _is_mo(element: etree._Element, text: str | None = None) -> bool:
     if localname(element.tag) != "mo":
@@ -75,6 +55,30 @@ def _is_mo(element: etree._Element, text: str | None = None) -> bool:
 
 def _is_mi(element: etree._Element) -> bool:
     return localname(element.tag) == "mi"
+
+
+def _function_name(
+    element: etree._Element,
+) -> tuple[etree._Element, str, str | None] | None:
+    if _is_mi(element):
+        name = element_text(element)
+        if not name:
+            return None
+        return element, name, FUNCTION_CONCEPTS.get(name)
+
+    if localname(element.tag) != "msub":
+        return None
+
+    children = element_children(element)
+    if len(children) != 2 or not _is_mi(children[0]):
+        return None
+
+    base = element_text(children[0])
+    index = element_text(children[1])
+    if not base or not index or base in FUNCTION_CONCEPTS:
+        return None
+
+    return element, element_text(element) or base, None
 
 
 def _find_matching_paren(children: list[etree._Element], open_index: int) -> int | None:
@@ -123,7 +127,11 @@ def _annotate_function_applications_in(mrow: etree._Element) -> list[etree._Elem
     index = 0
     while index < len(children):
         candidate = children[index]
-        if not _is_mi(candidate) or index + 2 >= len(children):
+        if index + 2 >= len(children):
+            index += 1
+            continue
+        name_info = _function_name(candidate)
+        if name_info is None:
             index += 1
             continue
         open_paren = children[index + 1]
@@ -140,12 +148,11 @@ def _annotate_function_applications_in(mrow: etree._Element) -> list[etree._Elem
             index += 1
             continue
 
-        name = element_text(candidate)
+        name_element, name, concept = name_info
         if not name:
             index += 1
             continue
 
-        concept = FUNCTION_CONCEPTS.get(name)
         whole_row = index == 0 and close_index == len(children) - 1
 
         if whole_row:
@@ -161,7 +168,7 @@ def _annotate_function_applications_in(mrow: etree._Element) -> list[etree._Elem
 
         if concept is None:
             target.set("intent", "$name($var)")
-            candidate.set("arg", "name")
+            name_element.set("arg", "name")
             argument_name = "var"
         else:
             target.set("intent", f"{concept}($arg)")
@@ -329,11 +336,36 @@ def _set_args(children: list[etree._Element], names: list[str]) -> bool:
     return True
 
 
+def _annotate_linear_fractions(root: etree._Element) -> None:
+    for element in list(root.iter()):
+        if not is_element(element) or localname(element.tag) != "mrow":
+            continue
+        if element.get("intent") is not None:
+            continue
+        children = element_children(element)
+        if len(children) != 3:
+            continue
+        numerator, operator, denominator = children
+        if not _is_mo(operator, "/"):
+            continue
+        if localname(numerator.tag) == "mo" or localname(denominator.tag) == "mo":
+            continue
+        if numerator.get("arg") not in (None, "num"):
+            continue
+        if denominator.get("arg") not in (None, "den"):
+            continue
+        numerator.set("arg", "num")
+        denominator.set("arg", "den")
+        element.set("intent", "fraction($num,$den)")
+
+
 def _annotate_structures(root: etree._Element) -> None:
     for element in list(root.iter()):
         if not is_element(element):
             continue
         if element.get("intent") is not None:
+            continue
+        if element.get("arg") == "name":
             continue
         tag = localname(element.tag)
         children = element_children(element)
@@ -379,17 +411,6 @@ def _annotate_structures(root: etree._Element) -> None:
             element.set("intent", "root($radicand,$index)")
 
 
-def _annotate_operators(root: etree._Element) -> None:
-    for element in root.iter():
-        if not is_element(element) or localname(element.tag) != "mo":
-            continue
-        if element.get("intent") is not None:
-            continue
-        concept = OPERATOR_INTENTS.get(element_text(element))
-        if concept:
-            element.set("intent", concept)
-
-
 def annotate_tree(root: etree._Element) -> int:
     """Add deterministic intents to a normalised MathML tree.
 
@@ -398,8 +419,8 @@ def annotate_tree(root: etree._Element) -> int:
 
     _annotate_function_applications(root)
     _annotate_bare_functions(root)
+    _annotate_linear_fractions(root)
     _annotate_structures(root)
-    _annotate_operators(root)
     return sum(
         1
         for element in root.iter()

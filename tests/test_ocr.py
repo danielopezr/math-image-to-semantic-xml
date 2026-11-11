@@ -1,3 +1,4 @@
+import json
 import sys
 import types
 
@@ -5,6 +6,7 @@ import pytest
 
 from image_to_mathml.ocr import factory
 from image_to_mathml.ocr.base import OCRError, coerce_latex
+from image_to_mathml.ocr.ollama_vision import OllamaVisionOCR
 from image_to_mathml.ocr.paddleocr import PaddleOCRFormula
 from image_to_mathml.ocr.pix2text import Pix2TextOCR
 from image_to_mathml.ocr.preprocess import PreprocessConfig
@@ -39,6 +41,18 @@ def test_canonical_aliases():
     assert factory._canonical_name("rapidocr") == "rapid_latex_ocr"
     assert factory._canonical_name("p2t") == "pix2text"
     assert factory._canonical_name("PP-FormulaNet") == "paddleocr"
+    assert factory._canonical_name("ollama") == "ollama_vision"
+    assert factory._canonical_name("ollama-vision") == "ollama_vision"
+    assert factory._canonical_name("qwen3-vl") == "ollama_vision"
+    assert "ollama" in factory.OCR_BACKEND_CHOICES
+    assert "ollama_vision" in factory.OCR_BACKEND_CHOICES
+
+
+def test_build_ocr_ollama_alias():
+    engine = factory.build_ocr("ollama", model="qwen3-vl:2b")
+    assert engine is not None
+    assert engine.name == "ollama_vision"
+    assert engine.model == "qwen3-vl:2b"
 
 
 def test_auto_uses_first_installed_backend(monkeypatch):
@@ -61,6 +75,14 @@ def test_auto_reports_install_hints(monkeypatch):
     monkeypatch.setattr(factory, "_installed", lambda module: False)
     with pytest.raises(OCRError, match="No equation OCR backend"):
         factory.build_ocr("auto")
+
+
+def test_auto_falls_back_to_ollama_vision(monkeypatch):
+    monkeypatch.setattr(factory, "_installed", lambda module: module == "requests")
+    engine = factory.build_ocr("auto", model="qwen3-vl:2b")
+    assert engine is not None
+    assert engine.name == "ollama_vision"
+    assert engine.model == "qwen3-vl:2b"
 
 
 @pytest.mark.parametrize(
@@ -121,3 +143,49 @@ def test_texify_transformers_compatibility_patch(monkeypatch):
     _patch_transformers_config_compat()
 
     assert FakeConfig().to_diff_dict() == {"model_type": "vision-encoder-decoder"}
+
+
+def test_ollama_vision_sends_image_and_extracts_latex(monkeypatch, equation_image):
+    engine = OllamaVisionOCR(
+        model="qwen3-vl:2b", preprocess=PreprocessConfig(enabled=False)
+    )
+    captured = {}
+
+    class FakeResponse:
+        status_code = 200
+
+        def json(self):
+            return {"message": {"content": "```latex\n\\frac{a}{b}\n```"}}
+
+    def fake_post(url, data=None, headers=None, timeout=None):
+        captured["url"] = url
+        captured["data"] = data
+        captured["headers"] = headers
+        captured["timeout"] = timeout
+        return FakeResponse()
+
+    monkeypatch.setattr("image_to_mathml.llm.ollama_vision.requests.post", fake_post)
+
+    assert engine.image_to_latex(equation_image) == r"\frac{a}{b}"
+    payload = json.loads(captured["data"])
+    assert captured["url"] == "http://localhost:11434/api/chat"
+    assert payload["model"] == "qwen3-vl:2b"
+    assert payload["stream"] is False
+    assert payload["messages"][-1]["images"]
+    assert payload["options"]["num_ctx"] == 4096
+
+
+def test_ollama_vision_reports_http_errors(monkeypatch, equation_image):
+    engine = OllamaVisionOCR(preprocess=PreprocessConfig(enabled=False))
+
+    class FakeResponse:
+        status_code = 404
+        text = "model 'qwen3-vl:4b-instruct' not found"
+
+    monkeypatch.setattr(
+        "image_to_mathml.llm.ollama_vision.requests.post",
+        lambda *args, **kwargs: FakeResponse(),
+    )
+
+    with pytest.raises(OCRError, match="HTTP 404"):
+        engine.image_to_latex(equation_image)

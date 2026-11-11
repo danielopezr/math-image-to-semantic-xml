@@ -14,6 +14,7 @@ class Flow(str, Enum):
     HYBRID = "hybrid"
     AUTO = "auto"
     OFFLINE = "offline"
+    VISION = "vision"
 
 
 class Severity(str, Enum):
@@ -60,6 +61,7 @@ class EquationRequest:
     ocr_backend: str | None = None
     allow_open_concepts: bool | None = None
     max_repair_attempts: int | None = None
+    direct_vision: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -137,6 +139,24 @@ class ValidationReport:
 
 
 @dataclass
+class LLMOutput:
+    """One MathML structure returned by the LLM during a pipeline run."""
+
+    flow: Flow
+    attempt: int
+    mathml: str
+    accepted: bool = False
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "flow": self.flow.value,
+            "attempt": self.attempt,
+            "accepted": self.accepted,
+            "mathml": self.mathml,
+        }
+
+
+@dataclass
 class PipelineResult:
     latex: str
     mathml: str
@@ -148,12 +168,13 @@ class PipelineResult:
     warnings: list[str] = field(default_factory=list)
     elapsed_seconds: float = 0.0
     trace: list[str] = field(default_factory=list)
+    llm_outputs: list[LLMOutput] = field(default_factory=list)
 
     @property
     def structure_source(self) -> str:
         """Return which component produced the MathML structure."""
 
-        if self.flow is Flow.DIRECT and self.llm_used:
+        if self.flow in {Flow.DIRECT, Flow.VISION} and self.llm_used:
             return "llm"
         return "latex2mathml"
 
@@ -169,5 +190,6 @@ class PipelineResult:
             "elapsed_seconds": round(self.elapsed_seconds, 3),
             "warnings": self.warnings,
             "trace": self.trace,
+            "llm_outputs": [output.as_dict() for output in self.llm_outputs],
             "validation": self.validation.as_dict(),
         }

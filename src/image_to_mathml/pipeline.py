@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 from dataclasses import replace
 
-from .agents import DirectMathMLAgent, HybridIntentAgent
+from .agents import DirectMathMLAgent, HybridIntentAgent, VisionMathMLAgent
 from .config import Settings
 from .llm.base import LLMClient, LLMError
 from .llm.factory import build_llm
@@ -25,8 +25,8 @@ from .mathml.validator import (
     prune_orphan_args,
     validate_mathml,
 )
-from .models import EquationRequest, Flow, MathContext, PipelineResult
-from .ocr.base import OCREngine
+from .models import EquationRequest, Flow, LLMOutput, MathContext, PipelineResult
+from .ocr.base import OCREngine, OCRError
 from .ocr.factory import build_ocr
 from .ocr.preprocess import PreprocessConfig
 
@@ -54,13 +54,13 @@ class EquationPipeline:
         self.registry = registry or get_registry()
         self.direct_agent = DirectMathMLAgent(self.llm, self.settings)
         self.hybrid_agent = HybridIntentAgent(self.llm, self.settings)
+        self.vision_agent = VisionMathMLAgent(self.settings)
 
     # ------------------------------------------------------------------
     # public API
     # ------------------------------------------------------------------
     def run(self, request: EquationRequest) -> PipelineResult:
         started = time.perf_counter()
-        latex, ocr_backend = self._resolve_latex(request)
         allow_open = (
             self.settings.allow_open_concepts
             if request.allow_open_concepts is None
@@ -72,6 +72,24 @@ class EquationPipeline:
             else request.max_repair_attempts
         )
         max_repairs = max(0, max_repairs)
+
+        if request.flow is Flow.VISION:
+            result = self._vision(request, allow_open, max_repairs)
+            result.elapsed_seconds = time.perf_counter() - started
+            return result
+
+        if request.flow is Flow.DIRECT and self._direct_vision_enabled(request):
+            result = self._vision(
+                request,
+                allow_open,
+                max_repairs,
+                flow=Flow.DIRECT,
+                allow_fallback=True,
+            )
+            result.elapsed_seconds = time.perf_counter() - started
+            return result
+
+        latex, ocr_backend = self._resolve_latex(request)
 
         if request.flow is Flow.AUTO:
             hybrid = self._run_flow(
@@ -93,6 +111,7 @@ class EquationPipeline:
             else:
                 result = hybrid if hybrid.validation.ok else direct
                 chosen = result.flow.value
+            result.llm_outputs = hybrid.llm_outputs + direct.llm_outputs
             result.trace.insert(
                 0, f"auto: evaluated hybrid and direct; selected {chosen}"
             )
@@ -150,6 +169,16 @@ class EquationPipeline:
         if flow is Flow.OFFLINE:
             return self._offline(latex, request.context, ocr_backend, allow_open)
         if flow is Flow.DIRECT:
+            if self._direct_vision_enabled(request):
+                return self._vision(
+                    request,
+                    allow_open,
+                    max_repairs,
+                    flow=Flow.DIRECT,
+                    allow_fallback=True,
+                    latex=latex,
+                    ocr_backend=ocr_backend,
+                )
             return self._direct(
                 latex, request.context, ocr_backend, allow_open, max_repairs
             )
@@ -157,12 +186,22 @@ class EquationPipeline:
             return self._hybrid(
                 latex, request.context, ocr_backend, allow_open, max_repairs
             )
+        if flow is Flow.VISION:
+            return self._vision(request, allow_open, max_repairs)
         raise ValueError(f"Unsupported flow: {flow}")
 
     def _allowed_open(self, allow_open: bool) -> set[str] | None:
         if not allow_open or self.settings.allow_all_open_concepts:
             return None
         return set(self.settings.allowed_open_concepts)
+
+    def _direct_vision_enabled(self, request: EquationRequest) -> bool:
+        enabled = (
+            self.settings.direct_vision
+            if request.direct_vision is None
+            else request.direct_vision
+        )
+        return bool(enabled and request.image_path)
 
     # ------------------------------------------------------------------
     # deterministic fallback
@@ -213,6 +252,7 @@ class EquationPipeline:
     ) -> PipelineResult:
         warnings: list[str] = []
         trace = ["direct-flow", f"model={self.llm.model}"]
+        llm_outputs: list[LLMOutput] = []
 
         if not self._llm_ready(warnings):
             result = self._offline(latex, context, ocr_backend, allow_open)
@@ -240,6 +280,9 @@ class EquationPipeline:
                 trace.append(f"attempt {attempts}: llm-error")
                 break
 
+            output = LLMOutput(flow=Flow.DIRECT, attempt=attempts, mathml=raw)
+            llm_outputs.append(output)
+
             try:
                 candidate = normalize_mathml(raw)
                 candidate_root = parse_and_normalize(candidate)
@@ -257,6 +300,7 @@ class EquationPipeline:
                 registry=self.registry,
             )
             if report.acceptable:
+                output.accepted = True
                 trace.append(f"attempt {attempts}: accepted")
                 return PipelineResult(
                     latex=latex,
@@ -268,6 +312,7 @@ class EquationPipeline:
                     ocr_backend=ocr_backend,
                     warnings=warnings,
                     trace=trace,
+                    llm_outputs=llm_outputs,
                 )
 
             feedback = report.error_messages()
@@ -289,7 +334,185 @@ class EquationPipeline:
             "fallback was used."
         )
         fallback.trace = trace + fallback.trace
+        fallback.llm_outputs = llm_outputs
         return fallback
+
+    # ------------------------------------------------------------------
+    # flow 3: image directly -> annotated MathML via a vision model
+    # ------------------------------------------------------------------
+    def _vision(
+        self,
+        request: EquationRequest,
+        allow_open: bool,
+        max_repairs: int,
+        *,
+        flow: Flow = Flow.VISION,
+        allow_fallback: bool = False,
+        latex: str | None = None,
+        ocr_backend: str = "none",
+    ) -> PipelineResult:
+        if not request.image_path:
+            raise ValueError(
+                "The vision flow requires an image and does not use an "
+                "intermediate LaTeX representation"
+            )
+
+        warnings: list[str] = []
+        trace = [
+            f"{flow.value}-flow",
+            "vision-agent",
+            f"model={self.vision_agent.model}",
+        ]
+
+        if not self.vision_agent.is_available():
+            raise RuntimeError(
+                "The Ollama vision server is not reachable at "
+                f"{self.vision_agent.client.base_url}"
+            )
+        if not self.vision_agent.has_model():
+            raise RuntimeError(
+                f"Vision model {self.vision_agent.model!r} is not installed on "
+                "the Ollama server; run "
+                f"`ollama pull {self.vision_agent.model}`"
+            )
+
+        feedback: list[str] | None = None
+        attempts = 0
+        last_mathml: str | None = None
+        last_report = None
+        llm_outputs: list[LLMOutput] = []
+
+        for attempt in range(max_repairs + 1):
+            attempts = attempt + 1
+            try:
+                raw = self.vision_agent.run(
+                    request.image_path,
+                    request.context,
+                    feedback,
+                    allow_open_concepts=allow_open,
+                    allow_all_open_concepts=(
+                        allow_open and self.settings.allow_all_open_concepts
+                    ),
+                )
+            except (LLMError, OCRError) as exc:
+                warnings.append(f"The vision LLM failed: {exc}")
+                trace.append(f"attempt {attempts}: llm-error: {exc}")
+                break
+
+            output = LLMOutput(flow=flow, attempt=attempts, mathml=raw)
+            llm_outputs.append(output)
+
+            try:
+                candidate = normalize_mathml(raw)
+                candidate_root = parse_and_normalize(candidate)
+                if prune_orphan_args(candidate_root):
+                    candidate = serialize_mathml(candidate_root)
+            except NormalizationError as exc:
+                last_mathml = raw
+                last_report = validate_mathml(
+                    raw,
+                    allow_open_concepts=allow_open,
+                    allowed_open_concepts=self._allowed_open(allow_open),
+                    registry=self.registry,
+                )
+                feedback = [f"Invalid MathML: {exc}"]
+                trace.append(f"attempt {attempts}: normalization-error: {exc}")
+                continue
+
+            last_mathml = candidate
+            report = validate_mathml(
+                candidate,
+                allow_open_concepts=allow_open,
+                allowed_open_concepts=self._allowed_open(allow_open),
+                registry=self.registry,
+            )
+            last_report = report
+            if report.acceptable:
+                output.accepted = True
+                trace.append(f"attempt {attempts}: accepted")
+                return PipelineResult(
+                    latex=latex or "",
+                    mathml=candidate,
+                    flow=flow,
+                    validation=report,
+                    attempts=attempts,
+                    llm_used=True,
+                    ocr_backend=ocr_backend if latex else "none",
+                    warnings=warnings,
+                    trace=trace,
+                    llm_outputs=llm_outputs,
+                )
+
+            feedback = report.error_messages()
+            if not feedback:
+                feedback = [
+                    "The MathML is valid XML but has no usable intent attributes."
+                ]
+            trace.append(
+                f"attempt {attempts}: rejected ({len(report.errors)} errors, "
+                f"{report.intent_count} intents)"
+            )
+
+        if allow_fallback:
+            fallback_latex = latex
+            fallback_backend = ocr_backend
+            if not fallback_latex:
+                try:
+                    fallback_latex, fallback_backend = self._resolve_latex(request)
+                except (ValueError, OCRError, LLMError) as exc:
+                    warnings.append(f"Could not obtain a LaTeX fallback: {exc}")
+                    fallback_latex = None
+            if fallback_latex:
+                fallback = self._offline(
+                    fallback_latex, request.context, fallback_backend, allow_open
+                )
+                fallback.flow = flow
+                fallback.attempts = attempts
+                fallback.warnings.extend(warnings)
+                fallback.warnings.append(
+                    "The vision agent did not produce acceptable MathML; "
+                    "deterministic fallback was used."
+                )
+                fallback.trace = trace + fallback.trace
+                fallback.llm_outputs = llm_outputs
+                return fallback
+
+        if last_mathml is None:
+            detail = warnings[-1] if warnings else "no MathML was produced"
+            raise RuntimeError(
+                f"The {flow.value} vision flow did not produce any MathML: {detail}"
+            )
+
+        report = last_report or validate_mathml(
+            last_mathml,
+            allow_open_concepts=allow_open,
+            allowed_open_concepts=self._allowed_open(allow_open),
+            registry=self.registry,
+        )
+        if allow_fallback:
+            warning = (
+                "The vision agent did not produce acceptable MathML and no LaTeX "
+                "fallback was available; the last LLM candidate is returned."
+            )
+        else:
+            warning = (
+                "The vision flow did not produce acceptable MathML; the last LLM "
+                "candidate is returned without deterministic fallback."
+            )
+        warnings.append(warning)
+        trace.append("returning last LLM candidate")
+        return PipelineResult(
+            latex=latex or "",
+            mathml=last_mathml,
+            flow=flow,
+            validation=report,
+            attempts=attempts,
+            llm_used=True,
+            ocr_backend=ocr_backend if latex else "none",
+            warnings=warnings,
+            trace=trace,
+            llm_outputs=llm_outputs,
+        )
 
     # ------------------------------------------------------------------
     # flow 2: latex2mathml skeleton -> Ollama intent annotation
@@ -304,6 +527,7 @@ class EquationPipeline:
     ) -> PipelineResult:
         warnings: list[str] = []
         trace = ["hybrid-flow", "latex2mathml", f"model={self.llm.model}"]
+        llm_outputs: list[LLMOutput] = []
         base_markup = self.converter.convert(latex)
         base_mathml = normalize_mathml(base_markup)
         base_root = parse_and_normalize(base_mathml)
@@ -336,6 +560,9 @@ class EquationPipeline:
                 trace.append(f"attempt {attempts}: llm-error")
                 break
 
+            output = LLMOutput(flow=Flow.HYBRID, attempt=attempts, mathml=raw)
+            llm_outputs.append(output)
+
             try:
                 candidate = normalize_mathml(raw)
                 candidate_root = parse_and_normalize(candidate)
@@ -364,6 +591,7 @@ class EquationPipeline:
                 registry=self.registry,
             )
             if report.acceptable:
+                output.accepted = True
                 trace.append(f"attempt {attempts}: accepted")
                 return PipelineResult(
                     latex=latex,
@@ -375,6 +603,7 @@ class EquationPipeline:
                     ocr_backend=ocr_backend,
                     warnings=warnings,
                     trace=trace,
+                    llm_outputs=llm_outputs,
                 )
 
             if report.errors:
@@ -397,6 +626,7 @@ class EquationPipeline:
                     registry=self.registry,
                 )
                 if merged_report.acceptable:
+                    output.accepted = True
                     trace.append(
                         f"attempt {attempts}: merged after pruning {removed} "
                         "invalid intent(s)"
@@ -411,6 +641,7 @@ class EquationPipeline:
                         ocr_backend=ocr_backend,
                         warnings=warnings,
                         trace=trace,
+                        llm_outputs=llm_outputs,
                     )
                 candidate = merged
                 report = merged_report
@@ -433,6 +664,7 @@ class EquationPipeline:
             "deterministic annotation was used on the latex2mathml skeleton."
         )
         fallback.trace = trace + fallback.trace
+        fallback.llm_outputs = llm_outputs
         return fallback
 
     def _annotate_base(

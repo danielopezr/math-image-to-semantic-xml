@@ -21,6 +21,8 @@ def _settings_from_args(args: argparse.Namespace) -> Settings:
     changes: dict[str, object] = {}
     if getattr(args, "model", None):
         changes["ollama_model"] = args.model
+    if getattr(args, "vision_model", None):
+        changes["ollama_vision_model"] = args.vision_model
     backend = getattr(args, "backend", None) or Settings.from_env().llm_backend
     backend = backend.strip().lower()
     if getattr(args, "backend", None):
@@ -88,6 +90,7 @@ def _request_from_args(args: argparse.Namespace) -> EquationRequest:
         ocr_backend=getattr(args, "ocr", None),
         allow_open_concepts=False if getattr(args, "strict_core", False) else None,
         max_repair_attempts=getattr(args, "max_repairs", None),
+        direct_vision=True if getattr(args, "direct_vision", False) else None,
     )
 
 
@@ -103,11 +106,34 @@ def _print_report(result, stream=sys.stderr) -> None:
     )
 
 
+def _llm_output_label(output, index: int) -> str:
+    flow = getattr(output, "flow", "")
+    flow_name = getattr(flow, "value", flow) or "llm"
+    attempt = getattr(output, "attempt", index)
+    accepted = getattr(output, "accepted", False)
+    status = "accepted" if accepted else "rejected"
+    return f"LLM output {index} ({flow_name} attempt {attempt}, {status})"
+
+
+def _format_llm_outputs(result) -> list[str]:
+    outputs = getattr(result, "llm_outputs", None) or []
+    if not outputs:
+        return []
+    lines = [f"MathML structures produced by the LLM ({len(outputs)}):"]
+    for index, output in enumerate(outputs, 1):
+        lines.append("")
+        lines.append(f"--- {_llm_output_label(output, index)} ---")
+        lines.append(getattr(output, "mathml", str(output)))
+    lines.append("")
+    return lines
+
+
 def _format_convert_output(result) -> str:
     lines = []
     if result.ocr_backend != "none":
         lines.append(f"LaTeX OCR ({result.ocr_backend}): {result.latex}")
     lines.append(f"MathML structure: {result.structure_source}")
+    lines.extend(_format_llm_outputs(result))
     lines.append("")
     lines.append(result.mathml)
     return "\n".join(lines)
@@ -167,6 +193,19 @@ def _comparison_markdown(results: dict[str, object]) -> str:
         if result.warnings:
             lines.append(f"## {name}: advertencias")
             lines.extend(f"- {warning}" for warning in result.warnings)
+            lines.append("")
+    for name, result in results.items():
+        outputs = getattr(result, "llm_outputs", None) or []
+        if not outputs:
+            continue
+        lines.append(f"## {name}: estructuras MathML del LLM")
+        lines.append("")
+        for index, output in enumerate(outputs, 1):
+            lines.append(f"### {_llm_output_label(output, index)}")
+            lines.append("")
+            lines.append("```xml")
+            lines.append(getattr(output, "mathml", str(output)).strip())
+            lines.append("```")
             lines.append("")
     return "\n".join(lines)
 

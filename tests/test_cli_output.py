@@ -30,3 +30,29 @@ def test_convert_output_omits_ocr_latex_for_direct_latex_input():
 
     assert "LaTeX OCR" not in output
     assert "MathML structure: llm" in output
+
+
+def test_convert_output_includes_all_llm_structures():
+    result = SimpleNamespace(
+        ocr_backend="none",
+        latex="x",
+        structure_source="llm",
+        mathml="<math>final</math>",
+        llm_outputs=[
+            SimpleNamespace(
+                flow="direct", attempt=1, accepted=False, mathml="<math>first</math>"
+            ),
+            SimpleNamespace(
+                flow="direct", attempt=2, accepted=True, mathml="<math>second</math>"
+            ),
+        ],
+    )
+
+    output = _format_convert_output(result)
+
+    assert "MathML structures produced by the LLM (2)" in output
+    assert "LLM output 1 (direct attempt 1, rejected)" in output
+    assert "<math>first</math>" in output
+    assert "LLM output 2 (direct attempt 2, accepted)" in output
+    assert "<math>second</math>" in output
+    assert output.rstrip().endswith("<math>final</math>")
