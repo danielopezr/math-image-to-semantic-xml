@@ -10,6 +10,11 @@ from dataclasses import replace
 from pathlib import Path
 
 from .config import Settings
+from .evaluation import (
+    evaluate_samples,
+    load_evaluation_samples,
+    report_markdown,
+)
 from .llm.base import LLMError
 from .llm.factory import build_llm
 from .mathml.validator import validate_mathml
@@ -234,6 +239,45 @@ def cmd_convert(args: argparse.Namespace) -> int:
             _print_report(result)
 
     return 0 if result.validation.ok else 2
+
+
+def cmd_evaluate(args: argparse.Namespace) -> int:
+    settings = _settings_from_args(args)
+    pipeline = EquationPipeline(settings)
+    samples = load_evaluation_samples(args.dataset)
+    max_samples = getattr(args, "max_samples", None)
+    if max_samples is not None and max_samples >= 0:
+        samples = samples[:max_samples]
+
+    report = evaluate_samples(
+        samples,
+        pipeline,
+        default_flow=Flow(getattr(args, "flow", Flow.HYBRID.value)),
+        max_n=max(1, int(getattr(args, "n_gram", 4) or 4)),
+        smooth=not getattr(args, "no_smooth", False),
+    )
+    payload = report.as_dict()
+    output = getattr(args, "output", None)
+    if output:
+        Path(output).write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+
+    if getattr(args, "json", False):
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+    else:
+        print(report_markdown(report))
+        if output:
+            print(f"\nResultados escritos en {output}", file=sys.stderr)
+        if not getattr(args, "quiet", False):
+            for sample in report.failed_samples:
+                print(
+                    f"warning: {sample.sample_id}: {sample.error}",
+                    file=sys.stderr,
+                )
+
+    return 0 if not report.failed_samples else 2
 
 
 def _comparison_markdown(results: dict[str, object]) -> str:

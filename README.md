@@ -192,6 +192,7 @@ Pillow-only steps.
 image-to-mathml --version
 image-to-mathml convert --latex '\frac{a}{b}' --flow hybrid --report
 image-to-mathml compare --latex '\frac{a}{b}' --output-dir out
+image-to-mathml evaluate --dataset examples/evaluation.jsonl --flow hybrid
 image-to-mathml check --file equation.mathml
 image-to-mathml doctor
 ```
@@ -283,6 +284,49 @@ Generated MathML must satisfy:
 - every `$reference` must have a matching `arg="reference"`;
 - known concept names and arities;
 - generic `f(x)` uses `intent="$name($var)"`.
+
+## BLEU evaluation
+
+The module can compare pipeline output with labelled MathML references. Two
+scores are computed for each equation and for the whole corpus:
+
+- `structure_bleu`: canonical MathML with `intent` and `arg` removed. It
+  measures how close the generated structure and symbol sequence are.
+- `intent_bleu`: canonical MathML that keeps normalised `intent` and `arg`
+  attributes. It measures structure and semantic annotation together.
+
+Both documents are normalised before scoring:
+
+- intent arguments are renamed positionally (`$base,$exp` becomes
+  `$arg1,$arg2`), so equivalent role names do not reduce the score;
+- `mspace`, `mphantom`, `mglyph` and alignment helpers are removed,
+  `semantics`/`annotation` wrappers are ignored, and `mstyle`/`mpadded`
+  wrappers are transparent;
+- presentation attributes such as `stretchy`, `mathvariant`, `mathsize`,
+  `mathcolor`, `displaystyle` and `columnalign` are ignored;
+- text and attribute whitespace is collapsed and attribute order is canonical.
+
+The `evaluate` command reads a JSON array or a JSONL dataset. Each record needs
+an input (`latex` or `image`) and a reference (`reference_mathml`, `reference`,
+`mathml`, or `reference_latex`). Optional fields are `id`, `area`, `topic`,
+`context_text`, `lang`, `flow`, `ocr`, `allow_open_concepts` and
+`max_repair_attempts`.
+
+```json
+{"id":"power","latex":"x^{2}","reference_mathml":"<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><mrow><msup intent=\"power($base,$exp)\"><mi arg=\"base\">x</mi><mi arg=\"exp\">2</mi></msup></mrow></math>","area":"álgebra","topic":"potencias"}
+{"id":"fraction","latex":"\\frac{a}{b}","reference_latex":"\\frac{a}{b}","flow":"offline"}
+```
+
+```bash
+image-to-mathml evaluate --dataset examples/evaluation.jsonl --flow hybrid
+image-to-mathml evaluate --dataset examples/evaluation.jsonl --flow offline \
+  --n-gram 4 --json --output results/bleu.json
+```
+
+The command prints the corpus scores and a per-sample table. JSON output
+contains the same corpus and sample data. The Python API is available through
+`image_to_mathml.metrics.mathml_bleu` / `mathml_corpus_bleu` and
+`image_to_mathml.evaluation.evaluate_samples`.
 
 ## Examples
 

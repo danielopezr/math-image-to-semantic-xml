@@ -6,7 +6,13 @@ import argparse
 import sys
 
 from . import __version__
-from .cli_commands import cmd_check, cmd_compare, cmd_convert, cmd_doctor
+from .cli_commands import (
+    cmd_check,
+    cmd_compare,
+    cmd_convert,
+    cmd_doctor,
+    cmd_evaluate,
+)
 from .models import Flow
 from .ocr.factory import OCR_BACKEND_CHOICES
 
@@ -160,6 +166,35 @@ def build_parser() -> argparse.ArgumentParser:
     )
     compare.set_defaults(func=cmd_compare)
 
+    evaluate = subparsers.add_parser(
+        "evaluate",
+        help="Evaluate a flow against a labelled MathML dataset with BLEU",
+    )
+    _add_common(evaluate)
+    evaluate.add_argument(
+        "--dataset",
+        required=True,
+        help="JSON array or JSONL file with labelled equations",
+    )
+    evaluate.add_argument(
+        "--n-gram",
+        type=int,
+        default=4,
+        help="Maximum BLEU n-gram order (default: 4)",
+    )
+    evaluate.add_argument(
+        "--no-smooth",
+        action="store_true",
+        help="Disable BLEU smoothing for short expressions",
+    )
+    evaluate.add_argument(
+        "--max-samples",
+        type=int,
+        default=None,
+        help="Evaluate only the first N samples",
+    )
+    evaluate.set_defaults(func=cmd_evaluate)
+
     check = subparsers.add_parser("check", help="Validate a MathML + intent document")
     check.add_argument("--file", "-f", help="MathML file to validate")
     check.add_argument("--mathml", help="MathML string to validate")
@@ -187,7 +222,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         return int(args.func(args))
-    except (ValueError, RuntimeError, OSError) as exc:
+    except (TypeError, ValueError, RuntimeError, OSError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 
