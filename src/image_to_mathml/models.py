@@ -148,12 +148,14 @@ class LLMOutput:
     attempt: int
     mathml: str
     accepted: bool = False
+    input_mathml: str = ""
 
     def as_dict(self) -> dict[str, Any]:
         return {
             "flow": self.flow.value,
             "attempt": self.attempt,
             "accepted": self.accepted,
+            "input_mathml": self.input_mathml,
             "mathml": self.mathml,
         }
 

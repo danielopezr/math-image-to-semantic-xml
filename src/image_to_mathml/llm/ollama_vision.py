@@ -11,10 +11,11 @@ from collections.abc import Sequence
 import requests
 
 from .base import LLMError
+from .ollama_stream import collect_stream_content
 
 DEFAULT_MODEL = "qwen3-vl:4b-instruct"
 DEFAULT_BASE_URL = "http://localhost:11434"
-DEFAULT_TIMEOUT = 180.0
+DEFAULT_TIMEOUT = 600.0
 DEFAULT_NUM_PREDICT = 1024
 DEFAULT_NUM_CTX = 4096
 DEFAULT_MAX_SIDE = 1600
@@ -40,6 +41,13 @@ def _env_int(name: str, default: int) -> int:
         return default
 
 
+def _env_bool(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None or not value.strip():
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
 def _encode_image(image) -> str:
     buffer = io.BytesIO()
     image.save(buffer, format="PNG")
@@ -57,6 +65,7 @@ class OllamaVisionClient:
         num_predict: int | None = None,
         num_ctx: int | None = None,
         max_side: int | None = None,
+        stream: bool | None = None,
     ) -> None:
         self.model = (
             model or os.getenv("IMAGE_TO_MATHML_OLLAMA_VISION_MODEL") or DEFAULT_MODEL
@@ -85,6 +94,9 @@ class OllamaVisionClient:
             max_side
             if max_side is not None
             else _env_int("IMAGE_TO_MATHML_OLLAMA_VISION_MAX_SIDE", DEFAULT_MAX_SIDE)
+        )
+        self.stream = (
+            stream if stream is not None else _env_bool("OLLAMA_STREAM", False)
         )
 
     def _url(self, path: str) -> str:
@@ -116,7 +128,7 @@ class OllamaVisionClient:
         return {
             "model": self.model,
             "messages": payload_messages,
-            "stream": False,
+            "stream": self.stream,
             "options": {
                 "temperature": temperature,
                 "num_predict": num_predict,
@@ -144,6 +156,7 @@ class OllamaVisionClient:
                 data=json.dumps(payload),
                 headers={"Content-Type": "application/json"},
                 timeout=self.timeout,
+                stream=self.stream,
             )
         except requests.RequestException as exc:
             raise LLMError(f"Could not reach Ollama at {self.base_url}: {exc}") from exc
@@ -154,11 +167,19 @@ class OllamaVisionClient:
                 f"Ollama vision returned HTTP {response.status_code}: {detail}"
             )
 
-        try:
-            data = response.json()
-            content = (data.get("message") or {}).get("content") or ""
-        except (ValueError, AttributeError) as exc:
-            raise LLMError("Ollama vision returned an invalid JSON response") from exc
+        if self.stream:
+            with response:
+                content = collect_stream_content(
+                    response, source=f"Ollama vision model {self.model!r}"
+                )
+        else:
+            try:
+                data = response.json()
+                content = (data.get("message") or {}).get("content") or ""
+            except (ValueError, AttributeError) as exc:
+                raise LLMError(
+                    "Ollama vision returned an invalid JSON response"
+                ) from exc
 
         if not str(content).strip():
             raise LLMError(

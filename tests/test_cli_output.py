@@ -59,6 +59,31 @@ def test_convert_output_includes_all_llm_structures():
     assert output.rstrip().endswith("<math>final</math>")
 
 
+def test_convert_output_shows_the_mathml_tree_received_by_the_llm():
+    result = SimpleNamespace(
+        ocr_backend="none",
+        latex="x",
+        structure_source="latex2mathml",
+        mathml="<math>final</math>",
+        llm_outputs=[
+            SimpleNamespace(
+                flow="hybrid",
+                attempt=1,
+                accepted=True,
+                mathml='{"annotations": []}',
+                input_mathml='<math><mrow id="n2"><mi id="n3">x</mi></mrow></math>',
+            )
+        ],
+    )
+
+    output = _format_convert_output(result)
+
+    assert "Input MathML tree received by the LLM:" in output
+    assert '<mrow id="n2">' in output
+    assert "LLM response:" in output
+    assert '{"annotations": []}' in output
+
+
 def test_convert_output_includes_phase_timings_and_attempt_summary():
     result = SimpleNamespace(
         ocr_backend="none",

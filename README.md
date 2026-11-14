@@ -44,17 +44,22 @@ image -> vision LLM -> annotated MathML -> normalisation -> validation -> repair
 ```
 
 ```text
-image -> OCR -> LaTeX cleanup -> MathML generation/annotation ->
-normalisation -> validation -> repair/retry -> deterministic fallback
+image -> OCR -> LaTeX cleanup -> latex2mathml skeleton -> normalisation ->
+clean skeleton -> temporary ids -> semantic JSON LLM -> deterministic
+annotation -> validation -> repair/retry -> deterministic fallback
 ```
 
 Supported flows:
 
 - `offline`: deterministic `latex2mathml` conversion plus deterministic intent
   annotation. No LLM is used.
-- `hybrid`: `latex2mathml` builds the Presentation MathML skeleton, then the
-  LLM adds `intent` and `arg` attributes. Invalid LLM annotations are pruned
-  and rebuilt deterministically.
+- `hybrid`: `latex2mathml` builds the Presentation MathML skeleton, the
+  existing normaliser cleans it, and simple temporary ids are added. The LLM
+  returns a JSON semantic contract (concept plus positional arguments); the
+  module applies it deterministically, removes the temporary ids and validates
+  the result. If validation fails, the JSON request is repeated with structured
+  feedback. Invalid or missing annotations are rebuilt by the deterministic
+  annotator.
 - `direct`: the LLM converts LaTeX directly into annotated MathML. With
   `--direct-vision`, the Ollama vision agent reads the image directly instead
   and keeps the direct flow's deterministic fallback.
@@ -97,6 +102,7 @@ OCR-specific environment variables:
 - `IMAGE_TO_MATHML_PIX2TEXT_MODEL`: MFR model name (default `mfr-1.5`).
 - `IMAGE_TO_MATHML_PIX2TEXT_BACKEND`: `onnx` (default) or `pytorch`.
 - `IMAGE_TO_MATHML_PADDLEOCR_MODEL`: default `PP-FormulaNet_plus-M`.
+- `OLLAMA_STREAM`: enable Ollama streaming (`true`/`false`, default `false`).
 - `IMAGE_TO_MATHML_OLLAMA_VISION_MODEL`: default `qwen3-vl:4b-instruct`; use
   `qwen3-vl:2b` on very low-RAM machines.
 - `IMAGE_TO_MATHML_OLLAMA_VISION_BASE_URL`: default `OLLAMA_BASE_URL` or
@@ -158,8 +164,9 @@ image-to-mathml doctor
 ```
 
 `convert` prints the OCR LaTeX (when `--image` is used), the component that
-generated the MathML structure (`llm` or `latex2mathml`), every MathML structure
-returned by the LLM during each attempt, and the final MathML. It also reports
+generated the MathML structure (`llm` or `latex2mathml`), every output returned
+by the LLM during each attempt (semantic JSON in the hybrid flow, MathML in the
+direct and vision flows), and the final MathML. It also reports
 per-phase timings with the tool that executed each phase, the time of every LLM
 attempt, the attempts total/average, and the total pipeline time. If the direct
 flow needs `latex2mathml` after the LLM attempts, that fallback is labelled in
@@ -209,6 +216,9 @@ input.
 - `--base-url`: LLM server base URL.
 - `--api-key`: API key for an OpenAI-compatible server.
 - `--timeout`: request timeout in seconds.
+- `--stream`: use Ollama streaming responses for the text and vision clients.
+  It is disabled by default; `--no-stream` forces it off when `OLLAMA_STREAM`
+  is enabled in the environment.
 - `--json`: print JSON instead of MathML.
 - `--report`: print validation details to stderr.
 - `--output`, `-o`: write the MathML result to a file.

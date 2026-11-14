@@ -91,6 +91,21 @@ def _add_common(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument("--api-key", default=None, help="API key for the LLM server")
     parser.add_argument("--timeout", type=float, default=None)
+    stream_group = parser.add_mutually_exclusive_group()
+    stream_group.add_argument(
+        "--stream",
+        dest="stream",
+        action="store_true",
+        default=None,
+        help="Use Ollama streaming responses (default: non-stream)",
+    )
+    stream_group.add_argument(
+        "--no-stream",
+        dest="stream",
+        action="store_false",
+        default=None,
+        help="Disable Ollama streaming responses",
+    )
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--report", action="store_true")
     parser.add_argument("--output", "-o", help="Write the MathML result to this file")

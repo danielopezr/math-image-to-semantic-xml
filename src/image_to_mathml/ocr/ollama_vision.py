@@ -52,13 +52,15 @@ class OllamaVisionOCR:
         base_url: str | None = None,
         timeout: float | None = None,
         preprocess: PreprocessConfig | None = None,
+        stream: bool | None = None,
     ) -> None:
         self.client = OllamaVisionClient(
-            model=model, base_url=base_url, timeout=timeout
+            model=model, base_url=base_url, timeout=timeout, stream=stream
         )
         self.model = self.client.model
         self.base_url = self.client.base_url
         self.num_ctx = self.client.num_ctx
+        self.stream = self.client.stream
         self.preprocess = preprocess or PreprocessConfig.from_env()
 
     def image_to_latex(self, image_path: str) -> str:

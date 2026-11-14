@@ -36,6 +36,8 @@ def _settings_from_args(args: argparse.Namespace) -> Settings:
         changes["openai_api_key"] = args.api_key
     if getattr(args, "timeout", None) is not None:
         changes["ollama_timeout"] = args.timeout
+    if getattr(args, "stream", None) is not None:
+        changes["ollama_stream"] = args.stream
     if getattr(args, "max_repairs", None) is not None:
         changes["max_repair_attempts"] = args.max_repairs
     if getattr(args, "ocr", None):
@@ -123,6 +125,11 @@ def _format_llm_outputs(result) -> list[str]:
     for index, output in enumerate(outputs, 1):
         lines.append("")
         lines.append(f"--- {_llm_output_label(output, index)} ---")
+        input_mathml = getattr(output, "input_mathml", "") or ""
+        if input_mathml:
+            lines.append("Input MathML tree received by the LLM:")
+            lines.append(input_mathml)
+            lines.append("LLM response:")
         lines.append(getattr(output, "mathml", str(output)))
     lines.append("")
     return lines
@@ -268,8 +275,20 @@ def _comparison_markdown(results: dict[str, object]) -> str:
         for index, output in enumerate(outputs, 1):
             lines.append(f"### {_llm_output_label(output, index)}")
             lines.append("")
-            lines.append("```xml")
-            lines.append(getattr(output, "mathml", str(output)).strip())
+            input_mathml = getattr(output, "input_mathml", "") or ""
+            if input_mathml:
+                lines.append("Input MathML tree received by the LLM:")
+                lines.append("")
+                lines.append("```xml")
+                lines.append(input_mathml.strip())
+                lines.append("```")
+                lines.append("")
+                lines.append("LLM response:")
+                lines.append("")
+            response = getattr(output, "mathml", str(output)).strip()
+            fence = "json" if response.startswith(("{", "[")) else "xml"
+            lines.append(f"```{fence}")
+            lines.append(response)
             lines.append("```")
             lines.append("")
     return "\n".join(lines)

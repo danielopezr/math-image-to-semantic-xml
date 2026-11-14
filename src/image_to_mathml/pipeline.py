@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import copy
 import time
 from dataclasses import replace
+
+from lxml import etree
 
 from .agents import DirectMathMLAgent, HybridIntentAgent, VisionMathMLAgent
 from .config import Settings
@@ -19,13 +22,29 @@ from .mathml.normalizer import (
     parse_and_normalize,
     serialize_mathml,
 )
+from .mathml.semantic import (
+    SemanticError,
+    apply_semantic_payload,
+    assign_node_ids,
+    parse_semantic_payload,
+    semantic_tree_markup,
+    strip_node_ids,
+    strip_semantic_attributes,
+)
 from .mathml.signature import same_structure
 from .mathml.validator import (
     prune_invalid_intents,
     prune_orphan_args,
     validate_mathml,
 )
-from .models import EquationRequest, Flow, LLMOutput, MathContext, PipelineResult
+from .models import (
+    EquationRequest,
+    Flow,
+    LLMOutput,
+    MathContext,
+    PipelineResult,
+    ValidationReport,
+)
 from .ocr.base import OCREngine, OCRError
 from .ocr.factory import build_ocr
 from .ocr.preprocess import PreprocessConfig
@@ -180,6 +199,7 @@ class EquationPipeline:
                         enabled=self.settings.ocr_preprocess,
                         profile=self.settings.ocr_preprocess_profile,
                     ),
+                    stream=self.settings.ollama_stream,
                 )
         if engine is None:
             raise ValueError(
@@ -638,7 +658,12 @@ class EquationPipeline:
         timings: TimingRecorder,
     ) -> PipelineResult:
         warnings: list[str] = []
-        trace = ["hybrid-flow", "latex2mathml", f"model={self.llm.model}"]
+        trace = [
+            "hybrid-flow",
+            "latex2mathml",
+            "semantic-json",
+            f"model={self.llm.model}",
+        ]
         llm_outputs: list[LLMOutput] = []
         tool = f"{self.hybrid_agent.role}[{self.llm.model}]"
 
@@ -647,6 +672,8 @@ class EquationPipeline:
         with timings.measure("normalize", "normalizer", note="skeleton"):
             base_mathml = normalize_mathml(base_markup)
             base_root = parse_and_normalize(base_mathml)
+        with timings.measure("clean", "semantic-cleaner", note="drop intent/arg/id"):
+            strip_semantic_attributes(base_root)
 
         with timings.measure("llm-check", "ollama"):
             llm_ready = self._llm_ready(warnings)
@@ -669,11 +696,15 @@ class EquationPipeline:
         for attempt in range(max_repairs + 1):
             attempts = attempt + 1
             with timings.measure("attempt", tool, attempt=attempts):
+                attempt_root = copy.deepcopy(base_root)
+                with timings.measure("assign-ids", "semantic-json", attempt=attempts):
+                    assign_node_ids(attempt_root)
+                    semantic_tree = semantic_tree_markup(attempt_root)
                 try:
                     with timings.measure("llm", tool, attempt=attempts):
                         raw = self.hybrid_agent.run(
                             latex,
-                            base_mathml,
+                            semantic_tree,
                             context,
                             feedback,
                             allow_open_concepts=allow_open,
@@ -688,34 +719,93 @@ class EquationPipeline:
                     trace.append(f"attempt {attempts}: llm-error")
                     break
 
-                output = LLMOutput(flow=Flow.HYBRID, attempt=attempts, mathml=raw)
+                output = LLMOutput(
+                    flow=Flow.HYBRID,
+                    attempt=attempts,
+                    mathml=raw,
+                    input_mathml=semantic_tree,
+                )
                 llm_outputs.append(output)
 
-                try:
-                    with timings.measure("normalize", "normalizer", attempt=attempts):
-                        candidate = normalize_mathml(raw)
-                        candidate_root = parse_and_normalize(candidate)
-                except NormalizationError as exc:
-                    feedback = [f"Invalid MathML: {exc}"]
-                    trace.append(f"attempt {attempts}: normalization-error: {exc}")
-                    continue
-
-                with timings.measure("structure-check", "signature", attempt=attempts):
-                    structure_ok = same_structure(base_root, candidate_root)
-                if not structure_ok:
-                    feedback = [
+                if self._looks_like_mathml(raw):
+                    with timings.measure(
+                        "legacy-mathml", "hybrid-compat", attempt=attempts
+                    ):
+                        candidate, report, errors = self._legacy_hybrid_candidate(
+                            raw, base_root, allow_open
+                        )
+                    if candidate is not None and report is not None:
+                        output.accepted = True
+                        trace.append(
+                            f"attempt {attempts}: accepted legacy MathML response"
+                        )
+                        return PipelineResult(
+                            latex=latex,
+                            mathml=candidate,
+                            flow=Flow.HYBRID,
+                            validation=report,
+                            attempts=attempts,
+                            llm_used=True,
+                            ocr_backend=ocr_backend,
+                            warnings=warnings,
+                            trace=trace,
+                            llm_outputs=llm_outputs,
+                        )
+                    feedback = errors or [
                         (
-                            "The mathematical structure changed. Keep every "
-                            "element, its order and its text identical; only add "
-                            "intent and arg attributes."
+                            "The MathML response was not acceptable; annotate the "
+                            "expression or return the semantic JSON contract."
                         )
                     ]
-                    trace.append(f"attempt {attempts}: structure-changed")
+                    trace.append(f"attempt {attempts}: rejected legacy MathML response")
                     continue
 
+                with timings.measure("parse-json", "semantic-json", attempt=attempts):
+                    try:
+                        annotations = parse_semantic_payload(raw)
+                    except SemanticError as exc:
+                        feedback = [str(exc)]
+                        trace.append(f"attempt {attempts}: json-error: {exc}")
+                        continue
+
+                with timings.measure("apply-semantics", "annotator", attempt=attempts):
+                    applied = apply_semantic_payload(
+                        attempt_root,
+                        annotations,
+                        registry=self.registry,
+                        allow_open_concepts=allow_open,
+                        allowed_open_concepts=self._allowed_open(allow_open),
+                    )
+                if applied.warnings:
+                    warnings.extend(applied.warnings)
+                    trace.append(
+                        f"attempt {attempts}: semantic-warning "
+                        f"({len(applied.warnings)} warning(s))"
+                    )
+                if applied.errors:
+                    feedback = applied.errors
+                    trace.append(
+                        f"attempt {attempts}: semantic-error "
+                        f"({len(applied.errors)} problem(s))"
+                    )
+                    continue
+                if applied.applied == 0:
+                    feedback = list(applied.warnings) or [
+                        (
+                            "No annotations were applied; choose the semantic "
+                            "intents for the expression."
+                        )
+                    ]
+                    trace.append(f"attempt {attempts}: no annotations")
+                    continue
+
+                with timings.measure("strip-ids", "semantic-json", attempt=attempts):
+                    strip_node_ids(attempt_root)
                 with timings.measure("normalize", "normalizer", attempt=attempts):
-                    prune_orphan_args(candidate_root)
-                    candidate = serialize_mathml(candidate_root)
+                    candidate = normalize_mathml(serialize_mathml(attempt_root))
+                    candidate_root = parse_and_normalize(candidate)
+                    if prune_orphan_args(candidate_root):
+                        candidate = serialize_mathml(candidate_root)
                 with timings.measure("validate", "validator", attempt=attempts):
                     report = validate_mathml(
                         candidate,
@@ -739,52 +829,6 @@ class EquationPipeline:
                         llm_outputs=llm_outputs,
                     )
 
-                if report.errors:
-                    # Keep the model's valid annotations and let the
-                    # deterministic annotator rebuild only invalid/missing ones.
-                    with timings.measure(
-                        "merge",
-                        "annotator+validator",
-                        attempt=attempts,
-                        note="prune intents",
-                    ):
-                        merged_root = parse_and_normalize(candidate)
-                        removed = prune_invalid_intents(
-                            merged_root,
-                            allow_open_concepts=allow_open,
-                            allowed_open_concepts=self._allowed_open(allow_open),
-                            registry=self.registry,
-                        )
-                        annotate_tree(merged_root)
-                        prune_orphan_args(merged_root)
-                        merged = serialize_mathml(merged_root)
-                        merged_report = validate_mathml(
-                            merged,
-                            allow_open_concepts=allow_open,
-                            allowed_open_concepts=self._allowed_open(allow_open),
-                            registry=self.registry,
-                        )
-                    if merged_report.acceptable:
-                        output.accepted = True
-                        trace.append(
-                            f"attempt {attempts}: merged after pruning {removed} "
-                            "invalid intent(s)"
-                        )
-                        return PipelineResult(
-                            latex=latex,
-                            mathml=merged,
-                            flow=Flow.HYBRID,
-                            validation=merged_report,
-                            attempts=attempts,
-                            llm_used=True,
-                            ocr_backend=ocr_backend,
-                            warnings=warnings,
-                            trace=trace,
-                            llm_outputs=llm_outputs,
-                        )
-                    candidate = merged
-                    report = merged_report
-
                 feedback = report.error_messages()
                 if not feedback:
                     feedback = [
@@ -807,12 +851,80 @@ class EquationPipeline:
         fallback.flow = Flow.HYBRID
         fallback.attempts = attempts
         fallback.warnings.append(
-            "The model annotation did not produce an acceptable result; "
+            "The semantic JSON annotation did not produce an acceptable result; "
             "deterministic annotation was used on the latex2mathml skeleton."
         )
         fallback.trace = trace + fallback.trace
         fallback.llm_outputs = llm_outputs
         return fallback
+
+    def _looks_like_mathml(self, text: str) -> bool:
+        lowered = (text or "").lower()
+        return "<math" in lowered or "<mrow" in lowered
+
+    def _legacy_hybrid_candidate(
+        self,
+        raw: str,
+        base_root: etree._Element,
+        allow_open: bool,
+    ) -> tuple[str | None, ValidationReport | None, list[str]]:
+        try:
+            candidate = normalize_mathml(raw)
+            candidate_root = parse_and_normalize(candidate)
+        except NormalizationError as exc:
+            return None, None, [f"Invalid MathML: {exc}"]
+
+        strip_node_ids(candidate_root)
+        if not same_structure(base_root, candidate_root):
+            return (
+                None,
+                None,
+                [
+                    (
+                        "The mathematical structure changed. Keep every element, "
+                        "its order and its text identical; only add intent and arg "
+                        "attributes."
+                    )
+                ],
+            )
+
+        prune_orphan_args(candidate_root)
+        candidate = serialize_mathml(candidate_root)
+        report = validate_mathml(
+            candidate,
+            allow_open_concepts=allow_open,
+            allowed_open_concepts=self._allowed_open(allow_open),
+            registry=self.registry,
+        )
+        if report.acceptable:
+            return candidate, report, []
+
+        if report.errors:
+            merged_root = parse_and_normalize(candidate)
+            prune_invalid_intents(
+                merged_root,
+                allow_open_concepts=allow_open,
+                allowed_open_concepts=self._allowed_open(allow_open),
+                registry=self.registry,
+            )
+            annotate_tree(merged_root)
+            prune_orphan_args(merged_root)
+            merged = serialize_mathml(merged_root)
+            merged_report = validate_mathml(
+                merged,
+                allow_open_concepts=allow_open,
+                allowed_open_concepts=self._allowed_open(allow_open),
+                registry=self.registry,
+            )
+            if merged_report.acceptable:
+                return merged, merged_report, []
+            return None, merged_report, merged_report.error_messages()
+
+        return (
+            None,
+            report,
+            ["No intent attributes were added; annotate the expression."],
+        )
 
     def _annotate_base(
         self,

@@ -142,6 +142,118 @@ Annotated MathML:
     )
 
 
+def _semantic_concept_policy(
+    allow_open_concepts: bool, allow_all_open_concepts: bool
+) -> str:
+    if not allow_open_concepts:
+        return f"""Use only the following W3C intent core concept names. Do NOT
+use open concepts. Core names are:
+{_CORE_NAMES}"""
+    if allow_all_open_concepts:
+        return f"""Use only names from the W3C intent registries. Do not invent
+names. Core names are:
+{_CORE_NAMES}
+Any documented W3C open concept is allowed when it is the correct meaning, but
+prefer a core concept whenever one exists."""
+    return f"""Use only names from the W3C intent registries. Do not invent
+names. Core names are:
+{_CORE_NAMES}
+The only open concepts allowed by the current policy are gamma-function,
+beta-function and error-function."""
+
+
+def _semantic_system(
+    allow_open_concepts: bool, allow_all_open_concepts: bool = False
+) -> str:
+    return f"""You are a W3C MathML 4 semantic annotator. You receive a clean
+Presentation MathML tree with temporary id attributes and the LaTeX it came
+from. Decide which concepts and argument positions carry a non-default
+meaning. Do not rewrite MathML.
+
+Return ONLY one JSON object. No Markdown fences, no comments, no explanation.
+
+JSON contract:
+{{
+  "version": 1,
+  "annotations": [
+    {{
+      "target": "n3",
+      "concept": "fraction",
+      "args": {{"a1": "n4", "a2": "n5"}}
+    }}
+  ]
+}}
+
+Optional keys per annotation: "wrap" instead of "target"; "new_id" only when
+a later annotation must reference the new wrapper; "groups" for an argument
+that spans several sibling ids; "literals" for literal intent arguments that
+are not elements.
+
+Rules:
+1. Use only ids that exist in the supplied tree. Ids are temporary and must
+   never appear in the final MathML.
+2. Each annotation must have either "target" (an existing id) or "wrap" (a
+   list of contiguous siblings to wrap in a new mrow). Never use both. A wrap
+   does not need a new id unless another annotation references that wrapper.
+   Never emit two annotations for the same target; choose one concept or omit
+   both.
+3. Argument slots are positional: "a1" is the first argument, "a2" the second,
+   and so on. Do not use concept role names in the JSON.
+4. For common concepts the positions mean:
+   fraction: a1=num, a2=den
+   power: a1=base, a2=exp
+   root: a1=radicand, a2=index
+   indexed-by: a1=base, a2=sub
+   exponential: a1=exp
+   sine, cosine, tangent, secant, cosecant, cotangent, arcsine, arccosine,
+   arctangent, hyperbolic-sine, hyperbolic-cosine, hyperbolic-tangent,
+   natural-logarithm, absolute-value, floor, ceiling, factorial: a1=arg
+   logarithm: a1=arg, a2=base
+   generic-application: a1=name, a2=var
+5. Use "groups" when one argument spans several sibling elements. Grouped ids
+   must be contiguous siblings under the same parent.
+6. Use "literals" only for literal intent arguments that are not elements in
+   the tree, such as the index 2 of a square root.
+7. A generic function application such as f(x) or f_i(x+1) uses
+   concept="generic-application": a1 is the complete function name and a2 is
+   the complete argument.
+8. Do not annotate the default meaning of common operators such as +, -, =,
+   <, >, times or a standard fraction. Prefer no annotation over a misleading
+   one.
+9. Do not annotate a plain symbol that has no special mathematical role.
+10. {_semantic_concept_policy(allow_open_concepts, allow_all_open_concepts)}
+11. Keep every element, its text and its order unchanged. The code will add
+    the intent and arg attributes and any wrapper mrows.
+12. A node may have its own intent and also be an argument of an outer intent;
+    annotate the inner and outer meanings in separate annotations.
+13. If you are not sure, omit that annotation.
+
+Examples:
+Fraction:
+{{"version": 1, "annotations": [{{"target": "n3", "concept": "fraction", "args": {{"a1": "n4", "a2": "n5"}}}}]}}
+
+Generic function f_i(x+1):
+{{"version": 1, "annotations": [{{"target": "n2", "concept": "generic-application", "args": {{"a1": "n3"}}, "groups": {{"a2": ["n6", "n7", "n8"]}}}}]}}
+
+Generic function inside a larger expression (use wrap when no container exists):
+{{"version": 1, "annotations": [{{"wrap": ["n2", "n3", "n4", "n5"], "concept": "generic-application", "args": {{"a1": "n2", "a2": "n4"}}}}]}}
+
+Square root:
+{{"version": 1, "annotations": [{{"target": "n2", "concept": "root", "args": {{"a1": "n3"}}, "literals": {{"a2": "2"}}}}]}}
+"""
+
+
+def _semantic_feedback_block(feedback: list[str] | None) -> str:
+    if not feedback:
+        return ""
+    lines = "\n".join(f"- {item}" for item in feedback[:12])
+    return (
+        "\nYour previous JSON could not be applied. Problems:\n"
+        f"{lines}\n"
+        "Return a complete corrected JSON object. Do not explain.\n"
+    )
+
+
 def _context_block(context: MathContext) -> str:
     return (
         "Textbook context (use it only to disambiguate notation):\n"
@@ -246,6 +358,32 @@ def hybrid_messages(
         {
             "role": "system",
             "content": _hybrid_system(allow_open_concepts, allow_all_open_concepts),
+        },
+        {"role": "user", "content": user},
+    ]
+
+
+def semantic_messages(
+    latex: str,
+    semantic_tree: str,
+    context: MathContext,
+    feedback: list[str] | None = None,
+    *,
+    allow_open_concepts: bool = True,
+    allow_all_open_concepts: bool = False,
+) -> list[dict[str, str]]:
+    user = (
+        "Choose the W3C intent semantics for this expression and return the "
+        "JSON contract described in the system message.\n\n"
+        f"LaTeX:\n{latex}\n\n"
+        f"Clean MathML tree with temporary ids:\n{semantic_tree}\n\n"
+        f"{_context_block(context)}\n"
+        f"{_semantic_feedback_block(feedback)}"
+    )
+    return [
+        {
+            "role": "system",
+            "content": _semantic_system(allow_open_concepts, allow_all_open_concepts),
         },
         {"role": "user", "content": user},
     ]

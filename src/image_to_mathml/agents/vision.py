@@ -25,6 +25,7 @@ class VisionMathMLAgent:
             num_predict=self.settings.ollama_vision_num_predict,
             num_ctx=self.settings.ollama_vision_num_ctx,
             max_side=self.settings.ollama_vision_max_side,
+            stream=self.settings.ollama_stream,
         )
         self.model = self.client.model
 

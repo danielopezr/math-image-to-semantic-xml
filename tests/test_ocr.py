@@ -157,11 +157,12 @@ def test_ollama_vision_sends_image_and_extracts_latex(monkeypatch, equation_imag
         def json(self):
             return {"message": {"content": "```latex\n\\frac{a}{b}\n```"}}
 
-    def fake_post(url, data=None, headers=None, timeout=None):
+    def fake_post(url, data=None, headers=None, timeout=None, stream=False):
         captured["url"] = url
         captured["data"] = data
         captured["headers"] = headers
         captured["timeout"] = timeout
+        captured["stream"] = stream
         return FakeResponse()
 
     monkeypatch.setattr("image_to_mathml.llm.ollama_vision.requests.post", fake_post)
@@ -189,3 +190,40 @@ def test_ollama_vision_reports_http_errors(monkeypatch, equation_image):
 
     with pytest.raises(OCRError, match="HTTP 404"):
         engine.image_to_latex(equation_image)
+
+
+def test_ollama_vision_streams_and_joins_chunks(monkeypatch, equation_image):
+    engine = OllamaVisionOCR(
+        model="qwen3-vl:2b",
+        preprocess=PreprocessConfig(enabled=False),
+        stream=True,
+    )
+    captured = {}
+    chunks = [
+        json.dumps({"message": {"content": "\\frac{a}"}, "done": False}).encode(),
+        json.dumps({"message": {"content": "{b}"}, "done": True}).encode(),
+    ]
+
+    class FakeResponse:
+        status_code = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def iter_lines(self, decode_unicode=False):
+            return iter(chunks)
+
+    def fake_post(url, data=None, headers=None, timeout=None, stream=False):
+        captured["data"] = data
+        captured["stream"] = stream
+        return FakeResponse()
+
+    monkeypatch.setattr("image_to_mathml.llm.ollama_vision.requests.post", fake_post)
+
+    assert engine.image_to_latex(equation_image) == r"\frac{a}{b}"
+    payload = json.loads(captured["data"])
+    assert payload["stream"] is True
+    assert captured["stream"] is True

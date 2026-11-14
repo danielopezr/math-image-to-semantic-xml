@@ -51,6 +51,7 @@ class Settings:
     ollama_vision_num_ctx: int = 4096
     ollama_vision_max_side: int = 1600
     ollama_timeout: float = 180.0
+    ollama_stream: bool = False
     temperature: float = 0.0
     num_predict: int = 1600
     num_ctx: int = 8192
@@ -91,6 +92,7 @@ class Settings:
                 cls.ollama_vision_max_side,
             ),
             ollama_timeout=_env_float("OLLAMA_TIMEOUT", cls.ollama_timeout),
+            ollama_stream=_env_bool("OLLAMA_STREAM", cls.ollama_stream),
             temperature=_env_float("OLLAMA_TEMPERATURE", cls.temperature),
             num_predict=_env_int("OLLAMA_NUM_PREDICT", cls.num_predict),
             num_ctx=_env_int("OLLAMA_NUM_CTX", cls.num_ctx),

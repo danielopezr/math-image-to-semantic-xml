@@ -9,6 +9,7 @@ import requests
 
 from ..config import Settings
 from .base import LLMError
+from .ollama_stream import collect_stream_content
 
 
 class OllamaClient:
@@ -54,10 +55,11 @@ class OllamaClient:
         temperature: float | None = None,
         num_predict: int | None = None,
     ) -> str:
+        stream = self.settings.ollama_stream
         payload = {
             "model": self.model,
             "messages": list(messages),
-            "stream": False,
+            "stream": stream,
             "options": {
                 "temperature": (
                     self.settings.temperature if temperature is None else temperature
@@ -74,6 +76,7 @@ class OllamaClient:
                 data=json.dumps(payload),
                 headers={"Content-Type": "application/json"},
                 timeout=self.settings.ollama_timeout,
+                stream=stream,
             )
         except requests.RequestException as exc:
             raise LLMError(f"Could not reach Ollama at {self.base_url}: {exc}") from exc
@@ -82,13 +85,20 @@ class OllamaClient:
             detail = response.text.strip()[:500]
             raise LLMError(f"Ollama returned HTTP {response.status_code}: {detail}")
 
-        try:
-            data = response.json()
-        except ValueError as exc:
-            raise LLMError("Ollama returned a non-JSON response") from exc
+        if stream:
+            with response:
+                content = collect_stream_content(
+                    response, source=f"Ollama at {self.base_url}"
+                )
+        else:
+            try:
+                data = response.json()
+            except ValueError as exc:
+                raise LLMError("Ollama returned a non-JSON response") from exc
 
-        message = data.get("message") or {}
-        content = message.get("content") or data.get("response") or ""
+            message = data.get("message") or {}
+            content = message.get("content") or data.get("response") or ""
+
         if not content.strip():
             raise LLMError("Ollama returned an empty response")
         return content
