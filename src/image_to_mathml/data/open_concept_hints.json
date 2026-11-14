@@ -1,0 +1,4124 @@
+{
+  "schema_version": 1,
+  "note": "Retrieval hints for the W3C intent open concept list. Names must exist in open_concepts.json. The areas/topics tables select candidate open concepts from the textbook context; cues add LaTeX, symbol and structural signals. Core concepts are intentionally excluded because they have their own RAG.",
+  "areas": {
+    "analisis": [
+      "gamma-function",
+      "beta-function",
+      "error-function",
+      "airy-function",
+      "bessel-function",
+      "bessel-function-of-second-kind",
+      "legendre-polynomial",
+      "hermite-polynomial",
+      "laguerre-polynomial",
+      "chebyshev-polynomial-of-first-kind",
+      "chebyshev-polynomial-of-second-kind",
+      "gegenbauer-polynomial",
+      "jacobi-polynomial",
+      "generalized-hypergeometric-function",
+      "riemann-zeta-function",
+      "fourier-transform",
+      "laplace-transform",
+      "dirac-delta-function",
+      "lebesgue-integral",
+      "riemann-integral"
+    ],
+    "analisis matematico": [
+      "gamma-function",
+      "beta-function",
+      "error-function",
+      "riemann-zeta-function",
+      "zeta-function",
+      "fourier-transform",
+      "laplace-transform",
+      "lebesgue-integral",
+      "riemann-integral",
+      "line-integral",
+      "surface-integral",
+      "multiple-integral"
+    ],
+    "calculo": [
+      "gamma-function",
+      "beta-function",
+      "error-function",
+      "airy-function",
+      "bessel-function",
+      "legendre-polynomial",
+      "fourier-transform",
+      "laplace-transform",
+      "dirac-delta-function",
+      "heaviside-function",
+      "principal-value",
+      "line-integral",
+      "surface-integral",
+      "multiple-integral",
+      "fresnel-integral",
+      "exponential-integral"
+    ],
+    "analisis funcional": [
+      "fourier-transform",
+      "laplace-transform",
+      "lebesgue-integral",
+      "sobolev-space",
+      "spectrum",
+      "spectrum-of-matrix",
+      "laplace-operator",
+      "hilbert-symbol"
+    ],
+    "analisis armonico": [
+      "fourier-transform",
+      "fourier-sine-transform",
+      "fourier-cosine-transform",
+      "wavelet-transform",
+      "mellin-transform",
+      "gabor-transform"
+    ],
+    "ecuaciones diferenciales": [
+      "airy-function",
+      "bessel-function",
+      "bessel-function-of-second-kind",
+      "modified-bessel-function-of-first-kind",
+      "modified-bessel-function-of-second-kind",
+      "legendre-polynomial",
+      "associated-legendre-polynomial",
+      "hermite-polynomial",
+      "laguerre-polynomial",
+      "chebyshev-polynomial-of-first-kind",
+      "chebyshev-polynomial-of-second-kind",
+      "laplace-operator",
+      "dalembert-operator",
+      "hamiltonian",
+      "heaviside-function",
+      "dirac-delta-function"
+    ],
+    "fisica": [
+      "dirac-delta-function",
+      "heaviside-function",
+      "hamiltonian",
+      "pauli-matrix",
+      "dirac-matrix",
+      "dirac-operator",
+      "angular-momentum",
+      "spin-angular-momentum",
+      "momentum",
+      "energy",
+      "fourier-transform",
+      "laplace-transform"
+    ],
+    "fisica matematica": [
+      "dirac-delta-function",
+      "heaviside-function",
+      "hamiltonian",
+      "pauli-matrix",
+      "dirac-matrix",
+      "dirac-operator",
+      "angular-momentum",
+      "spin-angular-momentum",
+      "momentum",
+      "energy",
+      "fourier-transform",
+      "laplace-transform",
+      "bessel-function",
+      "legendre-polynomial"
+    ],
+    "mecanica cuantica": [
+      "hamiltonian",
+      "pauli-matrix",
+      "dirac-matrix",
+      "dirac-operator",
+      "angular-momentum",
+      "spin-angular-momentum",
+      "momentum",
+      "energy",
+      "dirac-delta-function",
+      "heaviside-function"
+    ],
+    "mecanica estadistica": [
+      "gaussian-distribution",
+      "fermi-dirac-distribution",
+      "partition-function",
+      "entropy",
+      "shannon-entropy"
+    ],
+    "estadistica": [
+      "gaussian-distribution",
+      "binomial-distribution",
+      "poisson-distribution",
+      "gamma-distribution",
+      "beta-distribution",
+      "chi-squared-distribution",
+      "f-distribution",
+      "negative-binomial-distribution",
+      "dirichlet-distribution",
+      "wishart-distribution",
+      "multivariate-gaussian-distribution",
+      "cumulative-distribution-function",
+      "expectation-value",
+      "conditional-expectation",
+      "covariance",
+      "correlation",
+      "sample-variance",
+      "entropy",
+      "mean-squared-error",
+      "root-mean-square",
+      "geometric-mean",
+      "harmonic-mean",
+      "weighted-mean"
+    ],
+    "probabilidad": [
+      "gaussian-distribution",
+      "binomial-distribution",
+      "poisson-distribution",
+      "gamma-distribution",
+      "beta-distribution",
+      "chi-squared-distribution",
+      "f-distribution",
+      "negative-binomial-distribution",
+      "dirichlet-distribution",
+      "multivariate-gaussian-distribution",
+      "cumulative-distribution-function",
+      "expectation-value",
+      "conditional-expectation",
+      "covariance",
+      "correlation",
+      "sample-variance"
+    ],
+    "teoria de la probabilidad": [
+      "gaussian-distribution",
+      "binomial-distribution",
+      "poisson-distribution",
+      "gamma-distribution",
+      "beta-distribution",
+      "chi-squared-distribution",
+      "f-distribution",
+      "negative-binomial-distribution",
+      "dirichlet-distribution",
+      "multivariate-gaussian-distribution",
+      "cumulative-distribution-function",
+      "expectation-value",
+      "conditional-expectation",
+      "covariance",
+      "correlation",
+      "sample-variance"
+    ],
+    "algebra lineal": [
+      "conjugate-transpose",
+      "frobenius-norm",
+      "gram-matrix",
+      "jacobi-matrix",
+      "laplacian-matrix",
+      "zero-matrix",
+      "diagonal-matrix",
+      "tensor-product",
+      "tensor-algebra",
+      "direct-sum",
+      "trace",
+      "rank",
+      "spectrum",
+      "spectrum-of-matrix"
+    ],
+    "matrices": [
+      "conjugate-transpose",
+      "frobenius-norm",
+      "gram-matrix",
+      "jacobi-matrix",
+      "laplacian-matrix",
+      "zero-matrix",
+      "diagonal-matrix",
+      "tensor-product",
+      "trace",
+      "rank",
+      "spectrum-of-matrix"
+    ],
+    "algebra abstracta": [
+      "galois-group",
+      "general-linear-group",
+      "dihedral-group",
+      "alternating-group",
+      "symmetric-group",
+      "orthogonal-group",
+      "unitary-group",
+      "special-linear-group",
+      "automorphism-group",
+      "commutator-subgroup",
+      "field-extension",
+      "galois-field",
+      "cyclotomic-field",
+      "polynomial-ring",
+      "grobner-basis"
+    ],
+    "teoria de grupos": [
+      "galois-group",
+      "general-linear-group",
+      "dihedral-group",
+      "alternating-group",
+      "symmetric-group",
+      "orthogonal-group",
+      "unitary-group",
+      "special-linear-group",
+      "automorphism-group",
+      "commutator-subgroup"
+    ],
+    "teoria de numeros": [
+      "mobius-function",
+      "euler-totient-function",
+      "divisor-function",
+      "prime-counting-function",
+      "riemann-zeta-function",
+      "dirichlet-eta-function",
+      "legendre-symbol",
+      "jacobi-symbol",
+      "hilbert-symbol",
+      "fibonacci-number",
+      "lucas-number",
+      "catalan-number",
+      "bernoulli-number",
+      "stirling-number-of-first-kind",
+      "stirling-number-of-second-kind",
+      "bell-number"
+    ],
+    "aritmetica": [
+      "mobius-function",
+      "euler-totient-function",
+      "divisor-function",
+      "prime-counting-function",
+      "legendre-symbol",
+      "jacobi-symbol",
+      "fibonacci-number",
+      "lucas-number",
+      "catalan-number"
+    ],
+    "combinatoria": [
+      "fibonacci-number",
+      "lucas-number",
+      "catalan-number",
+      "bernoulli-number",
+      "stirling-number-of-first-kind",
+      "stirling-number-of-second-kind",
+      "bell-number",
+      "partition-function",
+      "double-factorial",
+      "subfactorial",
+      "falling-factorial",
+      "rising-factorial",
+      "alternating-factorial",
+      "exponential-factorial"
+    ],
+    "geometria": [
+      "riemann-sphere",
+      "projective-space",
+      "complex-projective-space",
+      "tangent-space",
+      "hyperbolic-space",
+      "kronecker-symbol",
+      "levi-civita-symbol"
+    ],
+    "topologia": [
+      "sobolev-space",
+      "riemann-sphere",
+      "projective-space",
+      "complex-projective-space",
+      "tangent-space",
+      "hyperbolic-space",
+      "hausdorff-space",
+      "homology-group"
+    ],
+    "procesamiento de senales": [
+      "fourier-transform",
+      "fourier-sine-transform",
+      "fourier-cosine-transform",
+      "laplace-transform",
+      "z-transform",
+      "wavelet-transform",
+      "mellin-transform",
+      "gabor-transform",
+      "dirac-delta-function",
+      "heaviside-function"
+    ],
+    "teoria de senales": [
+      "fourier-transform",
+      "fourier-sine-transform",
+      "fourier-cosine-transform",
+      "laplace-transform",
+      "z-transform",
+      "wavelet-transform",
+      "dirac-delta-function",
+      "heaviside-function"
+    ],
+    "teoria de la informacion": [
+      "entropy",
+      "shannon-entropy",
+      "mutual-information",
+      "fisher-information",
+      "mean-squared-error"
+    ],
+    "metodos numericos": [
+      "legendre-polynomial",
+      "chebyshev-polynomial-of-first-kind",
+      "chebyshev-polynomial-of-second-kind",
+      "hermite-polynomial",
+      "laguerre-polynomial",
+      "gaussian-distribution",
+      "bernoulli-number"
+    ],
+    "electromagnetismo": [
+      "levi-civita-symbol",
+      "dirac-delta-function",
+      "heaviside-function",
+      "fourier-transform",
+      "laplace-operator",
+      "dalembert-operator",
+      "tensor-product"
+    ],
+    "relatividad": [
+      "levi-civita-symbol",
+      "tensor-product",
+      "tensor-algebra",
+      "riemann-sphere",
+      "dirac-matrix",
+      "dirac-operator"
+    ]
+  },
+  "topics": {
+    "transformada de fourier": [
+      "fourier-transform"
+    ],
+    "fourier transform": [
+      "fourier-transform"
+    ],
+    "transformada del seno": [
+      "fourier-sine-transform"
+    ],
+    "fourier sine transform": [
+      "fourier-sine-transform"
+    ],
+    "transformada del coseno": [
+      "fourier-cosine-transform"
+    ],
+    "fourier cosine transform": [
+      "fourier-cosine-transform"
+    ],
+    "transformada de laplace": [
+      "laplace-transform"
+    ],
+    "laplace transform": [
+      "laplace-transform"
+    ],
+    "transformada z": [
+      "z-transform"
+    ],
+    "z transform": [
+      "z-transform"
+    ],
+    "transformada wavelet": [
+      "wavelet-transform"
+    ],
+    "wavelet transform": [
+      "wavelet-transform"
+    ],
+    "transformada de mellin": [
+      "mellin-transform"
+    ],
+    "mellin transform": [
+      "mellin-transform"
+    ],
+    "transformada de gabor": [
+      "gabor-transform"
+    ],
+    "gabor transform": [
+      "gabor-transform"
+    ],
+    "funcion gamma": [
+      "gamma-function"
+    ],
+    "gamma function": [
+      "gamma-function"
+    ],
+    "funcion beta": [
+      "beta-function"
+    ],
+    "beta function": [
+      "beta-function"
+    ],
+    "funcion error": [
+      "error-function"
+    ],
+    "error function": [
+      "error-function"
+    ],
+    "funcion de airy": [
+      "airy-function"
+    ],
+    "airy function": [
+      "airy-function"
+    ],
+    "funciones de bessel": [
+      "bessel-function",
+      "bessel-function-of-second-kind"
+    ],
+    "bessel function": [
+      "bessel-function",
+      "bessel-function-of-second-kind"
+    ],
+    "funciones de hankel": [
+      "hankel-function"
+    ],
+    "hankel function": [
+      "hankel-function"
+    ],
+    "polinomios de legendre": [
+      "legendre-polynomial",
+      "associated-legendre-polynomial"
+    ],
+    "legendre polynomial": [
+      "legendre-polynomial",
+      "associated-legendre-polynomial"
+    ],
+    "polinomios de hermite": [
+      "hermite-polynomial"
+    ],
+    "hermite polynomial": [
+      "hermite-polynomial"
+    ],
+    "polinomios de laguerre": [
+      "laguerre-polynomial"
+    ],
+    "laguerre polynomial": [
+      "laguerre-polynomial"
+    ],
+    "polinomios de chebyshev": [
+      "chebyshev-polynomial-of-first-kind",
+      "chebyshev-polynomial-of-second-kind"
+    ],
+    "chebyshev polynomial": [
+      "chebyshev-polynomial-of-first-kind",
+      "chebyshev-polynomial-of-second-kind"
+    ],
+    "polinomios de gegenbauer": [
+      "gegenbauer-polynomial"
+    ],
+    "gegenbauer polynomial": [
+      "gegenbauer-polynomial"
+    ],
+    "polinomios de jacobi": [
+      "jacobi-polynomial"
+    ],
+    "jacobi polynomial": [
+      "jacobi-polynomial"
+    ],
+    "hipergeometrica": [
+      "generalized-hypergeometric-function"
+    ],
+    "hypergeometric": [
+      "generalized-hypergeometric-function"
+    ],
+    "zeta de riemann": [
+      "riemann-zeta-function"
+    ],
+    "riemann zeta": [
+      "riemann-zeta-function"
+    ],
+    "funcion zeta": [
+      "zeta-function",
+      "riemann-zeta-function"
+    ],
+    "zeta function": [
+      "zeta-function",
+      "riemann-zeta-function"
+    ],
+    "funcion eta de dirichlet": [
+      "dirichlet-eta-function"
+    ],
+    "dirichlet eta": [
+      "dirichlet-eta-function"
+    ],
+    "funcion digamma": [
+      "digamma-function"
+    ],
+    "digamma": [
+      "digamma-function"
+    ],
+    "funcion de mobius": [
+      "mobius-function"
+    ],
+    "mobius function": [
+      "mobius-function"
+    ],
+    "funcion totient": [
+      "euler-totient-function"
+    ],
+    "totient": [
+      "euler-totient-function"
+    ],
+    "funcion divisor": [
+      "divisor-function"
+    ],
+    "divisor function": [
+      "divisor-function"
+    ],
+    "funcion contadora de primos": [
+      "prime-counting-function"
+    ],
+    "prime counting": [
+      "prime-counting-function"
+    ],
+    "numeros de fibonacci": [
+      "fibonacci-number"
+    ],
+    "fibonacci": [
+      "fibonacci-number"
+    ],
+    "numeros de lucas": [
+      "lucas-number"
+    ],
+    "lucas number": [
+      "lucas-number"
+    ],
+    "numeros de catalan": [
+      "catalan-number"
+    ],
+    "catalan number": [
+      "catalan-number"
+    ],
+    "numeros de bernoulli": [
+      "bernoulli-number"
+    ],
+    "bernoulli": [
+      "bernoulli-number"
+    ],
+    "numeros de stirling": [
+      "stirling-number-of-first-kind",
+      "stirling-number-of-second-kind"
+    ],
+    "stirling number": [
+      "stirling-number-of-first-kind",
+      "stirling-number-of-second-kind"
+    ],
+    "numeros de bell": [
+      "bell-number"
+    ],
+    "bell number": [
+      "bell-number"
+    ],
+    "funcion particion": [
+      "partition-function"
+    ],
+    "partition function": [
+      "partition-function"
+    ],
+    "doble factorial": [
+      "double-factorial"
+    ],
+    "double factorial": [
+      "double-factorial"
+    ],
+    "subfactorial": [
+      "subfactorial"
+    ],
+    "factorial descendente": [
+      "falling-factorial"
+    ],
+    "falling factorial": [
+      "falling-factorial"
+    ],
+    "factorial ascendente": [
+      "rising-factorial"
+    ],
+    "rising factorial": [
+      "rising-factorial"
+    ],
+    "delta de dirac": [
+      "dirac-delta-function"
+    ],
+    "dirac delta": [
+      "dirac-delta-function"
+    ],
+    "funcion de heaviside": [
+      "heaviside-function"
+    ],
+    "heaviside": [
+      "heaviside-function"
+    ],
+    "delta de kronecker": [
+      "kronecker-delta"
+    ],
+    "kronecker delta": [
+      "kronecker-delta"
+    ],
+    "simbolo de levi-civita": [
+      "levi-civita-symbol"
+    ],
+    "levi civita": [
+      "levi-civita-symbol"
+    ],
+    "hamiltoniano": [
+      "hamiltonian"
+    ],
+    "hamiltonian": [
+      "hamiltonian"
+    ],
+    "matrices de pauli": [
+      "pauli-matrix"
+    ],
+    "pauli matrices": [
+      "pauli-matrix"
+    ],
+    "matrices de dirac": [
+      "dirac-matrix"
+    ],
+    "dirac matrices": [
+      "dirac-matrix"
+    ],
+    "momento angular": [
+      "angular-momentum",
+      "spin-angular-momentum"
+    ],
+    "angular momentum": [
+      "angular-momentum",
+      "spin-angular-momentum"
+    ],
+    "espin": [
+      "spin-angular-momentum"
+    ],
+    "spin": [
+      "spin-angular-momentum"
+    ],
+    "operador de laplace": [
+      "laplace-operator"
+    ],
+    "laplacian": [
+      "laplace-operator"
+    ],
+    "operador de dalembert": [
+      "dalembert-operator"
+    ],
+    "dalembert": [
+      "dalembert-operator"
+    ],
+    "valor principal": [
+      "principal-value"
+    ],
+    "principal value": [
+      "principal-value"
+    ],
+    "valor principal de cauchy": [
+      "cauchy-principal-value"
+    ],
+    "cauchy principal value": [
+      "cauchy-principal-value"
+    ],
+    "residuo": [
+      "residue"
+    ],
+    "residue": [
+      "residue"
+    ],
+    "integral de linea": [
+      "line-integral"
+    ],
+    "line integral": [
+      "line-integral"
+    ],
+    "integral de superficie": [
+      "surface-integral"
+    ],
+    "surface integral": [
+      "surface-integral"
+    ],
+    "integral multiple": [
+      "multiple-integral"
+    ],
+    "multiple integral": [
+      "multiple-integral"
+    ],
+    "integral de lebesgue": [
+      "lebesgue-integral"
+    ],
+    "lebesgue integral": [
+      "lebesgue-integral"
+    ],
+    "integral de riemann": [
+      "riemann-integral"
+    ],
+    "riemann integral": [
+      "riemann-integral"
+    ],
+    "integral de riemann stieltjes": [
+      "riemann-stieltje-integral"
+    ],
+    "riemann stieltjes": [
+      "riemann-stieltje-integral"
+    ],
+    "integral coseno": [
+      "cosine-integral"
+    ],
+    "cosine integral": [
+      "cosine-integral"
+    ],
+    "integral seno": [
+      "sine-integral"
+    ],
+    "sine integral": [
+      "sine-integral"
+    ],
+    "integral exponencial": [
+      "exponential-integral"
+    ],
+    "exponential integral": [
+      "exponential-integral"
+    ],
+    "integral logaritmica": [
+      "logarithmic-integral"
+    ],
+    "logarithmic integral": [
+      "logarithmic-integral"
+    ],
+    "integral de fresnel": [
+      "fresnel-integral"
+    ],
+    "fresnel integral": [
+      "fresnel-integral"
+    ],
+    "integrales elipticas": [
+      "incomplete-elliptic-integral-of-the-first-kind",
+      "incomplete-elliptic-integral-of-the-second-kind"
+    ],
+    "elliptic integral": [
+      "incomplete-elliptic-integral-of-the-first-kind",
+      "incomplete-elliptic-integral-of-the-second-kind"
+    ],
+    "funcion eliptica": [
+      "elliptic-function"
+    ],
+    "elliptic function": [
+      "elliptic-function"
+    ],
+    "distribucion normal": [
+      "gaussian-distribution"
+    ],
+    "distribucion gaussiana": [
+      "gaussian-distribution"
+    ],
+    "normal distribution": [
+      "gaussian-distribution"
+    ],
+    "gaussian distribution": [
+      "gaussian-distribution"
+    ],
+    "distribucion binomial": [
+      "binomial-distribution"
+    ],
+    "binomial distribution": [
+      "binomial-distribution"
+    ],
+    "distribucion de poisson": [
+      "poisson-distribution"
+    ],
+    "poisson distribution": [
+      "poisson-distribution"
+    ],
+    "distribucion gamma": [
+      "gamma-distribution"
+    ],
+    "gamma distribution": [
+      "gamma-distribution"
+    ],
+    "distribucion beta": [
+      "beta-distribution"
+    ],
+    "beta distribution": [
+      "beta-distribution"
+    ],
+    "distribucion chi cuadrado": [
+      "chi-squared-distribution"
+    ],
+    "chi squared distribution": [
+      "chi-squared-distribution"
+    ],
+    "distribucion f": [
+      "f-distribution"
+    ],
+    "f distribution": [
+      "f-distribution"
+    ],
+    "distribucion binomial negativa": [
+      "negative-binomial-distribution"
+    ],
+    "negative binomial": [
+      "negative-binomial-distribution"
+    ],
+    "distribucion de dirichlet": [
+      "dirichlet-distribution"
+    ],
+    "dirichlet distribution": [
+      "dirichlet-distribution"
+    ],
+    "distribucion de wishart": [
+      "wishart-distribution",
+      "inverse-wishart-distribution"
+    ],
+    "wishart distribution": [
+      "wishart-distribution",
+      "inverse-wishart-distribution"
+    ],
+    "distribucion de fermi dirac": [
+      "fermi-dirac-distribution"
+    ],
+    "fermi dirac": [
+      "fermi-dirac-distribution"
+    ],
+    "funcion de distribucion acumulada": [
+      "cumulative-distribution-function"
+    ],
+    "cumulative distribution": [
+      "cumulative-distribution-function"
+    ],
+    "valor esperado": [
+      "expectation-value"
+    ],
+    "esperanza": [
+      "expectation-value"
+    ],
+    "expected value": [
+      "expectation-value"
+    ],
+    "esperanza condicional": [
+      "conditional-expectation"
+    ],
+    "conditional expectation": [
+      "conditional-expectation"
+    ],
+    "covarianza": [
+      "covariance"
+    ],
+    "covariance": [
+      "covariance"
+    ],
+    "correlacion": [
+      "correlation"
+    ],
+    "correlation": [
+      "correlation"
+    ],
+    "varianza muestral": [
+      "sample-variance"
+    ],
+    "sample variance": [
+      "sample-variance"
+    ],
+    "entropia": [
+      "entropy"
+    ],
+    "entropy": [
+      "entropy"
+    ],
+    "entropia de shannon": [
+      "shannon-entropy"
+    ],
+    "shannon entropy": [
+      "shannon-entropy"
+    ],
+    "informacion mutua": [
+      "mutual-information"
+    ],
+    "mutual information": [
+      "mutual-information"
+    ],
+    "informacion de fisher": [
+      "fisher-information"
+    ],
+    "fisher information": [
+      "fisher-information"
+    ],
+    "error cuadratico medio": [
+      "mean-squared-error"
+    ],
+    "mean squared error": [
+      "mean-squared-error"
+    ],
+    "raiz cuadratica media": [
+      "root-mean-square"
+    ],
+    "root mean square": [
+      "root-mean-square"
+    ],
+    "media geometrica": [
+      "geometric-mean"
+    ],
+    "geometric mean": [
+      "geometric-mean"
+    ],
+    "media armonica": [
+      "harmonic-mean"
+    ],
+    "harmonic mean": [
+      "harmonic-mean"
+    ],
+    "media ponderada": [
+      "weighted-mean"
+    ],
+    "weighted mean": [
+      "weighted-mean"
+    ],
+    "matriz conjugada traspuesta": [
+      "conjugate-transpose"
+    ],
+    "conjugate transpose": [
+      "conjugate-transpose"
+    ],
+    "norma de frobenius": [
+      "frobenius-norm"
+    ],
+    "frobenius norm": [
+      "frobenius-norm"
+    ],
+    "matriz de gram": [
+      "gram-matrix"
+    ],
+    "gram matrix": [
+      "gram-matrix"
+    ],
+    "matriz jacobiana": [
+      "jacobi-matrix"
+    ],
+    "jacobian matrix": [
+      "jacobi-matrix"
+    ],
+    "matriz laplaciana": [
+      "laplacian-matrix"
+    ],
+    "laplacian matrix": [
+      "laplacian-matrix"
+    ],
+    "matriz nula": [
+      "zero-matrix"
+    ],
+    "zero matrix": [
+      "zero-matrix"
+    ],
+    "matriz diagonal": [
+      "diagonal-matrix"
+    ],
+    "diagonal matrix": [
+      "diagonal-matrix"
+    ],
+    "producto tensorial": [
+      "tensor-product"
+    ],
+    "tensor product": [
+      "tensor-product"
+    ],
+    "algebra tensorial": [
+      "tensor-algebra"
+    ],
+    "tensor algebra": [
+      "tensor-algebra"
+    ],
+    "suma directa": [
+      "direct-sum"
+    ],
+    "direct sum": [
+      "direct-sum"
+    ],
+    "traza": [
+      "trace"
+    ],
+    "trace": [
+      "trace"
+    ],
+    "rango": [
+      "rank"
+    ],
+    "rank": [
+      "rank"
+    ],
+    "espectro": [
+      "spectrum",
+      "spectrum-of-matrix"
+    ],
+    "spectrum": [
+      "spectrum",
+      "spectrum-of-matrix"
+    ],
+    "grupo de galois": [
+      "galois-group"
+    ],
+    "galois group": [
+      "galois-group"
+    ],
+    "grupo lineal general": [
+      "general-linear-group"
+    ],
+    "general linear group": [
+      "general-linear-group"
+    ],
+    "grupo diedral": [
+      "dihedral-group"
+    ],
+    "dihedral group": [
+      "dihedral-group"
+    ],
+    "grupo alternante": [
+      "alternating-group"
+    ],
+    "alternating group": [
+      "alternating-group"
+    ],
+    "grupo simetrico": [
+      "symmetric-group"
+    ],
+    "symmetric group": [
+      "symmetric-group"
+    ],
+    "grupo ortogonal": [
+      "orthogonal-group"
+    ],
+    "orthogonal group": [
+      "orthogonal-group"
+    ],
+    "grupo unitario": [
+      "unitary-group"
+    ],
+    "unitary group": [
+      "unitary-group"
+    ],
+    "grupo especial lineal": [
+      "special-linear-group"
+    ],
+    "special linear group": [
+      "special-linear-group"
+    ],
+    "grupo de automorfismos": [
+      "automorphism-group"
+    ],
+    "automorphism group": [
+      "automorphism-group"
+    ],
+    "subgrupo conmutador": [
+      "commutator-subgroup"
+    ],
+    "commutator subgroup": [
+      "commutator-subgroup"
+    ],
+    "extension de cuerpos": [
+      "field-extension"
+    ],
+    "field extension": [
+      "field-extension"
+    ],
+    "cuerpo de galois": [
+      "galois-field"
+    ],
+    "galois field": [
+      "galois-field"
+    ],
+    "cuerpo ciclotomico": [
+      "cyclotomic-field"
+    ],
+    "cyclotomic field": [
+      "cyclotomic-field"
+    ],
+    "polinomio ciclotomico": [
+      "cyclotomic-polynomial"
+    ],
+    "cyclotomic polynomial": [
+      "cyclotomic-polynomial"
+    ],
+    "anillo de polinomios": [
+      "polynomial-ring"
+    ],
+    "polynomial ring": [
+      "polynomial-ring"
+    ],
+    "base de grobner": [
+      "grobner-basis"
+    ],
+    "grobner basis": [
+      "grobner-basis"
+    ],
+    "simbolo de legendre": [
+      "legendre-symbol"
+    ],
+    "legendre symbol": [
+      "legendre-symbol"
+    ],
+    "simbolo de jacobi": [
+      "jacobi-symbol"
+    ],
+    "jacobi symbol": [
+      "jacobi-symbol"
+    ],
+    "simbolo de hilbert": [
+      "hilbert-symbol"
+    ],
+    "hilbert symbol": [
+      "hilbert-symbol"
+    ],
+    "espacio de sobolev": [
+      "sobolev-space"
+    ],
+    "sobolev space": [
+      "sobolev-space"
+    ],
+    "esfera de riemann": [
+      "riemann-sphere"
+    ],
+    "riemann sphere": [
+      "riemann-sphere"
+    ],
+    "espacio proyectivo": [
+      "projective-space",
+      "complex-projective-space"
+    ],
+    "projective space": [
+      "projective-space",
+      "complex-projective-space"
+    ],
+    "espacio proyectivo complejo": [
+      "complex-projective-space"
+    ],
+    "complex projective space": [
+      "complex-projective-space"
+    ],
+    "espacio tangente": [
+      "tangent-space"
+    ],
+    "tangent space": [
+      "tangent-space"
+    ],
+    "espacio hiperbolico": [
+      "hyperbolic-space"
+    ],
+    "hyperbolic space": [
+      "hyperbolic-space"
+    ],
+    "espacio de hausdorff": [
+      "hausdorff-space"
+    ],
+    "hausdorff space": [
+      "hausdorff-space"
+    ],
+    "grupo de homologia": [
+      "homology-group"
+    ],
+    "homology group": [
+      "homology-group"
+    ],
+    "fourier": [
+      "fourier-transform",
+      "fourier-sine-transform",
+      "fourier-cosine-transform"
+    ],
+    "laplace": [
+      "laplace-transform",
+      "laplace-operator"
+    ],
+    "bessel": [
+      "bessel-function",
+      "bessel-function-of-second-kind"
+    ],
+    "legendre": [
+      "legendre-polynomial",
+      "legendre-symbol"
+    ],
+    "gamma": [
+      "gamma-function",
+      "digamma-function",
+      "gamma-distribution"
+    ],
+    "beta": [
+      "beta-function",
+      "beta-distribution"
+    ],
+    "error": [
+      "error-function",
+      "mean-squared-error"
+    ]
+  },
+  "cues": {
+    "gamma-function": {
+      "aliases": [
+        "gamma",
+        "funcion gamma",
+        "funcion gamma incompleta"
+      ],
+      "latex": [
+        "\\Gamma",
+        "\\gamma"
+      ],
+      "symbols": [
+        "Γ",
+        "γ"
+      ],
+      "examples": [
+        "\\Gamma(x)"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo",
+        "msub",
+        "msup",
+        "mfrac"
+      ],
+      "priority": 6
+    },
+    "beta-function": {
+      "aliases": [
+        "beta",
+        "funcion beta",
+        "funcion beta incompleta"
+      ],
+      "latex": [
+        "\\Beta",
+        "\\beta"
+      ],
+      "symbols": [
+        "Β",
+        "β"
+      ],
+      "examples": [
+        "\\Beta(x,y)"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo",
+        "msub",
+        "msup",
+        "mfrac"
+      ],
+      "priority": 6
+    },
+    "error-function": {
+      "aliases": [
+        "error",
+        "funcion error"
+      ],
+      "latex": [
+        "\\operatorname{erf}",
+        "\\mathrm{erf}"
+      ],
+      "symbols": [
+        "erf"
+      ],
+      "examples": [
+        "\\operatorname{erf}(x)"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 6
+    },
+    "airy-function": {
+      "aliases": [
+        "airy",
+        "funcion de airy"
+      ],
+      "latex": [
+        "\\operatorname{Ai}",
+        "\\mathrm{Ai}",
+        "\\operatorname{Bi}"
+      ],
+      "symbols": [
+        "Ai",
+        "Bi"
+      ],
+      "examples": [
+        "\\operatorname{Ai}(x)"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 5
+    },
+    "bessel-function": {
+      "aliases": [
+        "bessel",
+        "funcion de bessel"
+      ],
+      "latex": [
+        "J_{",
+        "Y_{",
+        "I_{",
+        "K_{"
+      ],
+      "symbols": [
+        "J",
+        "Y",
+        "I",
+        "K"
+      ],
+      "examples": [
+        "J_{n}(x)"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "msub",
+        "mi",
+        "mo"
+      ],
+      "priority": 5
+    },
+    "bessel-function-of-second-kind": {
+      "aliases": [
+        "bessel de segunda especie",
+        "neumann"
+      ],
+      "latex": [
+        "Y_{"
+      ],
+      "symbols": [
+        "Y"
+      ],
+      "examples": [
+        "Y_{n}(x)"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "msub",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "legendre-polynomial": {
+      "aliases": [
+        "legendre",
+        "polinomio de legendre"
+      ],
+      "latex": [
+        "P_{"
+      ],
+      "symbols": [
+        "P"
+      ],
+      "examples": [
+        "P_{n}(x)"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "msub",
+        "mi",
+        "mo"
+      ],
+      "priority": 5
+    },
+    "hermite-polynomial": {
+      "aliases": [
+        "hermite",
+        "polinomio de hermite"
+      ],
+      "latex": [
+        "H_{"
+      ],
+      "symbols": [
+        "H"
+      ],
+      "examples": [
+        "H_{n}(x)"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "msub",
+        "mi",
+        "mo"
+      ],
+      "priority": 5
+    },
+    "laguerre-polynomial": {
+      "aliases": [
+        "laguerre",
+        "polinomio de laguerre"
+      ],
+      "latex": [
+        "L_{"
+      ],
+      "symbols": [
+        "L"
+      ],
+      "examples": [
+        "L_{n}(x)"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "msub",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "chebyshev-polynomial-of-first-kind": {
+      "aliases": [
+        "chebyshev",
+        "polinomio de chebyshev"
+      ],
+      "latex": [
+        "T_{"
+      ],
+      "symbols": [
+        "T"
+      ],
+      "examples": [
+        "T_{n}(x)"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "msub",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "chebyshev-polynomial-of-second-kind": {
+      "aliases": [
+        "chebyshev de segunda especie"
+      ],
+      "latex": [
+        "U_{"
+      ],
+      "symbols": [
+        "U"
+      ],
+      "examples": [
+        "U_{n}(x)"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "msub",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "gegenbauer-polynomial": {
+      "aliases": [
+        "gegenbauer",
+        "ultraesferico"
+      ],
+      "latex": [
+        "C_{"
+      ],
+      "symbols": [
+        "C"
+      ],
+      "examples": [
+        "C_{n}^{(\\lambda)}(x)"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "msub",
+        "msup",
+        "mi",
+        "mo"
+      ],
+      "priority": 3
+    },
+    "jacobi-polynomial": {
+      "aliases": [
+        "jacobi",
+        "polinomio de jacobi"
+      ],
+      "latex": [
+        "P_{"
+      ],
+      "symbols": [
+        "P"
+      ],
+      "examples": [
+        "P_{n}^{(\\alpha,\\beta)}(x)"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "msub",
+        "msup",
+        "mi",
+        "mo"
+      ],
+      "priority": 3
+    },
+    "generalized-hypergeometric-function": {
+      "aliases": [
+        "hipergeometrica",
+        "hypergeometric"
+      ],
+      "latex": [
+        "{}_",
+        "\\,_"
+      ],
+      "symbols": [
+        "F"
+      ],
+      "examples": [
+        "{}_2F_1(a,b;c;x)"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "msub",
+        "msubsup",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "riemann-zeta-function": {
+      "aliases": [
+        "zeta de riemann",
+        "riemann zeta",
+        "funcion zeta"
+      ],
+      "latex": [
+        "\\zeta"
+      ],
+      "symbols": [
+        "ζ"
+      ],
+      "examples": [
+        "\\zeta(s)"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 6
+    },
+    "zeta-function": {
+      "aliases": [
+        "zeta",
+        "funcion zeta"
+      ],
+      "latex": [
+        "\\zeta"
+      ],
+      "symbols": [
+        "ζ"
+      ],
+      "examples": [
+        "\\zeta(s)"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 5
+    },
+    "dirichlet-eta-function": {
+      "aliases": [
+        "eta de dirichlet",
+        "funcion eta"
+      ],
+      "latex": [
+        "\\eta"
+      ],
+      "symbols": [
+        "η"
+      ],
+      "examples": [
+        "\\eta(s)"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "digamma-function": {
+      "aliases": [
+        "digamma",
+        "funcion digamma"
+      ],
+      "latex": [
+        "\\psi",
+        "\\digamma"
+      ],
+      "symbols": [
+        "ψ",
+        "ϝ"
+      ],
+      "examples": [
+        "\\psi(x)"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "mobius-function": {
+      "aliases": [
+        "mobius",
+        "funcion de mobius"
+      ],
+      "latex": [
+        "\\mu"
+      ],
+      "symbols": [
+        "μ"
+      ],
+      "examples": [
+        "\\mu(n)"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 5
+    },
+    "euler-totient-function": {
+      "aliases": [
+        "totient",
+        "euler phi",
+        "funcion fi de euler"
+      ],
+      "latex": [
+        "\\varphi",
+        "\\phi"
+      ],
+      "symbols": [
+        "φ",
+        "ϕ"
+      ],
+      "examples": [
+        "\\varphi(n)"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 5
+    },
+    "divisor-function": {
+      "aliases": [
+        "divisor",
+        "funcion divisor",
+        "sigma"
+      ],
+      "latex": [
+        "\\sigma"
+      ],
+      "symbols": [
+        "σ"
+      ],
+      "examples": [
+        "\\sigma(n)"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "msub",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "prime-counting-function": {
+      "aliases": [
+        "prime counting",
+        "contadora de primos",
+        "pi de primos"
+      ],
+      "latex": [
+        "\\pi("
+      ],
+      "symbols": [
+        "π"
+      ],
+      "examples": [
+        "\\pi(x)"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "fibonacci-number": {
+      "aliases": [
+        "fibonacci"
+      ],
+      "latex": [
+        "F_{"
+      ],
+      "symbols": [
+        "F"
+      ],
+      "examples": [
+        "F_{n}"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "msub",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "catalan-number": {
+      "aliases": [
+        "catalan"
+      ],
+      "latex": [
+        "C_{"
+      ],
+      "symbols": [
+        "C"
+      ],
+      "examples": [
+        "C_{n}"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "msub",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "bernoulli-number": {
+      "aliases": [
+        "bernoulli"
+      ],
+      "latex": [
+        "B_{"
+      ],
+      "symbols": [
+        "B"
+      ],
+      "examples": [
+        "B_{n}"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "msub",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "stirling-number-of-first-kind": {
+      "aliases": [
+        "stirling primera especie"
+      ],
+      "latex": [
+        "\\left[{",
+        "\\genfrac"
+      ],
+      "symbols": [
+        "["
+      ],
+      "examples": [
+        "\\left[{n\\atop k}\\right]"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "mfrac",
+        "mo"
+      ],
+      "priority": 3
+    },
+    "stirling-number-of-second-kind": {
+      "aliases": [
+        "stirling segunda especie"
+      ],
+      "latex": [
+        "\\left\\{{",
+        "\\genfrac"
+      ],
+      "symbols": [
+        "{"
+      ],
+      "examples": [
+        "\\left\\{{n\\atop k}\\right\\}"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "mfrac",
+        "mo"
+      ],
+      "priority": 3
+    },
+    "bell-number": {
+      "aliases": [
+        "bell"
+      ],
+      "latex": [
+        "B_{"
+      ],
+      "symbols": [
+        "B"
+      ],
+      "examples": [
+        "B_{n}"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "msub",
+        "mi",
+        "mo"
+      ],
+      "priority": 3
+    },
+    "partition-function": {
+      "aliases": [
+        "partition",
+        "particion"
+      ],
+      "latex": [
+        "p("
+      ],
+      "symbols": [
+        "p"
+      ],
+      "examples": [
+        "p(n)"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 3
+    },
+    "double-factorial": {
+      "aliases": [
+        "double factorial",
+        "doble factorial"
+      ],
+      "latex": [
+        "!!"
+      ],
+      "symbols": [
+        "!!"
+      ],
+      "examples": [
+        "n!!"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mo",
+        "mrow"
+      ],
+      "priority": 4
+    },
+    "subfactorial": {
+      "aliases": [
+        "subfactorial"
+      ],
+      "latex": [
+        "!n"
+      ],
+      "symbols": [
+        "!"
+      ],
+      "examples": [
+        "!n"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mo",
+        "mrow"
+      ],
+      "priority": 3
+    },
+    "dirac-delta-function": {
+      "aliases": [
+        "dirac delta",
+        "delta de dirac"
+      ],
+      "latex": [
+        "\\delta"
+      ],
+      "symbols": [
+        "δ"
+      ],
+      "examples": [
+        "\\delta(x)"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 6
+    },
+    "heaviside-function": {
+      "aliases": [
+        "heaviside",
+        "escalon unitario"
+      ],
+      "latex": [
+        "\\Theta",
+        "\\theta",
+        "\\operatorname{H}"
+      ],
+      "symbols": [
+        "Θ",
+        "θ",
+        "H"
+      ],
+      "examples": [
+        "\\Theta(x)"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 5
+    },
+    "kronecker-delta": {
+      "aliases": [
+        "kronecker delta",
+        "delta de kronecker"
+      ],
+      "latex": [
+        "\\delta_{"
+      ],
+      "symbols": [
+        "δ"
+      ],
+      "examples": [
+        "\\delta_{ij}"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "msub",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "kronecker-symbol": {
+      "aliases": [
+        "kronecker",
+        "simbolo de kronecker"
+      ],
+      "latex": [
+        "\\delta"
+      ],
+      "symbols": [
+        "δ"
+      ],
+      "examples": [
+        "\\delta_{ij}"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "msub",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "levi-civita-symbol": {
+      "aliases": [
+        "levi civita",
+        "epsilon tensor"
+      ],
+      "latex": [
+        "\\varepsilon",
+        "\\epsilon"
+      ],
+      "symbols": [
+        "ε",
+        "ϵ"
+      ],
+      "examples": [
+        "\\varepsilon_{ijk}"
+      ],
+      "roles": [
+        "arg1",
+        "arg2",
+        "arg3"
+      ],
+      "targets": [
+        "mrow",
+        "msub",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "fourier-transform": {
+      "aliases": [
+        "fourier",
+        "transformada de fourier",
+        "tf"
+      ],
+      "latex": [
+        "\\mathcal{F}",
+        "\\hat{f}"
+      ],
+      "symbols": [
+        "ℱ",
+        "𝓕"
+      ],
+      "examples": [
+        "\\mathcal{F}\\{f\\}"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo",
+        "mover"
+      ],
+      "priority": 6
+    },
+    "fourier-sine-transform": {
+      "aliases": [
+        "fourier seno",
+        "transformada del seno"
+      ],
+      "latex": [
+        "\\mathcal{F}_s"
+      ],
+      "symbols": [
+        "ℱ"
+      ],
+      "examples": [
+        "\\mathcal{F}_s\\{f\\}"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "msub",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "fourier-cosine-transform": {
+      "aliases": [
+        "fourier coseno",
+        "transformada del coseno"
+      ],
+      "latex": [
+        "\\mathcal{F}_c"
+      ],
+      "symbols": [
+        "ℱ"
+      ],
+      "examples": [
+        "\\mathcal{F}_c\\{f\\}"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "msub",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "laplace-transform": {
+      "aliases": [
+        "laplace",
+        "transformada de laplace"
+      ],
+      "latex": [
+        "\\mathcal{L}"
+      ],
+      "symbols": [
+        "ℒ",
+        "𝓛"
+      ],
+      "examples": [
+        "\\mathcal{L}\\{f\\}"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 6
+    },
+    "z-transform": {
+      "aliases": [
+        "transformada z",
+        "z transform"
+      ],
+      "latex": [
+        "\\mathcal{Z}"
+      ],
+      "symbols": [
+        "𝒵",
+        "Z"
+      ],
+      "examples": [
+        "\\mathcal{Z}\\{x\\}"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "wavelet-transform": {
+      "aliases": [
+        "wavelet",
+        "transformada wavelet"
+      ],
+      "latex": [
+        "\\mathcal{W}"
+      ],
+      "symbols": [
+        "𝒲",
+        "W"
+      ],
+      "examples": [
+        "\\mathcal{W}\\{f\\}"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "hamiltonian": {
+      "aliases": [
+        "hamiltoniano",
+        "operador hamiltoniano"
+      ],
+      "latex": [
+        "\\hat{H}",
+        "\\mathcal{H}"
+      ],
+      "symbols": [
+        "ℋ",
+        "H"
+      ],
+      "examples": [
+        "\\hat{H}"
+      ],
+      "roles": [],
+      "targets": [
+        "mi",
+        "mo",
+        "mover",
+        "mrow"
+      ],
+      "priority": 5
+    },
+    "pauli-matrix": {
+      "aliases": [
+        "pauli",
+        "matrices de pauli"
+      ],
+      "latex": [
+        "\\sigma_1",
+        "\\sigma_2",
+        "\\sigma_3"
+      ],
+      "symbols": [
+        "σ"
+      ],
+      "examples": [
+        "\\sigma_1"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "msub",
+        "mi",
+        "mrow"
+      ],
+      "priority": 4
+    },
+    "dirac-matrix": {
+      "aliases": [
+        "dirac",
+        "matrices de dirac"
+      ],
+      "latex": [
+        "\\gamma^\\mu"
+      ],
+      "symbols": [
+        "γ"
+      ],
+      "examples": [
+        "\\gamma^\\mu"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "msup",
+        "mi",
+        "mrow"
+      ],
+      "priority": 4
+    },
+    "dirac-operator": {
+      "aliases": [
+        "operador de dirac"
+      ],
+      "latex": [
+        "\\slashed",
+        "\\not"
+      ],
+      "symbols": [
+        "∂"
+      ],
+      "examples": [
+        "i\\gamma^\\mu\\partial_\\mu"
+      ],
+      "roles": [],
+      "targets": [
+        "mi",
+        "mo",
+        "mrow"
+      ],
+      "priority": 3
+    },
+    "angular-momentum": {
+      "aliases": [
+        "momento angular",
+        "angular momentum"
+      ],
+      "latex": [
+        "\\mathbf{L}",
+        "\\vec{L}",
+        "\\mathbf{J}"
+      ],
+      "symbols": [
+        "L",
+        "J"
+      ],
+      "examples": [
+        "\\mathbf{L}"
+      ],
+      "roles": [],
+      "targets": [
+        "mi",
+        "mo",
+        "mover",
+        "mrow"
+      ],
+      "priority": 4
+    },
+    "spin-angular-momentum": {
+      "aliases": [
+        "espin",
+        "spin"
+      ],
+      "latex": [
+        "\\mathbf{S}",
+        "\\vec{S}"
+      ],
+      "symbols": [
+        "S"
+      ],
+      "examples": [
+        "\\mathbf{S}"
+      ],
+      "roles": [],
+      "targets": [
+        "mi",
+        "mo",
+        "mover",
+        "mrow"
+      ],
+      "priority": 4
+    },
+    "laplace-operator": {
+      "aliases": [
+        "laplaciano",
+        "operador de laplace"
+      ],
+      "latex": [
+        "\\nabla^2",
+        "\\Delta"
+      ],
+      "symbols": [
+        "∇²",
+        "Δ"
+      ],
+      "examples": [
+        "\\nabla^2 f"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "msup",
+        "mo",
+        "mi"
+      ],
+      "priority": 5
+    },
+    "dalembert-operator": {
+      "aliases": [
+        "dalembert",
+        "operador de dalembert"
+      ],
+      "latex": [
+        "\\Box"
+      ],
+      "symbols": [
+        "□"
+      ],
+      "examples": [
+        "\\Box f"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mo",
+        "mi"
+      ],
+      "priority": 4
+    },
+    "principal-value": {
+      "aliases": [
+        "valor principal",
+        "principal value"
+      ],
+      "latex": [
+        "\\mathcal{P}",
+        "\\mathrm{pv}"
+      ],
+      "symbols": [
+        "𝒫",
+        "P"
+      ],
+      "examples": [
+        "\\mathcal{P}\\int f(x)\\,dx"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "cauchy-principal-value": {
+      "aliases": [
+        "valor principal de cauchy",
+        "cauchy principal value"
+      ],
+      "latex": [
+        "\\mathrm{pv}",
+        "\\mathcal{P}"
+      ],
+      "symbols": [
+        "𝒫",
+        "P"
+      ],
+      "examples": [
+        "\\mathrm{pv}\\int f(x)\\,dx"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "residue": {
+      "aliases": [
+        "residuo",
+        "residue"
+      ],
+      "latex": [
+        "\\operatorname{Res}",
+        "\\mathrm{Res}"
+      ],
+      "symbols": [
+        "Res"
+      ],
+      "examples": [
+        "\\operatorname{Res}(f,a)"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "line-integral": {
+      "aliases": [
+        "integral de linea",
+        "line integral"
+      ],
+      "latex": [
+        "\\oint",
+        "\\int_\\gamma"
+      ],
+      "symbols": [
+        "∮",
+        "∫"
+      ],
+      "examples": [
+        "\\oint_C f\\,ds"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "mo",
+        "munder",
+        "msub"
+      ],
+      "priority": 4
+    },
+    "surface-integral": {
+      "aliases": [
+        "integral de superficie",
+        "surface integral"
+      ],
+      "latex": [
+        "\\iint",
+        "\\oiint"
+      ],
+      "symbols": [
+        "∬",
+        "∯"
+      ],
+      "examples": [
+        "\\iint_S f\\,dS"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "mo",
+        "munder",
+        "msub"
+      ],
+      "priority": 4
+    },
+    "multiple-integral": {
+      "aliases": [
+        "integral multiple",
+        "multiple integral"
+      ],
+      "latex": [
+        "\\iint",
+        "\\iiint"
+      ],
+      "symbols": [
+        "∬",
+        "∭"
+      ],
+      "examples": [
+        "\\iint_D f\\,dA"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "mo",
+        "munder",
+        "msub"
+      ],
+      "priority": 4
+    },
+    "lebesgue-integral": {
+      "aliases": [
+        "lebesgue",
+        "integral de lebesgue"
+      ],
+      "latex": [
+        "\\int"
+      ],
+      "symbols": [
+        "∫"
+      ],
+      "examples": [
+        "\\int f\\,d\\mu"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "mo",
+        "munder",
+        "msub"
+      ],
+      "priority": 4
+    },
+    "riemann-integral": {
+      "aliases": [
+        "riemann",
+        "integral de riemann"
+      ],
+      "latex": [
+        "\\int"
+      ],
+      "symbols": [
+        "∫"
+      ],
+      "examples": [
+        "\\int_a^b f(x)\\,dx"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "mo",
+        "munder",
+        "msub"
+      ],
+      "priority": 4
+    },
+    "gaussian-distribution": {
+      "aliases": [
+        "normal",
+        "gaussiana",
+        "distribucion normal",
+        "gaussian"
+      ],
+      "latex": [
+        "\\mathcal{N}"
+      ],
+      "symbols": [
+        "𝒩",
+        "N"
+      ],
+      "examples": [
+        "\\mathcal{N}(\\mu,\\sigma^2)"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 6
+    },
+    "binomial-distribution": {
+      "aliases": [
+        "binomial",
+        "distribucion binomial"
+      ],
+      "latex": [
+        "\\mathrm{Bin}",
+        "\\mathcal{B}"
+      ],
+      "symbols": [
+        "Bin",
+        "ℬ"
+      ],
+      "examples": [
+        "\\mathrm{Bin}(n,p)"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 5
+    },
+    "poisson-distribution": {
+      "aliases": [
+        "poisson",
+        "distribucion de poisson"
+      ],
+      "latex": [
+        "\\mathrm{Poi}",
+        "\\mathcal{P}"
+      ],
+      "symbols": [
+        "Poi",
+        "𝒫"
+      ],
+      "examples": [
+        "\\mathrm{Poi}(\\lambda)"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 5
+    },
+    "gamma-distribution": {
+      "aliases": [
+        "gamma",
+        "distribucion gamma"
+      ],
+      "latex": [
+        "\\Gamma(\\alpha",
+        "\\mathrm{Gamma}"
+      ],
+      "symbols": [
+        "Γ"
+      ],
+      "examples": [
+        "\\Gamma(\\alpha,\\beta)"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "beta-distribution": {
+      "aliases": [
+        "beta",
+        "distribucion beta"
+      ],
+      "latex": [
+        "\\mathrm{Beta}",
+        "\\mathcal{B}"
+      ],
+      "symbols": [
+        "Beta",
+        "ℬ"
+      ],
+      "examples": [
+        "\\mathrm{Beta}(\\alpha,\\beta)"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "chi-squared-distribution": {
+      "aliases": [
+        "chi cuadrado",
+        "chi squared",
+        "ji cuadrada"
+      ],
+      "latex": [
+        "\\chi^2"
+      ],
+      "symbols": [
+        "χ²"
+      ],
+      "examples": [
+        "\\chi^2_k"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "msup",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "cumulative-distribution-function": {
+      "aliases": [
+        "cdf",
+        "distribucion acumulada",
+        "funcion de distribucion"
+      ],
+      "latex": [
+        "F_{X}",
+        "F("
+      ],
+      "symbols": [
+        "F"
+      ],
+      "examples": [
+        "F_{X}(x)"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "msub",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "expectation-value": {
+      "aliases": [
+        "esperanza",
+        "valor esperado",
+        "expected value"
+      ],
+      "latex": [
+        "\\mathbb{E}",
+        "\\operatorname{E}"
+      ],
+      "symbols": [
+        "𝔼",
+        "E"
+      ],
+      "examples": [
+        "\\mathbb{E}[X]"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 5
+    },
+    "conditional-expectation": {
+      "aliases": [
+        "esperanza condicional",
+        "conditional expectation"
+      ],
+      "latex": [
+        "\\mathbb{E}[",
+        "\\mid"
+      ],
+      "symbols": [
+        "𝔼",
+        "|"
+      ],
+      "examples": [
+        "\\mathbb{E}[X\\mid Y]"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "covariance": {
+      "aliases": [
+        "covarianza",
+        "covariance"
+      ],
+      "latex": [
+        "\\operatorname{Cov}",
+        "\\mathrm{Cov}"
+      ],
+      "symbols": [
+        "Cov"
+      ],
+      "examples": [
+        "\\operatorname{Cov}(X,Y)"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "correlation": {
+      "aliases": [
+        "correlacion",
+        "correlation"
+      ],
+      "latex": [
+        "\\operatorname{Corr}",
+        "\\rho"
+      ],
+      "symbols": [
+        "Corr",
+        "ρ"
+      ],
+      "examples": [
+        "\\rho_{XY}"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "msub",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "sample-variance": {
+      "aliases": [
+        "varianza muestral",
+        "sample variance"
+      ],
+      "latex": [
+        "s^2",
+        "\\sigma^2"
+      ],
+      "symbols": [
+        "s²",
+        "σ²"
+      ],
+      "examples": [
+        "s^2"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "msup",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "entropy": {
+      "aliases": [
+        "entropia",
+        "entropy"
+      ],
+      "latex": [
+        "\\operatorname{H}",
+        "\\mathrm{H}"
+      ],
+      "symbols": [
+        "H"
+      ],
+      "examples": [
+        "H(X)"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "shannon-entropy": {
+      "aliases": [
+        "entropia de shannon",
+        "shannon entropy"
+      ],
+      "latex": [
+        "\\operatorname{H}",
+        "\\mathrm{H}"
+      ],
+      "symbols": [
+        "H"
+      ],
+      "examples": [
+        "H(X)"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "mutual-information": {
+      "aliases": [
+        "informacion mutua",
+        "mutual information"
+      ],
+      "latex": [
+        "\\operatorname{I}",
+        "\\mathrm{I}"
+      ],
+      "symbols": [
+        "I"
+      ],
+      "examples": [
+        "I(X;Y)"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "fisher-information": {
+      "aliases": [
+        "informacion de fisher",
+        "fisher information"
+      ],
+      "latex": [
+        "\\mathcal{I}",
+        "\\mathrm{I}"
+      ],
+      "symbols": [
+        "ℐ",
+        "I"
+      ],
+      "examples": [
+        "\\mathcal{I}(\\theta)"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "mean-squared-error": {
+      "aliases": [
+        "error cuadratico medio",
+        "mean squared error",
+        "mse"
+      ],
+      "latex": [
+        "\\operatorname{MSE}",
+        "\\mathrm{MSE}"
+      ],
+      "symbols": [
+        "MSE"
+      ],
+      "examples": [
+        "\\operatorname{MSE}"
+      ],
+      "roles": [],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "root-mean-square": {
+      "aliases": [
+        "raiz cuadratica media",
+        "root mean square",
+        "rms"
+      ],
+      "latex": [
+        "\\sqrt{\\frac"
+      ],
+      "symbols": [
+        "√"
+      ],
+      "examples": [
+        "\\sqrt{\\frac{1}{n}\\sum x_i^2}"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "msqrt",
+        "mfrac"
+      ],
+      "priority": 3
+    },
+    "geometric-mean": {
+      "aliases": [
+        "media geometrica",
+        "geometric mean"
+      ],
+      "latex": [
+        "\\sqrt[n]"
+      ],
+      "symbols": [
+        "√"
+      ],
+      "examples": [
+        "\\sqrt[n]{x_1\\cdots x_n}"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mroot",
+        "msqrt"
+      ],
+      "priority": 4
+    },
+    "harmonic-mean": {
+      "aliases": [
+        "media armonica",
+        "harmonic mean"
+      ],
+      "latex": [
+        "\\frac{n}{\\sum"
+      ],
+      "symbols": [],
+      "examples": [
+        "\\frac{n}{\\sum_{i=1}^{n}\\frac{1}{x_i}}"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mfrac"
+      ],
+      "priority": 3
+    },
+    "weighted-mean": {
+      "aliases": [
+        "media ponderada",
+        "weighted mean"
+      ],
+      "latex": [
+        "\\frac{\\sum",
+        "\\bar{x}_w"
+      ],
+      "symbols": [
+        "x̄"
+      ],
+      "examples": [
+        "\\frac{\\sum w_i x_i}{\\sum w_i}"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "mfrac"
+      ],
+      "priority": 3
+    },
+    "conjugate-transpose": {
+      "aliases": [
+        "conjugada traspuesta",
+        "conjugate transpose",
+        "adjunta hermitiana"
+      ],
+      "latex": [
+        "^{\\dagger}",
+        "^{*}"
+      ],
+      "symbols": [
+        "†",
+        "*"
+      ],
+      "examples": [
+        "A^{\\dagger}"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "msup",
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 5
+    },
+    "frobenius-norm": {
+      "aliases": [
+        "norma de frobenius",
+        "frobenius norm"
+      ],
+      "latex": [
+        "\\|",
+        "_F"
+      ],
+      "symbols": [
+        "‖"
+      ],
+      "examples": [
+        "\\|A\\|_F"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mo",
+        "msub"
+      ],
+      "priority": 5
+    },
+    "gram-matrix": {
+      "aliases": [
+        "matriz de gram",
+        "gram matrix"
+      ],
+      "latex": [
+        "G = A^T A",
+        "G = A^{*}A"
+      ],
+      "symbols": [
+        "G"
+      ],
+      "examples": [
+        "G = A^{T}A"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "jacobi-matrix": {
+      "aliases": [
+        "matriz jacobiana",
+        "jacobian"
+      ],
+      "latex": [
+        "J_{",
+        "\\frac{\\partial("
+      ],
+      "symbols": [
+        "J"
+      ],
+      "examples": [
+        "J_{f}"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "msub",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "laplacian-matrix": {
+      "aliases": [
+        "matriz laplaciana",
+        "laplacian matrix"
+      ],
+      "latex": [
+        "L = D - A"
+      ],
+      "symbols": [
+        "L"
+      ],
+      "examples": [
+        "L = D - A"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 3
+    },
+    "zero-matrix": {
+      "aliases": [
+        "matriz nula",
+        "zero matrix"
+      ],
+      "latex": [
+        "0_{",
+        "\\mathbf{0}"
+      ],
+      "symbols": [
+        "0"
+      ],
+      "examples": [
+        "0_{m\\times n}"
+      ],
+      "roles": [],
+      "targets": [
+        "mrow",
+        "msub",
+        "mn",
+        "mi"
+      ],
+      "priority": 3
+    },
+    "diagonal-matrix": {
+      "aliases": [
+        "matriz diagonal",
+        "diagonal matrix"
+      ],
+      "latex": [
+        "\\operatorname{diag}"
+      ],
+      "symbols": [
+        "diag"
+      ],
+      "examples": [
+        "\\operatorname{diag}(a_1,\\ldots,a_n)"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo",
+        "mtable"
+      ],
+      "priority": 3
+    },
+    "tensor-product": {
+      "aliases": [
+        "producto tensorial",
+        "tensor product"
+      ],
+      "latex": [
+        "\\otimes"
+      ],
+      "symbols": [
+        "⊗"
+      ],
+      "examples": [
+        "A \\otimes B"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mo",
+        "mrow"
+      ],
+      "priority": 5
+    },
+    "tensor-algebra": {
+      "aliases": [
+        "algebra tensorial",
+        "tensor algebra"
+      ],
+      "latex": [
+        "T(V)",
+        "\\bigoplus"
+      ],
+      "symbols": [
+        "T",
+        "⊕"
+      ],
+      "examples": [
+        "T(V)"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 3
+    },
+    "direct-sum": {
+      "aliases": [
+        "suma directa",
+        "direct sum"
+      ],
+      "latex": [
+        "\\oplus"
+      ],
+      "symbols": [
+        "⊕"
+      ],
+      "examples": [
+        "V \\oplus W"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mo",
+        "mrow"
+      ],
+      "priority": 5
+    },
+    "trace": {
+      "aliases": [
+        "traza",
+        "trace"
+      ],
+      "latex": [
+        "\\operatorname{tr}",
+        "\\mathrm{Tr}"
+      ],
+      "symbols": [
+        "tr",
+        "Tr"
+      ],
+      "examples": [
+        "\\operatorname{tr}(A)"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 5
+    },
+    "rank": {
+      "aliases": [
+        "rango",
+        "rank"
+      ],
+      "latex": [
+        "\\operatorname{rank}",
+        "\\mathrm{rank}"
+      ],
+      "symbols": [
+        "rank"
+      ],
+      "examples": [
+        "\\operatorname{rank}(A)"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 5
+    },
+    "spectrum": {
+      "aliases": [
+        "espectro",
+        "spectrum"
+      ],
+      "latex": [
+        "\\sigma(",
+        "\\operatorname{spec}"
+      ],
+      "symbols": [
+        "σ",
+        "spec"
+      ],
+      "examples": [
+        "\\sigma(A)"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "galois-group": {
+      "aliases": [
+        "grupo de galois",
+        "galois group"
+      ],
+      "latex": [
+        "\\operatorname{Gal}"
+      ],
+      "symbols": [
+        "Gal"
+      ],
+      "examples": [
+        "\\operatorname{Gal}(E/F)"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 5
+    },
+    "general-linear-group": {
+      "aliases": [
+        "grupo lineal general",
+        "general linear group"
+      ],
+      "latex": [
+        "\\operatorname{GL}",
+        "GL("
+      ],
+      "symbols": [
+        "GL"
+      ],
+      "examples": [
+        "\\operatorname{GL}(n,\\mathbb{R})"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "dihedral-group": {
+      "aliases": [
+        "grupo diedral",
+        "dihedral group"
+      ],
+      "latex": [
+        "D_{",
+        "\\operatorname{D}"
+      ],
+      "symbols": [
+        "D"
+      ],
+      "examples": [
+        "D_{n}"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "msub",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "alternating-group": {
+      "aliases": [
+        "grupo alternante",
+        "alternating group"
+      ],
+      "latex": [
+        "A_{",
+        "\\operatorname{Alt}"
+      ],
+      "symbols": [
+        "A"
+      ],
+      "examples": [
+        "A_{n}"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "msub",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "symmetric-group": {
+      "aliases": [
+        "grupo simetrico",
+        "symmetric group"
+      ],
+      "latex": [
+        "S_{",
+        "\\mathfrak{S}"
+      ],
+      "symbols": [
+        "S",
+        "𝔖"
+      ],
+      "examples": [
+        "S_{n}"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "msub",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "orthogonal-group": {
+      "aliases": [
+        "grupo ortogonal",
+        "orthogonal group"
+      ],
+      "latex": [
+        "\\operatorname{O}",
+        "O("
+      ],
+      "symbols": [
+        "O"
+      ],
+      "examples": [
+        "\\operatorname{O}(n)"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "unitary-group": {
+      "aliases": [
+        "grupo unitario",
+        "unitary group"
+      ],
+      "latex": [
+        "\\operatorname{U}",
+        "U("
+      ],
+      "symbols": [
+        "U"
+      ],
+      "examples": [
+        "\\operatorname{U}(n)"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "special-linear-group": {
+      "aliases": [
+        "grupo especial lineal",
+        "special linear group"
+      ],
+      "latex": [
+        "\\operatorname{SL}",
+        "SL("
+      ],
+      "symbols": [
+        "SL"
+      ],
+      "examples": [
+        "\\operatorname{SL}(n,\\mathbb{R})"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "field-extension": {
+      "aliases": [
+        "extension de cuerpos",
+        "field extension"
+      ],
+      "latex": [
+        "\\mathbb{F}_{",
+        "/"
+      ],
+      "symbols": [
+        "/"
+      ],
+      "examples": [
+        "E/F"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "galois-field": {
+      "aliases": [
+        "cuerpo de galois",
+        "galois field"
+      ],
+      "latex": [
+        "\\mathbb{F}_",
+        "\\mathrm{GF}"
+      ],
+      "symbols": [
+        "𝔽",
+        "GF"
+      ],
+      "examples": [
+        "\\mathbb{F}_{q}"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "msub",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "legendre-symbol": {
+      "aliases": [
+        "simbolo de legendre",
+        "legendre symbol"
+      ],
+      "latex": [
+        "\\left(\\frac"
+      ],
+      "symbols": [
+        "(a/p)"
+      ],
+      "examples": [
+        "\\left(\\frac{a}{p}\\right)"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "mo",
+        "mfrac"
+      ],
+      "priority": 4
+    },
+    "jacobi-symbol": {
+      "aliases": [
+        "simbolo de jacobi",
+        "jacobi symbol"
+      ],
+      "latex": [
+        "\\left(\\frac"
+      ],
+      "symbols": [
+        "(a/n)"
+      ],
+      "examples": [
+        "\\left(\\frac{a}{n}\\right)"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "mo",
+        "mfrac"
+      ],
+      "priority": 4
+    },
+    "sobolev-space": {
+      "aliases": [
+        "sobolev",
+        "espacio de sobolev"
+      ],
+      "latex": [
+        "W^{",
+        "H^{"
+      ],
+      "symbols": [
+        "W",
+        "H"
+      ],
+      "examples": [
+        "W^{k,p}(\\Omega)"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "msup",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "riemann-sphere": {
+      "aliases": [
+        "esfera de riemann",
+        "riemann sphere"
+      ],
+      "latex": [
+        "\\widehat{\\mathbb{C}}",
+        "\\mathbb{C}\\cup"
+      ],
+      "symbols": [
+        "ℂ̂",
+        "ℂ"
+      ],
+      "examples": [
+        "\\widehat{\\mathbb{C}}"
+      ],
+      "roles": [],
+      "targets": [
+        "mrow",
+        "mi",
+        "mo",
+        "mover"
+      ],
+      "priority": 4
+    },
+    "projective-space": {
+      "aliases": [
+        "espacio proyectivo",
+        "projective space"
+      ],
+      "latex": [
+        "\\mathbb{P}"
+      ],
+      "symbols": [
+        "ℙ"
+      ],
+      "examples": [
+        "\\mathbb{P}^{n}"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "msup",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "complex-projective-space": {
+      "aliases": [
+        "espacio proyectivo complejo",
+        "complex projective space"
+      ],
+      "latex": [
+        "\\mathbb{CP}",
+        "\\mathbb{P}"
+      ],
+      "symbols": [
+        "ℂℙ",
+        "ℙ"
+      ],
+      "examples": [
+        "\\mathbb{CP}^{n}"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "msup",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "tangent-space": {
+      "aliases": [
+        "espacio tangente",
+        "tangent space"
+      ],
+      "latex": [
+        "T_{p}M",
+        "T_{p}"
+      ],
+      "symbols": [
+        "T"
+      ],
+      "examples": [
+        "T_{p}M"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "msub",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "hyperbolic-space": {
+      "aliases": [
+        "espacio hiperbolico",
+        "hyperbolic space"
+      ],
+      "latex": [
+        "\\mathbb{H}"
+      ],
+      "symbols": [
+        "ℍ"
+      ],
+      "examples": [
+        "\\mathbb{H}^{n}"
+      ],
+      "roles": [
+        "arg"
+      ],
+      "targets": [
+        "mrow",
+        "msup",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "hausdorff-space": {
+      "aliases": [
+        "espacio de hausdorff",
+        "hausdorff space"
+      ],
+      "latex": [
+        "T_2",
+        "\\mathrm{Haus}"
+      ],
+      "symbols": [
+        "T₂"
+      ],
+      "examples": [
+        "T_2"
+      ],
+      "roles": [],
+      "targets": [
+        "mrow",
+        "msub",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    },
+    "homology-group": {
+      "aliases": [
+        "grupo de homologia",
+        "homology group"
+      ],
+      "latex": [
+        "H_{",
+        "H_{n}"
+      ],
+      "symbols": [
+        "H"
+      ],
+      "examples": [
+        "H_{n}(X)"
+      ],
+      "roles": [
+        "arg1",
+        "arg2"
+      ],
+      "targets": [
+        "mrow",
+        "msub",
+        "mi",
+        "mo"
+      ],
+      "priority": 4
+    }
+  }
+}

@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
+from ..mathml.concept_cards import ConceptCard, render_concept_cards
 from ..mathml.concepts import get_registry
 from ..models import MathContext
 
@@ -143,8 +146,17 @@ Annotated MathML:
 
 
 def _semantic_concept_policy(
-    allow_open_concepts: bool, allow_all_open_concepts: bool
+    allow_open_concepts: bool,
+    allow_all_open_concepts: bool,
+    concept_cards: Sequence[ConceptCard] | None = None,
 ) -> str:
+    if concept_cards is not None:
+        if not concept_cards:
+            return """No candidate concept applies to this expression. Return an
+empty annotations list."""
+        return f"""Use only the following candidate concepts for this expression.
+Do not use any concept name that is not in this list.
+{render_concept_cards(list(concept_cards))}"""
     if not allow_open_concepts:
         return f"""Use only the following W3C intent core concept names. Do NOT
 use open concepts. Core names are:
@@ -163,7 +175,9 @@ beta-function and error-function."""
 
 
 def _semantic_system(
-    allow_open_concepts: bool, allow_all_open_concepts: bool = False
+    allow_open_concepts: bool,
+    allow_all_open_concepts: bool = False,
+    concept_cards: Sequence[ConceptCard] | None = None,
 ) -> str:
     return f"""You are a W3C MathML 4 semantic annotator. You receive a clean
 Presentation MathML tree with temporary id attributes and the LaTeX it came
@@ -221,12 +235,21 @@ Rules:
    <, >, times or a standard fraction. Prefer no annotation over a misleading
    one.
 9. Do not annotate a plain symbol that has no special mathematical role.
-10. {_semantic_concept_policy(allow_open_concepts, allow_all_open_concepts)}
+10. {_semantic_concept_policy(allow_open_concepts, allow_all_open_concepts, concept_cards)}
 11. Keep every element, its text and its order unchanged. The code will add
     the intent and arg attributes and any wrapper mrows.
 12. A node may have its own intent and also be an argument of an outer intent;
     annotate the inner and outer meanings in separate annotations.
 13. If you are not sure, omit that annotation.
+14. Each candidate card lists possible target element kinds after "targets",
+    preferred first. Target the smallest element that contains every argument
+    id. For an infix operation such as a\u22c5b, target the <mo> operator when
+    its operands are siblings. When a fenced or compound notation represents
+    the whole concept, such as <a,b> or (a,b) for an inner product or an
+    ordered pair, target the enclosing <mrow> that contains the delimiters and
+    all argument ids. Do not annotate a child element when the concept belongs
+    to the enclosing expression. If no listed target kind contains all
+    arguments, omit the annotation.
 
 Examples:
 Fraction:
@@ -371,6 +394,7 @@ def semantic_messages(
     *,
     allow_open_concepts: bool = True,
     allow_all_open_concepts: bool = False,
+    concept_cards: Sequence[ConceptCard] | None = None,
 ) -> list[dict[str, str]]:
     user = (
         "Choose the W3C intent semantics for this expression and return the "
@@ -383,7 +407,11 @@ def semantic_messages(
     return [
         {
             "role": "system",
-            "content": _semantic_system(allow_open_concepts, allow_all_open_concepts),
+            "content": _semantic_system(
+                allow_open_concepts,
+                allow_all_open_concepts,
+                concept_cards,
+            ),
         },
         {"role": "user", "content": user},
     ]

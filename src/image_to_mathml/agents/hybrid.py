@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from ..config import Settings
 from ..llm.base import LLMClient
+from ..mathml.concept_cards import ConceptCard
 from ..models import MathContext
 from .prompts import hybrid_messages, semantic_messages
 
@@ -24,6 +27,7 @@ class HybridIntentAgent:
         *,
         allow_open_concepts: bool = True,
         allow_all_open_concepts: bool = False,
+        concept_cards: Sequence[ConceptCard] | None = None,
     ) -> str:
         """Return a semantic JSON decision for a tree with temporary ids."""
 
@@ -35,6 +39,7 @@ class HybridIntentAgent:
                 feedback,
                 allow_open_concepts=allow_open_concepts,
                 allow_all_open_concepts=allow_all_open_concepts,
+                concept_cards=concept_cards,
             ),
             temperature=0.0,
             num_predict=self.settings.num_predict,

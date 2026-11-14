@@ -1,0 +1,127 @@
+<math xmlns="http://www.w3.org/1998/Math/MathML">
+  <mrow>
+    <mo movablelimits="true">det</mo>
+    <mo stretchy="false">(</mo>
+    <mi>λ</mi>
+    <mi>I</mi>
+    <mo>−</mo>
+    <mi>A</mi>
+    <mo stretchy="false">)</mo>
+    <mo>=</mo>
+    <mo>|</mo>
+    <mtable>
+      <mtr>
+        <mtd>
+          <mi>λ</mi>
+          <mo>−</mo>
+          <msub intent="indexed-by($base,$sub)">
+            <mi arg="base">a</mi>
+            <mrow arg="sub">
+              <mn>1</mn>
+              <mn>1</mn>
+            </mrow>
+          </msub>
+        </mtd>
+        <mtd>
+          <mo>−</mo>
+          <msub intent="indexed-by($base,$sub)">
+            <mi arg="base">a</mi>
+            <mrow arg="sub">
+              <mn>1</mn>
+              <mn>2</mn>
+            </mrow>
+          </msub>
+        </mtd>
+      </mtr>
+      <mtr>
+        <mtd>
+          <mo>−</mo>
+          <msub intent="indexed-by($base,$sub)">
+            <mi arg="base">a</mi>
+            <mrow arg="sub">
+              <mn>2</mn>
+              <mn>1</mn>
+            </mrow>
+          </msub>
+        </mtd>
+        <mtd>
+          <mi>λ</mi>
+          <mo>−</mo>
+          <msub intent="indexed-by($base,$sub)">
+            <mi arg="base">a</mi>
+            <mrow arg="sub">
+              <mn>2</mn>
+              <mn>2</mn>
+            </mrow>
+          </msub>
+        </mtd>
+      </mtr>
+    </mtable>
+    <mo>|</mo>
+    <mo>=</mo>
+    <mo stretchy="false">(</mo>
+    <mi>λ</mi>
+    <mo>−</mo>
+    <msub intent="indexed-by($base,$sub)">
+      <mi arg="base">a</mi>
+      <mn arg="sub">11</mn>
+    </msub>
+    <mo stretchy="false">)</mo>
+    <mo stretchy="false">(</mo>
+    <mi>λ</mi>
+    <mo>−</mo>
+    <msub intent="indexed-by($base,$sub)">
+      <mi arg="base">a</mi>
+      <mn arg="sub">22</mn>
+    </msub>
+    <mo stretchy="false">)</mo>
+    <mo>−</mo>
+    <msub intent="indexed-by($base,$sub)">
+      <mi arg="base">a</mi>
+      <mn arg="sub">12</mn>
+    </msub>
+    <msub intent="indexed-by($base,$sub)">
+      <mi arg="base">a</mi>
+      <mn arg="sub">21</mn>
+    </msub>
+    <mo>=</mo>
+    <msup intent="power($base,$exp)">
+      <mi arg="base">λ</mi>
+      <mn arg="exp">2</mn>
+    </msup>
+    <mo>−</mo>
+    <mo stretchy="false">(</mo>
+    <msub intent="indexed-by($base,$sub)">
+      <mi arg="base">a</mi>
+      <mn arg="sub">11</mn>
+    </msub>
+    <mo>+</mo>
+    <msub intent="indexed-by($base,$sub)">
+      <mi arg="base">a</mi>
+      <mn arg="sub">22</mn>
+    </msub>
+    <mo stretchy="false">)</mo>
+    <mi>λ</mi>
+    <mo>+</mo>
+    <mo stretchy="false">(</mo>
+    <msub intent="indexed-by($base,$sub)">
+      <mi arg="base">a</mi>
+      <mn arg="sub">11</mn>
+    </msub>
+    <msub intent="indexed-by($base,$sub)">
+      <mi arg="base">a</mi>
+      <mn arg="sub">22</mn>
+    </msub>
+    <mo>−</mo>
+    <msub intent="indexed-by($base,$sub)">
+      <mi arg="base">a</mi>
+      <mn arg="sub">12</mn>
+    </msub>
+    <msub intent="indexed-by($base,$sub)">
+      <mi arg="base">a</mi>
+      <mn arg="sub">21</mn>
+    </msub>
+    <mo stretchy="false">)</mo>
+    <mo>,</mo>
+  </mrow>
+</math>

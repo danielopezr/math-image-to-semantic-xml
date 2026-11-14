@@ -1,5 +1,8 @@
+from lxml import etree
+
 from image_to_mathml.mathml.annotator import annotate_tree
 from image_to_mathml.mathml.converter import LatexToMathML
+from image_to_mathml.mathml.dom import localname
 from image_to_mathml.mathml.normalizer import (
     normalize_mathml,
     parse_and_normalize,
@@ -100,3 +103,31 @@ def test_does_not_annotate_basic_operators_with_default_meaning():
 
     compound = _annotated("a/b+c")
     assert "intent=" not in compound
+
+
+def test_annotator_preserves_matrix_subscript_digit_separation():
+    result = _annotated(
+        r"\begin{matrix} a_{11} & a_{12} \\ a_{21} & a_{22} \end{matrix}"
+    )
+
+    assert "<mn>11</mn>" not in result
+    assert "<mn>12</mn>" not in result
+    assert result.count('<mrow arg="sub">') == 4
+    assert result.count('intent="indexed-by($base,$sub)"') == 4
+
+
+def test_annotator_splits_matrix_subscripts_before_annotating():
+    root = etree.fromstring(
+        b"<math><mrow><mtable><mtr><mtd>"
+        b"<msub><mi>a</mi><mn>11</mn></msub>"
+        b"</mtd></mtr></mtable></mrow></math>"
+    )
+
+    annotate_tree(root)
+
+    msub = next(element for element in root.iter() if localname(element.tag) == "msub")
+    assert msub.get("intent") == "indexed-by($base,$sub)"
+    subscript = list(msub)[1]
+    assert localname(subscript.tag) == "mrow"
+    assert [localname(child.tag) for child in subscript] == ["mn", "mn"]
+    assert [child.text for child in subscript] == ["1", "1"]

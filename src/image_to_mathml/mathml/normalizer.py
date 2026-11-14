@@ -17,6 +17,7 @@ import re
 
 from lxml import etree
 
+from .corrections import split_matrix_subscripts
 from .dom import (
     MATHML_NS,
     element_children,
@@ -174,6 +175,7 @@ def parse_and_normalize(markup: str) -> etree._Element:
     for child in element_children(mrow):
         _simplify(child)
     _simplify(mrow, is_root_mrow=True)
+    split_matrix_subscripts(root)
 
     children = element_children(root)
     if len(children) != 1 or localname(children[0].tag) != "mrow":
@@ -182,6 +184,7 @@ def parse_and_normalize(markup: str) -> etree._Element:
 
 
 def serialize_mathml(root: etree._Element) -> str:
+    split_matrix_subscripts(root)
     return etree.tostring(root, encoding="unicode", pretty_print=True).strip()
 
 

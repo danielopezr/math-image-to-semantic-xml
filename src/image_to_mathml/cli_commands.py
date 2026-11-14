@@ -40,6 +40,14 @@ def _settings_from_args(args: argparse.Namespace) -> Settings:
         changes["ollama_stream"] = args.stream
     if getattr(args, "max_repairs", None) is not None:
         changes["max_repair_attempts"] = args.max_repairs
+    if getattr(args, "no_concept_rag", False):
+        changes["concept_rag"] = False
+    if getattr(args, "concept_rag_top_k", None) is not None:
+        changes["concept_rag_top_k"] = args.concept_rag_top_k
+    if getattr(args, "no_open_concept_rag", False):
+        changes["open_concept_rag"] = False
+    if getattr(args, "open_concept_rag_top_k", None) is not None:
+        changes["open_concept_rag_top_k"] = args.open_concept_rag_top_k
     if getattr(args, "ocr", None):
         changes["ocr_backend"] = args.ocr
     if getattr(args, "no_preprocess", False):

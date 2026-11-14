@@ -56,6 +56,10 @@ class Settings:
     num_predict: int = 1600
     num_ctx: int = 8192
     max_repair_attempts: int = 2
+    concept_rag: bool = True
+    concept_rag_top_k: int = 8
+    open_concept_rag: bool = True
+    open_concept_rag_top_k: int = 5
     allow_open_concepts: bool = True
     allow_all_open_concepts: bool = False
     allowed_open_concepts: tuple[str, ...] = (
@@ -98,6 +102,17 @@ class Settings:
             num_ctx=_env_int("OLLAMA_NUM_CTX", cls.num_ctx),
             max_repair_attempts=_env_int(
                 "IMAGE_TO_MATHML_MAX_REPAIRS", cls.max_repair_attempts
+            ),
+            concept_rag=_env_bool("IMAGE_TO_MATHML_CONCEPT_RAG", cls.concept_rag),
+            concept_rag_top_k=_env_int(
+                "IMAGE_TO_MATHML_CONCEPT_RAG_TOP_K", cls.concept_rag_top_k
+            ),
+            open_concept_rag=_env_bool(
+                "IMAGE_TO_MATHML_OPEN_CONCEPT_RAG", cls.open_concept_rag
+            ),
+            open_concept_rag_top_k=_env_int(
+                "IMAGE_TO_MATHML_OPEN_CONCEPT_RAG_TOP_K",
+                cls.open_concept_rag_top_k,
             ),
             allow_open_concepts=_env_bool(
                 "IMAGE_TO_MATHML_ALLOW_OPEN_CONCEPTS", cls.allow_open_concepts

@@ -431,3 +431,33 @@ def test_direct_flow_records_each_attempt_and_fallback_timing():
     assert summary["attempt_count"] == 2
     assert summary["attempts_total_ms"] >= 0
     assert summary["attempts_average_ms"] >= 0
+
+
+def test_offline_flow_splits_matrix_subscript_digits():
+    pipeline = EquationPipeline()
+    result = pipeline.run(
+        EquationRequest(
+            latex=r"\begin{matrix} a_{11} & a_{12} \\ a_{21} & a_{22} \end{matrix}",
+            flow=Flow.OFFLINE,
+        )
+    )
+
+    assert result.validation.ok
+    assert "<mn>11</mn>" not in result.mathml
+    assert "<mn>12</mn>" not in result.mathml
+    assert result.mathml.count("<mn>1</mn>") >= 2
+    assert result.mathml.count("<mn>2</mn>") >= 2
+
+
+def test_offline_flow_splits_matrix_reference_outside_the_table():
+    pipeline = EquationPipeline()
+    result = pipeline.run(
+        EquationRequest(
+            latex=r"\begin{matrix} a_{11} \end{matrix} + a_{11}",
+            flow=Flow.OFFLINE,
+        )
+    )
+
+    assert result.validation.ok
+    assert "<mn>11</mn>" not in result.mathml
+    assert result.mathml.count("<mn>1</mn>") >= 4

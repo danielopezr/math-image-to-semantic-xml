@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from lxml import etree
 
+from .corrections import split_matrix_subscripts
 from .dom import element_children, element_text, is_element, localname, new_element
 
 FUNCTION_CONCEPTS: dict[str, str] = {
@@ -417,10 +418,12 @@ def annotate_tree(root: etree._Element) -> int:
     Returns the number of ``intent`` attributes present after annotation.
     """
 
+    split_matrix_subscripts(root)
     _annotate_function_applications(root)
     _annotate_bare_functions(root)
     _annotate_linear_fractions(root)
     _annotate_structures(root)
+    split_matrix_subscripts(root)
     return sum(
         1
         for element in root.iter()
