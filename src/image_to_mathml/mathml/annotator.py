@@ -579,8 +579,183 @@ def _annotate_structures(root: etree._Element) -> None:
             element.set("intent", "root($radicand,$index)")
 
 
-def annotate_tree(root: etree._Element) -> int:
+# ---------------------------------------------------------------------------
+# implicit multiplication
+# ---------------------------------------------------------------------------
+_FACTOR_TAGS = frozenset(
+    {"mi", "mn", "msup", "msub", "msubsup", "mfrac", "msqrt", "mroot", "mover", "mrow"}
+)
+_INVISIBLE_TIMES = "⁢"
+_OPENERS = {"(": ")", "[": "]"}
+
+
+def _is_factor(element: etree._Element) -> bool:
+    tag = localname(element.tag)
+    if tag not in _FACTOR_TAGS or element.get("arg") is not None:
+        return False
+    text = element_text(element)
+    if tag == "mi" and (not text or text in FUNCTION_CONCEPTS):
+        return False
+    if tag in {"msup", "msub", "msubsup", "mover"}:
+        children = element_children(element)
+        if children and _not_a_power_base(children[0]):
+            return False  # sin^2, lim_x, sum^n: not plain factors
+    if tag == "mrow":
+        # Only groups that already stand for one value (an annotated
+        # application such as f(x)); other rows are scanned on their own.
+        return element.get("intent") is not None
+    return True
+
+
+def _paren_group_end(children: list[etree._Element], start: int) -> int | None:
+    opener = element_text(children[start])
+    closer = _OPENERS.get(opener)
+    if localname(children[start].tag) != "mo" or closer is None:
+        return None
+    depth = 0
+    for index in range(start, len(children)):
+        child = children[index]
+        if localname(child.tag) != "mo":
+            continue
+        text = element_text(child)
+        if text == opener:
+            depth += 1
+        elif text == closer:
+            depth -= 1
+            if depth == 0:
+                return index if index > start + 1 else None
+    return None
+
+
+def _is_differential(children: list[etree._Element], index: int) -> bool:
+    child = children[index]
+    return (
+        localname(child.tag) == "mi"
+        and element_text(child) in {"d", "ⅆ"}
+        and index + 1 < len(children)
+        and localname(children[index + 1].tag) == "mi"
+    )
+
+
+def _factor_runs(children: list[etree._Element]) -> list[list[tuple[int, int]]]:
+    """Runs of adjacent factors as lists of (start, end) index spans."""
+
+    runs: list[list[tuple[int, int]]] = []
+    current: list[tuple[int, int]] = []
+    index = 0
+    while index < len(children):
+        child = children[index]
+        if localname(child.tag) == "mo" and element_text(child) == _INVISIBLE_TIMES:
+            index += 1
+            continue
+        end = _paren_group_end(children, index)
+        if end is not None and index == 0 and end == len(children) - 1:
+            # The row *is* one parenthesised group, e.g. (2x+1): scan inside.
+            end = None
+        if end is not None and not any(c.get("arg") for c in children[index : end + 1]):
+            current.append((index, end))
+            index = end + 1
+            continue
+        if _is_differential(children, index) or not _is_factor(child):
+            if len(current) >= 2:
+                runs.append(current)
+            current = []
+            index += 1
+            continue
+        current.append((index, index))
+        index += 1
+    if len(current) >= 2:
+        runs.append(current)
+    return runs
+
+
+def _times_intent(names: list[str], nary: bool) -> str:
+    if nary or len(names) == 2:
+        return "times(" + ",".join(f"${name}" for name in names) + ")"
+    return f"times(${names[0]},{_times_intent(names[1:], nary)})"
+
+
+def _annotate_implicit_times_in(mrow: etree._Element, nary: bool) -> list:
+    children = element_children(mrow)
+    runs = _factor_runs(children)
+    created: list[etree._Element] = []
+    # Process from the right so earlier indexes stay valid.
+    for run in reversed(runs):
+        factors: list[etree._Element] = []
+        for start, end in run:
+            if start == end:
+                factors.append(children[start])
+            else:
+                group = new_element("mrow")
+                mrow.insert(mrow.index(children[start]), group)
+                for node in children[start : end + 1]:
+                    group.append(node)
+                factors.append(group)
+                created.append(group)
+        whole = (
+            run[0][0] == 0
+            and run[-1][1] == len(children) - 1
+            and mrow.get("intent") is None
+        )
+        if whole:
+            target = mrow
+        else:
+            target = new_element("mrow")
+            mrow.insert(mrow.index(factors[0]), target)
+            for factor in factors:
+                target.append(factor)
+        names = [f"arg{position}" for position in range(1, len(factors) + 1)]
+        if nary or len(factors) == 2:
+            for factor, name in zip(factors, names):
+                factor.set("arg", name)
+            target.set("intent", _times_intent(names, True))
+        else:
+            # Without n-ary times: times(a, times(b, c)) as nested rows.
+            current = target
+            remaining = factors
+            while len(remaining) > 2:
+                remaining[0].set("arg", "arg1")
+                rest = new_element("mrow")
+                current.insert(current.index(remaining[1]), rest)
+                for factor in remaining[1:]:
+                    rest.append(factor)
+                rest.set("arg", "arg2")
+                current.set("intent", "times($arg1,$arg2)")
+                current, remaining = rest, remaining[1:]
+            remaining[0].set("arg", "arg1")
+            remaining[1].set("arg", "arg2")
+            current.set("intent", "times($arg1,$arg2)")
+    return created
+
+
+def _annotate_implicit_times(root: etree._Element, nary: bool) -> None:
+    queue = [
+        node
+        for node in root.iter()
+        if is_element(node) and localname(node.tag) == "mrow"
+    ]
+    seen: set[int] = set()
+    while queue:
+        mrow = queue.pop(0)
+        if id(mrow) in seen:
+            continue
+        seen.add(id(mrow))
+        # Parenthesised groups created here are scanned too: (2x+1) has its
+        # own product inside.
+        queue.extend(_annotate_implicit_times_in(mrow, nary))
+
+
+def annotate_tree(
+    root: etree._Element,
+    *,
+    implicit_times: bool = False,
+    nary_associative: bool = True,
+) -> int:
     """Add deterministic intents to a normalised MathML tree.
+
+    ``implicit_times`` also annotates implicit multiplication (``2x``,
+    ``i(1+r)``) as ``times(...)``: flat with all factors when
+    ``nary_associative`` is true, nested pairs otherwise.
 
     Returns the number of ``intent`` attributes present after annotation.
     """
@@ -588,6 +763,8 @@ def annotate_tree(root: etree._Element) -> int:
     split_matrix_subscripts(root)
     _annotate_function_applications(root)
     _annotate_bare_functions(root)
+    if implicit_times:
+        _annotate_implicit_times(root, nary_associative)
     _annotate_linear_fractions(root)
     _annotate_structures(root)
     split_matrix_subscripts(root)

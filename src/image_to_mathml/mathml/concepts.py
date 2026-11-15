@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass
 from functools import lru_cache
 from importlib.resources import files
@@ -80,10 +81,37 @@ def _read_registry(filename: str) -> dict[str, Concept]:
     return concepts
 
 
+# Associative infix operators: grouping does not change the meaning, so
+# times($a,$b,$c) is equivalent to times($a,times($b,$c)).  Content MathML
+# accepts any number of operands for them.  minus, divided-by and power are
+# deliberately absent: their order and grouping change the meaning.
+ASSOCIATIVE_CONCEPTS = frozenset(
+    {"times", "plus", "and", "or", "union", "intersection"}
+)
+
+
+def _env_nary_default() -> bool:
+    value = os.getenv("IMAGE_TO_MATHML_NARY_ASSOCIATIVE")
+    if value is None or not value.strip():
+        return True
+    return value.strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
 class ConceptRegistry:
-    def __init__(self) -> None:
+    """Known W3C concept names and arities.
+
+    ``nary_associative`` lets the associative operators in
+    :data:`ASSOCIATIVE_CONCEPTS` take two or more arguments.  The W3C intent
+    text could not be verified on this point, so it is configurable
+    (``IMAGE_TO_MATHML_NARY_ASSOCIATIVE=false`` restores exactly two).
+    """
+
+    def __init__(self, nary_associative: bool | None = None) -> None:
         self.core = _read_registry("core_concepts.json")
         self.open = _read_registry("open_concepts.json")
+        self.nary_associative = (
+            _env_nary_default() if nary_associative is None else nary_associative
+        )
 
     def get(self, name: str) -> Concept | None:
         return self.core.get(name) or self.open.get(name)
@@ -105,7 +133,24 @@ class ConceptRegistry:
         concept = self.get(name)
         if concept is None:
             return False
+        if self.nary_associative and name in ASSOCIATIVE_CONCEPTS and arity >= 2:
+            return True
         return concept.accepts_arity(arity)
+
+    def signatures(self, name: str) -> tuple[Signature, ...]:
+        """Signatures of ``name`` as this registry accepts them."""
+
+        concept = self.get(name)
+        if concept is None:
+            return ()
+        if self.nary_associative and name in ASSOCIATIVE_CONCEPTS:
+            return tuple(
+                Signature(signature.fixity, signature.min_arity, None)
+                if signature.fixity == "infix"
+                else signature
+                for signature in concept.signatures
+            )
+        return concept.signatures
 
     def is_allowed(self, name: str, *, allow_open: bool) -> bool:
         classification = self.classification(name)
@@ -122,6 +167,14 @@ class ConceptRegistry:
         return sorted(names)
 
 
-@lru_cache(maxsize=1)
-def get_registry() -> ConceptRegistry:
-    return ConceptRegistry()
+def get_registry(nary_associative: bool | None = None) -> ConceptRegistry:
+    """Shared registry; ``None`` reads ``IMAGE_TO_MATHML_NARY_ASSOCIATIVE``."""
+
+    return _cached_registry(
+        _env_nary_default() if nary_associative is None else nary_associative
+    )
+
+
+@lru_cache(maxsize=2)
+def _cached_registry(nary_associative: bool) -> ConceptRegistry:
+    return ConceptRegistry(nary_associative=nary_associative)

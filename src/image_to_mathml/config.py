@@ -71,6 +71,12 @@ class Settings:
     # Extra attempts for connection errors and 502/503/504 answers.  Read
     # timeouts are not retried here: the evaluation decides about those.
     llm_retries: int = 1
+    # Associative operators (times, plus, and, or, union, intersection) take
+    # two or more arguments.  False restores exactly two.
+    nary_associative: bool = True
+    # Annotate implicit multiplication (2x, i(1+r)) with a deterministic
+    # times(...) rule.  Off until the annotation guide settles the convention.
+    annotate_implicit_times: bool = False
     temperature: float = 0.0
     num_predict: int = 1600
     num_ctx: int = 8192
@@ -160,6 +166,12 @@ class Settings:
             allowed_open_concepts=_env_csv(
                 "IMAGE_TO_MATHML_ALLOWED_OPEN_CONCEPTS",
                 cls.allowed_open_concepts,
+            ),
+            nary_associative=_env_bool(
+                "IMAGE_TO_MATHML_NARY_ASSOCIATIVE", cls.nary_associative
+            ),
+            annotate_implicit_times=_env_bool(
+                "IMAGE_TO_MATHML_IMPLICIT_TIMES", cls.annotate_implicit_times
             ),
             ocr_backend=os.getenv("IMAGE_TO_MATHML_OCR", cls.ocr_backend),
             direct_vision=_env_bool("IMAGE_TO_MATHML_DIRECT_VISION", cls.direct_vision),

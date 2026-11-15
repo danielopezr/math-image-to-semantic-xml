@@ -97,7 +97,7 @@ class EquationPipeline:
         self.llm = llm or build_llm(self.settings)
         self.ocr = ocr
         self.converter = LatexToMathML()
-        self.registry = registry or get_registry()
+        self.registry = registry or get_registry(self.settings.nary_associative)
         self.concept_rag = (
             ConceptRAG(self.registry) if self.settings.concept_rag else None
         )
@@ -411,7 +411,7 @@ class EquationPipeline:
         with timings.measure("normalize", "normalizer", note=note):
             root = parse_and_normalize(base)
         with timings.measure("deterministic-annotation", "annotator", note=note):
-            count = annotate_tree(root)
+            count = annotate_tree(root, **self._annotator_options())
             prune_orphan_args(root)
             mathml = serialize_mathml(root)
         with timings.measure("validate", "validator", note=note):
@@ -1118,6 +1118,12 @@ class EquationPipeline:
             return None
         return candidate, report
 
+    def _annotator_options(self) -> dict[str, bool]:
+        return {
+            "implicit_times": self.settings.annotate_implicit_times,
+            "nary_associative": self.registry.nary_associative,
+        }
+
     def _fill_unannotated(
         self,
         candidate: str,
@@ -1134,7 +1140,7 @@ class EquationPipeline:
         """
 
         root = parse_and_normalize(candidate)
-        annotate_tree(root)
+        annotate_tree(root, **self._annotator_options())
         prune_orphan_args(root)
         filled = serialize_mathml(root)
         filled_report = validate_mathml(
@@ -1197,7 +1203,7 @@ class EquationPipeline:
                 allowed_open_concepts=self._allowed_open(allow_open),
                 registry=self.registry,
             )
-            annotate_tree(merged_root)
+            annotate_tree(merged_root, **self._annotator_options())
             prune_orphan_args(merged_root)
             merged = serialize_mathml(merged_root)
             merged_report = validate_mathml(
@@ -1230,7 +1236,7 @@ class EquationPipeline:
         with timings.measure("normalize", "normalizer", note=note):
             root = parse_and_normalize(base_markup)
         with timings.measure("deterministic-annotation", "annotator", note=note):
-            count = annotate_tree(root)
+            count = annotate_tree(root, **self._annotator_options())
             prune_orphan_args(root)
             mathml = serialize_mathml(root)
         with timings.measure("validate", "validator", note=note):

@@ -9,7 +9,7 @@ unknown concept name.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import lru_cache
 
 from .annotator import FUNCTION_CONCEPTS
@@ -787,11 +787,17 @@ def build_concept_cards(
     registry: ConceptRegistry | None = None,
 ) -> tuple[ConceptCard, ...]:
     registry = registry or get_registry()
+
+    def effective(name: str, concept: Concept) -> Concept:
+        # Show the arities this registry accepts (e.g. "2+" for n-ary times).
+        return replace(concept, signatures=registry.signatures(name))
+
     cards = [
-        _card_from_concept(name, concept) for name, concept in registry.core.items()
+        _card_from_concept(name, effective(name, concept))
+        for name, concept in registry.core.items()
     ]
     cards.extend(
-        _card_from_concept(name, concept)
+        _card_from_concept(name, effective(name, concept))
         for name, concept in registry.open.items()
         if name not in registry.core
     )

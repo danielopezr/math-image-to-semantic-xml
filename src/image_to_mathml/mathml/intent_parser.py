@@ -175,6 +175,21 @@ def parse_intent(value: str) -> IntentNode:
     return _Parser(value).parse()
 
 
+def format_intent(node: IntentNode) -> str:
+    """Serialise an intent tree back to the compact W3C syntax."""
+
+    properties = "".join(f":{prop}" for prop in node.properties)
+    if node.kind == "self":
+        return properties
+    if node.kind == "reference":
+        return f"${node.value}{properties}"
+    if node.kind in {"name", "number"}:
+        return f"{node.value}{properties}"
+    head, *arguments = node.children
+    inner = ",".join(format_intent(argument) for argument in arguments)
+    return f"{format_intent(head)}({inner}){properties}"
+
+
 FIXITY_PROPERTIES = {
     "function",
     "prefix",

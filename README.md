@@ -203,6 +203,22 @@ LLM client environment variables:
   HTTP 502/503/504 answer, default `1`. Read timeouts are not retried by the
   client.
 
+Annotation options:
+
+- `IMAGE_TO_MATHML_NARY_ASSOCIATIVE`: associative operators (`times`, `plus`,
+  `and`, `or`, `union`, `intersection`) accept two or more arguments, as in
+  `times($a,$b,$c)`. Default `true`; `false` restores exactly two (the W3C
+  intent text could not be verified on this point, so it is configurable).
+  `minus`, `divided-by` and `power` always take exactly two.
+- `IMAGE_TO_MATHML_IMPLICIT_TIMES`: annotate implicit multiplication with a
+  deterministic rule (default `false`, pending the annotation guide). Adjacent
+  factors in a row with no visible operator become one flat
+  `times(...)`: `2x^2y` is `times(2, power(x,2), y)` and `i(1+r)^t(1+r)` has
+  three factors. Numbers, identifiers, scripts, fractions, roots, annotated
+  applications such as `f(x)` and parenthesised groups are factors; the `d`
+  of a differential, named functions (`sin`, `sin^2`), large operators and
+  limits are not. Without n-ary support the product is nested in pairs.
+
 ## Image preprocessing
 
 Every OCR backend can run an image-enhancement pass before recognition. The
@@ -395,6 +411,9 @@ Both documents are normalised before scoring:
 - presentation attributes such as `stretchy`, `mathvariant`, `mathsize`,
   `mathcolor`, `displaystyle` and `columnalign` are ignored;
 - attribute-less single-child `<mrow>` wrappers are unwrapped;
+- associative products and sums are flattened, so `times($a,times($b,$c))`
+  (in one intent or across nested elements) equals `times($a,$b,$c)`; the
+  grouping row of a nested product is removed as well;
 - text and attribute whitespace is collapsed and attribute order is canonical.
 
 A `reference_latex` reference is converted and normalised with the same code

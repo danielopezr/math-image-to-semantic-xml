@@ -34,7 +34,15 @@ from typing import Any
 
 from lxml import etree
 
+from ..mathml.concepts import ASSOCIATIVE_CONCEPTS
 from ..mathml.dom import is_element, localname
+from ..mathml.intent_parser import (
+    IntentNode,
+    IntentSyntaxError,
+    format_intent,
+    parse_intent,
+)
+from ..mathml.validator import _reference_candidates
 
 _INTENT_VAR_RE = re.compile(r"\$([A-Za-z_][A-Za-z0-9_.-]*)")
 _XML_WHITESPACE_RE = re.compile(r"\s+")
@@ -271,6 +279,111 @@ def _unwrap_redundant_mrows(root: etree._Element) -> None:
         parent.replace(element, child)
 
 
+def _is_associative_application(node: IntentNode, head: str | None = None) -> bool:
+    if node.kind != "application" or node.properties:
+        return False
+    name = node.children[0]
+    if name.kind != "name" or name.properties:
+        return False
+    if name.value not in ASSOCIATIVE_CONCEPTS:
+        return False
+    return head is None or name.value == head
+
+
+def _flatten_node(node: IntentNode) -> IntentNode:
+    """times(a, times(b, c)) -> times(a, b, c) inside one intent value."""
+
+    if node.kind != "application":
+        return node
+    head, *arguments = node.children
+    arguments = [_flatten_node(argument) for argument in arguments]
+    if _is_associative_application(node):
+        flat: list[IntentNode] = []
+        for argument in arguments:
+            if _is_associative_application(argument, head.value):
+                flat.extend(argument.children[1:])
+            else:
+                flat.append(argument)
+        arguments = flat
+    return IntentNode(
+        kind="application", children=[head, *arguments], properties=node.properties
+    )
+
+
+def _flatten_associative(root: etree._Element) -> None:
+    """Make nested and flat associative products compare as equal.
+
+    ``times($a,$b)`` whose ``$b`` element carries ``times($c,$d)`` becomes
+    ``times($a,$c,$d)`` (the inner element loses its intent and arg), and
+    nesting inside one intent value is flattened as well.  Grouping does not
+    change the meaning of an associative operator, so different labelling
+    habits should not change the score.
+    """
+
+    counter = 0
+    changed = True
+    while changed:
+        changed = False
+        for element in list(root.iter()):
+            if not is_element(element) or element.get("intent") is None:
+                continue
+            try:
+                ast = _flatten_node(parse_intent(element.get("intent")))
+            except IntentSyntaxError:
+                continue
+            if not _is_associative_application(ast):
+                element.set("intent", format_intent(ast))
+                continue
+            head = ast.children[0].value
+            new_arguments: list[IntentNode] = []
+            for argument in ast.children[1:]:
+                candidates = (
+                    _reference_candidates(element, argument.value)
+                    if argument.kind == "reference"
+                    else []
+                )
+                child = candidates[0] if len(candidates) == 1 else None
+                child_ast = None
+                if child is not None and child.get("intent"):
+                    try:
+                        child_ast = _flatten_node(parse_intent(child.get("intent")))
+                    except IntentSyntaxError:
+                        child_ast = None
+                if child_ast is None or not _is_associative_application(
+                    child_ast, head
+                ):
+                    new_arguments.append(argument)
+                    continue
+                # Splice the inner product's arguments into this one.
+                for inner in child_ast.children[1:]:
+                    if inner.kind != "reference":
+                        new_arguments.append(inner)
+                        continue
+                    targets = _reference_candidates(child, inner.value)
+                    counter += 1
+                    fresh = f"flat{counter}"
+                    for target in targets[:1]:
+                        target.set("arg", fresh)
+                    new_arguments.append(IntentNode(kind="reference", value=fresh))
+                del child.attrib["intent"]
+                child.attrib.pop("arg", None)
+                if localname(child.tag) == "mrow" and not child.attrib:
+                    # The row only grouped the inner product; grouping is
+                    # meaningless for an associative operator.
+                    parent = child.getparent()
+                    position = parent.index(child)
+                    for offset, node in enumerate(list(child)):
+                        parent.insert(position + offset, node)
+                    parent.remove(child)
+                changed = True
+            flattened = IntentNode(
+                kind="application",
+                children=[ast.children[0], *new_arguments],
+                properties=ast.properties,
+            )
+            element.set("intent", format_intent(flattened))
+
+
 def _normalise_attribute(value: str) -> str:
     return _normalise_text(value)
 
@@ -327,6 +440,7 @@ def normalize_mathml_tree(
     _clean_children(root)
     _wrap_math_root(root)
     _unwrap_redundant_mrows(root)
+    _flatten_associative(root)
     _canonicalise_intents(root)
     if not include_intent:
         for element in root.iter():
