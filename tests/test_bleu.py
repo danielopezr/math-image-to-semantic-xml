@@ -152,3 +152,58 @@ def test_corpus_bleu_requires_equal_list_lengths():
 def test_invalid_mathml_raises_a_normalisation_error():
     with pytest.raises(MathMLNormalizationError):
         canonical_mathml_tokens("<math><mrow></math>")
+
+
+def test_numeric_character_references_match_the_symbol_itself():
+    reference = _math("<mo>&#x2212;</mo><mi>x</mi>")
+    candidate = _math("<mo>\u2212</mo><mi>x</mi>")
+
+    assert canonical_mathml_tokens(reference) == canonical_mathml_tokens(candidate)
+    assert mathml_bleu(reference, candidate).structure.score == 1.0
+
+
+def test_keyboard_hyphen_and_mathematical_minus_are_equivalent():
+    reference = _math("<mn>-1</mn>")
+    candidate = _math("<mn>\u22121</mn>")
+
+    assert canonical_mathml_tokens(reference) == canonical_mathml_tokens(candidate)
+    assert mathml_bleu(reference, candidate).structure.score == 1.0
+
+
+def test_double_escaped_character_references_are_decoded():
+    reference = _math("<mo>&amp;#x222B;</mo>")
+    candidate = _math("<mo>\u222b</mo>")
+
+    assert canonical_mathml_tokens(reference) == canonical_mathml_tokens(candidate)
+    assert mathml_bleu(reference, candidate).structure.score == 1.0
+
+
+def test_named_entities_are_accepted():
+    reference = _math("<mo>&minus;</mo><mn>1</mn>")
+    candidate = _math("<mo>\u2212</mo><mn>1</mn>")
+
+    assert canonical_mathml_tokens(reference) == canonical_mathml_tokens(candidate)
+    assert mathml_bleu(reference, candidate).structure.score == 1.0
+
+
+def test_math_italic_letters_match_plain_greek():
+    reference = _math("<mi>&#x1D706;</mi>")
+    candidate = _math("<mi>\u03bb</mi>")
+
+    assert canonical_mathml_tokens(reference) == canonical_mathml_tokens(candidate)
+    assert mathml_bleu(reference, candidate).structure.score == 1.0
+
+
+def test_equivalent_symbol_variants_are_unified():
+    reference = _math("<mo>\u00b7</mo><mo>\u2a7d</mo>")
+    candidate = _math("<mo>\u22c5</mo><mo>\u2264</mo>")
+
+    assert canonical_mathml_tokens(reference) == canonical_mathml_tokens(candidate)
+    assert mathml_bleu(reference, candidate).structure.score == 1.0
+
+
+def test_distinct_symbols_are_not_unified():
+    reference = _math("<mo>+</mo>")
+    candidate = _math("<mo>\u2212</mo>")
+
+    assert mathml_bleu(reference, candidate).structure.score < 1.0

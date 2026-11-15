@@ -8,6 +8,10 @@ that:
   affect the score;
 * transparent wrappers such as ``mstyle`` and ``mpadded`` are unwrapped;
 * presentation attributes such as ``stretchy`` or ``mathvariant`` are ignored;
+* character references (``&#x2212;``, ``&#8722;``) are decoded and visually
+  equivalent symbol variants (keyboard hyphen vs. mathematical minus, math
+  italic letters vs. plain Greek, ``\\cdot`` dots, ...) are unified, so the
+  reference may use either form without being penalised;
 * intent argument names are positional (``$arg1``, ``$arg2``, ...), so
   ``power($base,$exp)`` and ``power($b,$e)`` are equivalent when they reference
   the same argument nodes.
@@ -25,8 +29,10 @@ Two scores are returned for each comparison:
 
 from __future__ import annotations
 
+import html.entities
 import math
 import re
+import unicodedata
 from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -141,6 +147,43 @@ _IGNORED_ATTRIBUTES = frozenset(
 _IGNORED_ATTRIBUTE_PREFIXES = ("aria-", "data-", "xml:")
 
 
+_NAMED_ENTITY_RE = re.compile(r"&([A-Za-z][A-Za-z0-9]+);")
+_CHARACTER_REFERENCE_RE = re.compile(
+    r"&(?:#([0-9]+)|#[xX]([0-9A-Fa-f]+)|([A-Za-z][A-Za-z0-9]+));"
+)
+_KEPT_ENTITIES = frozenset({"amp", "lt", "gt", "quot", "apos"})
+
+# Visually equivalent symbols that must not change the score.  The mapping is
+# applied after Unicode NFKC, which already unifies compatibility variants such
+# as the mathematical italic letters used by some references (``&#x1D706;``)
+# with their plain Greek counterparts (``&#x03BB;``).
+_SYMBOL_EQUIVALENTS = str.maketrans(
+    {
+        # Hyphens and dashes used as the minus operator.
+        "\u002d": "\u2212",  # hyphen-minus (keyboard)
+        "\u2010": "\u2212",  # hyphen
+        "\u2011": "\u2212",  # non-breaking hyphen
+        "\u2012": "\u2212",  # figure dash
+        "\u2013": "\u2212",  # en dash
+        "\u2014": "\u2212",  # em dash
+        "\ufe63": "\u2212",  # small hyphen-minus
+        "\uff0d": "\u2212",  # fullwidth hyphen-minus
+        # Multiplication / inner product dots.
+        "\u00b7": "\u22c5",  # middle dot
+        "\u2219": "\u22c5",  # bullet operator
+        # Comparison signs.
+        "\u2a7d": "\u2264",  # less-than or slanted equal to
+        "\u2a7e": "\u2265",  # greater-than or slanted equal to
+        # Division slash.
+        "\u2215": "\u002f",  # division slash
+        # Primes: NFKC splits double/triple primes into U+2032 sequences.
+        "\u2032": "'",
+        # Double vertical bars (norm).
+        "\u2225": "\u2016",  # parallel to
+    }
+)
+
+
 class MathMLNormalizationError(ValueError):
     """Raised when a MathML document cannot be parsed for evaluation."""
 
@@ -181,9 +224,36 @@ class MathMLBleuScore:
         }
 
 
+def _entity_codepoint(name: str) -> int | None:
+    codepoint = html.entities.name2codepoint.get(name)
+    if codepoint is not None:
+        return codepoint
+    value = html.entities.html5.get(f"{name};")
+    return ord(value) if value is not None and len(value) == 1 else None
+
+
+def _sanitize_entities(markup: str) -> str:
+    """Turn named HTML/MathML entities into numeric references.
+
+    XML only defines the five predefined entities; names such as ``&minus;``
+    would make the parser fail.  Converting them to ``&#...;`` keeps the
+    reference usable without depending on a DTD.
+    """
+
+    def replace(match: re.Match[str]) -> str:
+        name = match.group(1)
+        if name in _KEPT_ENTITIES:
+            return match.group(0)
+        codepoint = _entity_codepoint(name)
+        return match.group(0) if codepoint is None else f"&#{codepoint};"
+
+    return _NAMED_ENTITY_RE.sub(replace, markup)
+
+
 def _parse_mathml(markup: str) -> etree._Element:
     if not isinstance(markup, str) or not markup.strip():
         raise MathMLNormalizationError("The MathML document is empty")
+    markup = _sanitize_entities(markup)
     parser = etree.XMLParser(
         resolve_entities=False,
         recover=False,
@@ -201,6 +271,47 @@ def _normalise_text(text: str | None) -> str:
     if not text:
         return ""
     return " ".join(_XML_WHITESPACE_RE.sub(" ", text).split())
+
+
+def _decode_character_references(text: str) -> str:
+    """Decode references left as literal text (e.g. double-escaped markup)."""
+
+    def replace(match: re.Match[str]) -> str:
+        decimal, hexadecimal, name = match.groups()
+        if name is not None:
+            if name in _KEPT_ENTITIES:
+                return match.group(0)
+            codepoint = _entity_codepoint(name)
+            if codepoint is None:
+                return match.group(0)
+        else:
+            try:
+                codepoint = (
+                    int(decimal, 10) if decimal is not None else int(hexadecimal, 16)
+                )
+            except (TypeError, ValueError):
+                return match.group(0)
+        if not 0 <= codepoint <= 0x10FFFF:
+            return match.group(0)
+        return chr(codepoint)
+
+    return _CHARACTER_REFERENCE_RE.sub(replace, text)
+
+
+def _normalise_symbols(text: str | None) -> str:
+    """Canonicalise symbol spellings so equivalent forms compare equal.
+
+    ``&#x2212;`` and ``−`` are already the same character after XML parsing,
+    but references may keep the reference literally (double escaping) and the
+    keyboard hyphen (``-``) is not the mathematical minus used by
+    ``latex2mathml``.  NFKC also folds the mathematical alphanumeric symbols
+    used by some references into their plain letter equivalents.
+    """
+
+    if not text:
+        return ""
+    decoded = _decode_character_references(text)
+    return unicodedata.normalize("NFKC", decoded).translate(_SYMBOL_EQUIVALENTS)
 
 
 def _new_element_like(element: etree._Element, name: str) -> etree._Element:
@@ -517,7 +628,7 @@ def _attribute_tokens(element: etree._Element, include_intent: bool) -> list[str
 
 
 def _text_tokens(text: str | None) -> list[str]:
-    normalised = _normalise_text(text)
+    normalised = _normalise_text(_normalise_symbols(text))
     return normalised.split() if normalised else []
 
 
