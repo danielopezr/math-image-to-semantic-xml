@@ -203,21 +203,35 @@ LLM client environment variables:
   HTTP 502/503/504 answer, default `1`. Read timeouts are not retried by the
   client.
 
-Annotation options:
+Annotation options. The defaults follow the team's annotation guide
+(`docs/annotation-guide.md`):
 
-- `IMAGE_TO_MATHML_NARY_ASSOCIATIVE`: associative operators (`times`, `plus`,
-  `and`, `or`, `union`, `intersection`) accept two or more arguments, as in
-  `times($a,$b,$c)`. Default `true`; `false` restores exactly two (the W3C
-  intent text could not be verified on this point, so it is configurable).
-  `minus`, `divided-by` and `power` always take exactly two.
-- `IMAGE_TO_MATHML_IMPLICIT_TIMES`: annotate implicit multiplication with a
-  deterministic rule (default `false`, pending the annotation guide). Adjacent
-  factors in a row with no visible operator become one flat
-  `times(...)`: `2x^2y` is `times(2, power(x,2), y)` and `i(1+r)^t(1+r)` has
-  three factors. Numbers, identifiers, scripts, fractions, roots, annotated
-  applications such as `f(x)` and parenthesised groups are factors; the `d`
-  of a differential, named functions (`sin`, `sin^2`), large operators and
-  limits are not. Without n-ary support the product is nested in pairs.
+- `IMAGE_TO_MATHML_IMPLICIT_TIMES` (default `true`): annotate implicit
+  multiplication with a deterministic rule. Adjacent factors with no visible
+  operator become one flat `times(...)`: `2x^2y` is
+  `times(2, power(x,2), y)` and `a(b+c)` is a product. The `d` of a
+  differential, named functions (`sin`, `sin^2`), operator names (`dim`),
+  large operators, adjacent numbers and index lists (`a_{ij}`) are not
+  factors.
+- `IMAGE_TO_MATHML_NARY_ASSOCIATIVE` (default `true`): associative operators
+  (`times`, `plus`, `and`, `or`, `union`, `intersection`) accept two or more
+  arguments. `false` restores exactly two and nests products in pairs (the
+  W3C intent text could not be verified on this point). `minus`, `divided-by`
+  and `power` always take exactly two.
+- `IMAGE_TO_MATHML_ANNOTATE_DEFAULTS` (default `false`): annotate plain
+  fractions (`mfrac`), subscripts (`msub`) and roots although their default
+  reading is already right. When `false`, such intents are also removed from
+  LLM answers, and a valid expression with no intent at all (for example
+  `\frac{a}{b}`) is a normal result rather than a failed annotation.
+- `IMAGE_TO_MATHML_DERIVATIVE_PRIMES` (`auto`, `on`, `off`; default `auto`):
+  read `y'`, `y''` and `y^{(n)}` as `derivative($y, _x, n)`. `auto` applies it
+  when the area, topic or surrounding text is about calculus or differential
+  equations. `IMAGE_TO_MATHML_DERIVATIVE_VARIABLE` (default `x`) sets the
+  literal variable.
+- `IMAGE_TO_MATHML_INNER_PRODUCT_PAIRS` (`auto`, `on`, `off`; default `auto`):
+  read a round pair `(u, v)` as `inner-product`. `auto` applies it when the
+  topic mentions inner products or orthogonality. `<u, v>` with angle brackets
+  is always an inner product.
 
 ## Image preprocessing
 
@@ -377,9 +391,11 @@ The fallback annotator only adds intents whose reading is unambiguous; when a
 notation has several common readings it leaves the plain Presentation MathML,
 which screen readers already read correctly:
 
-- `f(x)`-style applications only for `f`, `g`, `h`, `F`, `G`, `H`, operator
-  names (`\operatorname{sgn}`), indexed names (`f_i`) and primed names (`f'`).
-  `a(b+c)` or `2x(x+1)` are products and stay unannotated.
+- `f(x)`-style applications for `f`, `g`, `h`, `F`, `G`, `H`, operator names
+  (`\operatorname{sgn}`), indexed names (`f_i`), primed names (`f'`) and any
+  symbol applied to a single variable (`T(x)`, `y_0(t)`). `a(b+c)` or
+  `2x(x+1)` are products, and `T(x, y)` is an argument list that is left
+  alone.
 - Superscripts that are not exponents (primes, `*`, `\dagger`, `T`, complement
   marks) are not annotated as powers; `^{\top}` becomes `transpose`.
 - `\beta` is never guessed as the beta function and `\Gamma` only with
@@ -411,6 +427,8 @@ Both documents are normalised before scoring:
 - presentation attributes such as `stretchy`, `mathvariant`, `mathsize`,
   `mathcolor`, `displaystyle` and `columnalign` are ignored;
 - attribute-less single-child `<mrow>` wrappers are unwrapped;
+- a prime next to its base (`<mi>y</mi><mo>′</mo>`) and a prime superscript
+  (`<msup>`) are the same;
 - associative products and sums are flattened, so `times($a,times($b,$c))`
   (in one intent or across nested elements) equals `times($a,$b,$c)`; the
   grouping row of a nested product is removed as well;
@@ -480,8 +498,23 @@ complexity_weights:
 file, and may use `$VAR`, `${VAR}` or `${VAR:-default}` so the same YAML works
 on several machines. `--images-dir` and `--mathml-dir` override the YAML
 folders. In this example the CSV only contains file names such as
-`alg001.jpeg` and `alg001.mathml`. `eval/linear-algebra.yaml` reads the
+`alg001.jpeg` and `alg001.mathml`. The generated YAML files read the
 dataset folder from `IMAGE_TO_MATHML_DATASET_DIR`.
+
+The `eval/` folder is local (it is git-ignored): each person keeps their own
+CSV/YAML files there. `tools/build_eval_csv.py` creates or updates the pair of
+one dataset area, for example:
+
+```bash
+python tools/build_eval_csv.py --dataset ../image-to-mathML-dataset/chopped \
+  --area algebra-lineal --name linear-algebra --area-label "Algebra lineal"
+```
+
+It adds a row for every labelled image, keeps the `topic`, `timeout` and
+`eqn_complexity` already written and estimates the complexity of new rows
+from the size of the label. Fill in the
+`topic` column by hand: it is what lets the pipeline decide context-dependent
+notation such as `(u, v)` as an inner product.
 
 The report separates where each output came from:
 

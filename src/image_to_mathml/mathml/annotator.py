@@ -192,6 +192,36 @@ def _function_name(
     return None
 
 
+def _is_symbol(element: etree._Element) -> bool:
+    """A one-character identifier, optionally with a subscript (y, T, y_0)."""
+
+    if localname(element.tag) == "msub":
+        children = element_children(element)
+        return len(children) == 2 and _is_symbol(children[0])
+    text = element_text(element)
+    return _is_mi(element) and len(text) == 1 and text not in FUNCTION_CONCEPTS
+
+
+def _is_single_variable_call(children: list[etree._Element], index: int) -> bool:
+    """``T(x)``, ``y_0(t)``, ``Q(x)``: a symbol applied to exactly one variable.
+
+    With a single variable between the parentheses the function reading is
+    by far the most common one in textbooks, whereas ``a(b+c)`` or ``n(n+1)``
+    (an expression inside) are products.
+    """
+
+    if index + 3 >= len(children):
+        return False
+    name, opener, variable, closer = children[index : index + 4]
+    return (
+        _is_symbol(name)
+        and _is_mo(opener, "(")
+        and _is_mo(closer, ")")
+        and _is_mi(variable)
+        and len(element_text(variable)) == 1
+    )
+
+
 def _find_matching_paren(children: list[etree._Element], open_index: int) -> int | None:
     depth = 0
     for index in range(open_index, len(children)):
@@ -263,6 +293,8 @@ def _annotate_function_applications_in(mrow: etree._Element) -> list[etree._Elem
             index += 1
             continue
         name_info = _function_name(candidate)
+        if name_info is None and _is_single_variable_call(children, index):
+            name_info = (candidate, None)
         if name_info is None:
             index += 1
             continue
@@ -495,10 +527,72 @@ def _not_a_power_base(base: etree._Element) -> bool:
     return element_text(base) in FUNCTION_CONCEPTS
 
 
-def _annotate_msup(element: etree._Element, base, exponent) -> None:
+_PRIME_ORDER = {"′": 1, "″": 2, "‴": 3, "⁗": 4, "'": 1}
+
+
+def _prime_order(exponent: etree._Element) -> int | None:
+    text = element_text(exponent)
+    if not text or any(char not in _PRIME_ORDER for char in text):
+        return None
+    return sum(_PRIME_ORDER[char] for char in text)
+
+
+def _parenthesised_order(exponent: etree._Element) -> etree._Element | None:
+    """The ``n`` element of a ``y^{(n)}`` exponent."""
+
+    children = element_children(exponent)
+    if (
+        localname(exponent.tag) == "mrow"
+        and len(children) == 3
+        and _is_mo(children[0], "(")
+        and _is_mo(children[2], ")")
+        and localname(children[1].tag) in {"mn", "mi"}
+    ):
+        return children[1]
+    return None
+
+
+def _annotate_derivative(element, base, exponent, variable: str) -> bool:
+    """y', y'', y''' and y^{(n)} as derivative($y, _x, n)."""
+
+    if localname(base.tag) != "mi" or not _is_generic_or_variable(base):
+        return False
+    literal = "_" + variable
+    order = _prime_order(exponent)
+    if order is not None:
+        if _set_arg(base, "y"):
+            element.set("intent", f"derivative($y,{literal},{order})")
+            return True
+        return False
+    order_element = _parenthesised_order(exponent)
+    if (
+        order_element is not None
+        and _set_arg(base, "y")
+        and _set_arg(order_element, "n")
+    ):
+        element.set("intent", f"derivative($y,{literal},$n)")
+        return True
+    return False
+
+
+def _is_generic_or_variable(element: etree._Element) -> bool:
+    text = element_text(element)
+    return bool(text) and text not in FUNCTION_CONCEPTS and len(text) == 1
+
+
+def _annotate_msup(
+    element: etree._Element,
+    base,
+    exponent,
+    derivative_variable: str | None = None,
+) -> None:
     if _not_a_power_base(base):
         # sin^2(x) is not the power of the symbol "sin"; leave it unannotated
         # rather than emit a misleading power intent.
+        return
+    if derivative_variable and _annotate_derivative(
+        element, base, exponent, derivative_variable
+    ):
         return
     exponent_text = element_text(exponent)
     if exponent_text in _TRANSPOSE_SUPERSCRIPTS:
@@ -528,7 +622,19 @@ def _annotate_msubsup(element: etree._Element, children) -> None:
         element.set("intent", "power(indexed-by($base,$sub),$exp)")
 
 
-def _annotate_structures(root: etree._Element) -> None:
+def _annotate_structures(
+    root: etree._Element,
+    *,
+    default_structures: bool = True,
+    derivative_variable: str | None = None,
+) -> None:
+    """Annotate fractions, scripts and roots.
+
+    With ``default_structures=False`` a plain fraction, subscript or root is
+    left unannotated: its default reading is already right, and the intent
+    would only repeat it (the W3C principle and the dataset convention).
+    """
+
     for element in list(root.iter()):
         if not is_element(element):
             continue
@@ -540,11 +646,11 @@ def _annotate_structures(root: etree._Element) -> None:
         children = element_children(element)
 
         if tag == "mfrac" and len(children) == 2:
-            if _set_args(children, ["num", "den"]):
+            if default_structures and _set_args(children, ["num", "den"]):
                 element.set("intent", "fraction($num,$den)")
 
         elif tag == "msup" and len(children) == 2:
-            _annotate_msup(element, children[0], children[1])
+            _annotate_msup(element, children[0], children[1], derivative_variable)
 
         elif tag == "msubsup" and len(children) == 3:
             _annotate_msubsup(element, children)
@@ -555,10 +661,13 @@ def _annotate_structures(root: etree._Element) -> None:
                 # log_2(x) is a logarithm with a base and lim_{x->0} a limit,
                 # not indexed symbols.
                 continue
-            if localname(base.tag) == "mo":
+            if localname(base.tag) == "mo" or not default_structures:
                 continue
             if _set_args(children, ["base", "sub"]):
                 element.set("intent", "indexed-by($base,$sub)")
+
+        elif tag in {"msqrt", "mroot"} and not default_structures:
+            continue
 
         elif tag == "msqrt" and children:
             if len(children) == 1 and children[0].get("arg") is None:
@@ -580,6 +689,77 @@ def _annotate_structures(root: etree._Element) -> None:
 
 
 # ---------------------------------------------------------------------------
+# inner products
+# ---------------------------------------------------------------------------
+_ANGLE_PAIRS = {"\u27e8": "\u27e9", "\u2329": "\u232a"}
+
+
+def _pair_at(
+    children: list[etree._Element], index: int, round_brackets: bool
+) -> tuple[etree._Element, etree._Element] | None:
+    """Match ``open X , Y close`` starting at ``index``."""
+
+    if index + 4 >= len(children):
+        return None
+    opener, first, comma, second, closer = children[index : index + 5]
+    open_text, close_text = element_text(opener), element_text(closer)
+    angle = _ANGLE_PAIRS.get(open_text) == close_text
+    round_pair = round_brackets and open_text == "(" and close_text == ")"
+    if not (angle or round_pair):
+        return None
+    if localname(opener.tag) not in {"mo", "mi"}:
+        return None
+    if localname(closer.tag) not in {"mo", "mi"}:
+        return None
+    if not _is_mo(comma, ","):
+        return None
+    for operand in (first, second):
+        if localname(operand.tag) == "mo" or operand.get("arg") is not None:
+            return None
+    if round_pair and index > 0:
+        previous = children[index - 1]
+        if localname(previous.tag) in {"mi", "msub", "msup", "msubsup"}:
+            return None  # T(x, y), f_i(a, b): an application, not a pair
+    return first, second
+
+
+def _annotate_inner_products(root: etree._Element, round_brackets: bool) -> None:
+    """<u, v> always, and (u, v) when the context is about inner products."""
+
+    rows = [
+        node
+        for node in root.iter()
+        if is_element(node) and localname(node.tag) == "mrow"
+    ]
+    for mrow in rows:
+        if mrow.get("intent") is not None:
+            continue
+        index = 0
+        while True:
+            children = element_children(mrow)
+            if index >= len(children):
+                break
+            pair = _pair_at(children, index, round_brackets)
+            if pair is None:
+                index += 1
+                continue
+            nodes = children[index : index + 5]
+            if index == 0 and len(children) == 5:
+                target = mrow
+            else:
+                target = new_element("mrow")
+                mrow.insert(mrow.index(nodes[0]), target)
+                for node in nodes:
+                    target.append(node)
+            pair[0].set("arg", "arg1")
+            pair[1].set("arg", "arg2")
+            target.set("intent", "inner-product($arg1,$arg2)")
+            if target is mrow:
+                break
+            index += 1
+
+
+# ---------------------------------------------------------------------------
 # implicit multiplication
 # ---------------------------------------------------------------------------
 _FACTOR_TAGS = frozenset(
@@ -595,6 +775,10 @@ def _is_factor(element: etree._Element) -> bool:
         return False
     text = element_text(element)
     if tag == "mi" and (not text or text in FUNCTION_CONCEPTS):
+        return False
+    if tag == "mi" and len(text) > 1 and text.isalpha():
+        # dim, ker, sgn...: an operator name applied to what follows, not a
+        # factor of a product.
         return False
     if tag in {"msup", "msub", "msubsup", "mover"}:
         children = element_children(element)
@@ -624,6 +808,9 @@ def _paren_group_end(children: list[etree._Element], start: int) -> int | None:
             depth -= 1
             if depth == 0:
                 return index if index > start + 1 else None
+        elif text == "," and depth == 1:
+            # (x, y): an argument list, a pair or an interval, not a factor.
+            return None
     return None
 
 
@@ -662,11 +849,39 @@ def _factor_runs(children: list[etree._Element]) -> list[list[tuple[int, int]]]:
             current = []
             index += 1
             continue
+        if (
+            current
+            and localname(child.tag) == "mn"
+            and current[-1][0] == current[-1][1]
+            and localname(children[current[-1][0]].tag) == "mn"
+        ):
+            # Two adjacent numbers are never a product: they are separate
+            # digits or indexes (the "1 1" of a matrix entry a_11).
+            if len(current) >= 2:
+                runs.append(current)
+            current = []
         current.append((index, index))
         index += 1
     if len(current) >= 2:
         runs.append(current)
     return runs
+
+
+_SUBSCRIPT_PARENTS = frozenset({"msub", "msubsup", "munder", "munderover"})
+
+
+def _in_subscript(element: etree._Element) -> bool:
+    """True inside the subscript (second child) of a scripted element."""
+
+    current = element
+    parent = current.getparent()
+    while parent is not None:
+        if localname(parent.tag) in _SUBSCRIPT_PARENTS:
+            siblings = element_children(parent)
+            if len(siblings) > 1 and siblings[1] is current:
+                return True
+        current, parent = parent, parent.getparent()
+    return False
 
 
 def _times_intent(names: list[str], nary: bool) -> str:
@@ -678,6 +893,14 @@ def _times_intent(names: list[str], nary: bool) -> str:
 def _annotate_implicit_times_in(mrow: etree._Element, nary: bool) -> list:
     children = element_children(mrow)
     runs = _factor_runs(children)
+    if _in_subscript(mrow):
+        # In a subscript, adjacent letters are an index list (a_ij), not a
+        # product; only a numeric coefficient (a_{2n}) marks a product.
+        runs = [
+            run
+            for run in runs
+            if run[0][0] == run[0][1] and localname(children[run[0][0]].tag) == "mn"
+        ]
     created: list[etree._Element] = []
     # Process from the right so earlier indexes stay valid.
     for run in reversed(runs):
@@ -750,6 +973,9 @@ def annotate_tree(
     *,
     implicit_times: bool = False,
     nary_associative: bool = True,
+    default_structures: bool = True,
+    derivative_variable: str | None = None,
+    inner_product_pairs: bool = False,
 ) -> int:
     """Add deterministic intents to a normalised MathML tree.
 
@@ -757,19 +983,59 @@ def annotate_tree(
     ``i(1+r)``) as ``times(...)``: flat with all factors when
     ``nary_associative`` is true, nested pairs otherwise.
 
+    ``default_structures=False`` leaves plain fractions, subscripts and roots
+    unannotated.  ``derivative_variable`` (e.g. ``"x"``) reads primes and
+    ``y^{(n)}`` as ``derivative($y, _x, n)``.  ``inner_product_pairs`` also
+    reads a round ``(u, v)`` as an inner product (``<u, v>`` always is).
+
     Returns the number of ``intent`` attributes present after annotation.
     """
 
     split_matrix_subscripts(root)
     _annotate_function_applications(root)
     _annotate_bare_functions(root)
+    _annotate_inner_products(root, inner_product_pairs)
     if implicit_times:
         _annotate_implicit_times(root, nary_associative)
     _annotate_linear_fractions(root)
-    _annotate_structures(root)
+    _annotate_structures(
+        root,
+        default_structures=default_structures,
+        derivative_variable=derivative_variable,
+    )
     split_matrix_subscripts(root)
     return sum(
         1
         for element in root.iter()
         if is_element(element) and element.get("intent") is not None
     )
+
+
+_DEFAULT_INTENTS = {
+    "mfrac": "fraction",
+    "msub": "indexed-by",
+    "msqrt": "root",
+    "mroot": "root",
+}
+
+
+def strip_default_intents(root: etree._Element) -> int:
+    """Remove intents that only repeat the default reading of an element.
+
+    A ``fraction`` on an ``mfrac``, ``indexed-by`` on an ``msub`` and ``root``
+    on ``msqrt``/``mroot`` add nothing a screen reader does not already say.
+    Linear fractions such as ``a/b`` (an ``mrow``) are kept.  Returns the
+    number of intents removed; orphan ``arg`` attributes should be pruned
+    afterwards.
+    """
+
+    removed = 0
+    for element in root.iter():
+        if not is_element(element):
+            continue
+        concept = _DEFAULT_INTENTS.get(localname(element.tag))
+        intent = element.get("intent") or ""
+        if concept and intent.split("(", 1)[0].strip() == concept:
+            del element.attrib["intent"]
+            removed += 1
+    return removed

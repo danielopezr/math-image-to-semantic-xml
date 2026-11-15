@@ -35,7 +35,9 @@ def test_offline_flow_produces_valid_mathml():
     assert result.validation.ok
     assert result.validation.acceptable
     assert 'intent="$name($var)"' in result.mathml
-    assert 'intent="fraction($num,$den)"' in result.mathml
+    assert 'intent="exponential($exp)"' in result.mathml
+    # A plain \frac already reads correctly: no fraction intent is added.
+    assert "fraction(" not in result.mathml
     assert not result.llm_used
 
 
@@ -63,27 +65,46 @@ def test_default_policy_allows_gamma_but_rejects_other_open_concepts():
 
 def test_hybrid_flow_uses_fake_llm_annotation():
     response = (
+        f'<math {NS}><mrow><msup intent="power($base,$exp)">'
+        '<mi arg="base">x</mi><mn arg="exp">2</mn></msup></mrow></math>'
+    )
+    fake = FakeLLM(response)
+    pipeline = EquationPipeline(llm=fake)
+    result = pipeline.run(EquationRequest(latex=r"x^{2}", flow=Flow.HYBRID))
+    assert result.validation.acceptable
+    assert result.llm_used
+    assert result.attempts == 1
+    assert "power($base,$exp)" in result.mathml
+    assert fake.calls == 1
+
+
+def test_default_reading_intents_from_the_llm_are_removed():
+    response = (
         f'<math {NS}><mrow><mfrac intent="fraction($num,$den)">'
         '<mi arg="num">a</mi><mi arg="den">b</mi></mfrac></mrow></math>'
     )
     fake = FakeLLM(response)
-    pipeline = EquationPipeline(llm=fake)
-    result = pipeline.run(EquationRequest(latex=r"\frac{a}{b}", flow=Flow.HYBRID))
-    assert result.validation.acceptable
+    result = EquationPipeline(llm=fake).run(
+        EquationRequest(latex=r"\frac{a}{b}", flow=Flow.HYBRID)
+    )
+    # The answer is accepted at once, but a fraction intent on an mfrac only
+    # repeats the default reading, so it is dropped with its args.
     assert result.llm_used
-    assert result.attempts == 1
-    assert "fraction($num,$den)" in result.mathml
     assert fake.calls == 1
+    assert result.validation.ok
+    assert "intent=" not in result.mathml
+    assert "arg=" not in result.mathml
+    assert any("default-reading" in step for step in result.trace)
 
 
 def test_hybrid_flow_removes_orphan_args():
     response = (
-        f'<math {NS}><mrow arg="unused"><mfrac intent="fraction($num,$den)">'
-        '<mi arg="num">a</mi><mi arg="den">b</mi></mfrac></mrow></math>'
+        f'<math {NS}><mrow arg="unused"><msup intent="power($base,$exp)">'
+        '<mi arg="base">x</mi><mn arg="exp">2</mn></msup></mrow></math>'
     )
     fake = FakeLLM(response)
     pipeline = EquationPipeline(llm=fake)
-    result = pipeline.run(EquationRequest(latex=r"\frac{a}{b}", flow=Flow.HYBRID))
+    result = pipeline.run(EquationRequest(latex=r"x^{2}", flow=Flow.HYBRID))
     assert result.validation.acceptable
     assert 'arg="unused"' not in result.mathml
     assert not any("arg.unused" in issue.code for issue in result.validation.issues)
@@ -91,15 +112,15 @@ def test_hybrid_flow_removes_orphan_args():
 
 def test_hybrid_flow_survives_invalid_llm_intents():
     response = (
-        f'<math {NS}><mrow><mfrac intent="fraction($num)">'
-        '<mi arg="num">a</mi><mi>b</mi></mfrac></mrow></math>'
+        f'<math {NS}><mrow><msup intent="power($base)">'
+        '<mi arg="base">x</mi><mn>2</mn></msup></mrow></math>'
     )
     fake = FakeLLM(response)
     pipeline = EquationPipeline(llm=fake)
-    result = pipeline.run(EquationRequest(latex=r"\frac{a}{b}", flow=Flow.HYBRID))
+    result = pipeline.run(EquationRequest(latex=r"x^{2}", flow=Flow.HYBRID))
     assert result.validation.acceptable
     assert result.llm_used
-    assert "fraction($num,$den)" in result.mathml
+    assert "power($base,$exp)" in result.mathml
 
 
 def test_direct_flow_falls_back_when_llm_returns_invalid_markup():
@@ -137,23 +158,23 @@ def test_image_input_uses_configured_ocr_engine():
 
         def image_to_latex(self, image_path: str) -> str:
             assert image_path == "equation.png"
-            return r"\frac{a}{b}"
+            return r"x^{2}"
 
     pipeline = EquationPipeline(llm=FakeLLM("unused"), ocr=FakeOCR())
     result = pipeline.run(EquationRequest(image_path="equation.png", flow=Flow.OFFLINE))
     assert result.ocr_backend == "fake-ocr"
     assert result.validation.acceptable
-    assert "fraction($num,$den)" in result.mathml
+    assert "power($base,$exp)" in result.mathml
 
 
 def test_auto_flow_skips_direct_when_hybrid_is_acceptable():
     response = (
-        f'<math {NS}><mrow><mfrac intent="fraction($num,$den)">'
-        '<mi arg="num">a</mi><mi arg="den">b</mi></mfrac></mrow></math>'
+        f'<math {NS}><mrow><msup intent="power($base,$exp)">'
+        '<mi arg="base">x</mi><mn arg="exp">2</mn></msup></mrow></math>'
     )
     fake = FakeLLM(response)
     pipeline = EquationPipeline(llm=fake)
-    result = pipeline.run(EquationRequest(latex=r"\frac{a}{b}", flow=Flow.AUTO))
+    result = pipeline.run(EquationRequest(latex=r"x^{2}", flow=Flow.AUTO))
     assert result.flow is Flow.HYBRID
     assert result.validation.acceptable
     assert fake.calls == 1
@@ -262,8 +283,8 @@ class FakeVisionAgent:
 
 def test_vision_flow_accepts_direct_image_mathml():
     response = (
-        f'<math {NS}><mrow><mfrac intent="fraction($num,$den)">'
-        '<mi arg="num">a</mi><mi arg="den">b</mi></mfrac></mrow></math>'
+        f'<math {NS}><mrow><msup intent="power($base,$exp)">'
+        '<mi arg="base">x</mi><mn arg="exp">2</mn></msup></mrow></math>'
     )
     fake = FakeVisionAgent([response])
     pipeline = EquationPipeline(llm=FakeLLM("unused"))
@@ -280,7 +301,7 @@ def test_vision_flow_accepts_direct_image_mathml():
 
 
 def test_vision_flow_returns_last_invalid_mathml_without_fallback():
-    response = f"<math {NS}><mrow><mi>x</mi></mrow></math>"
+    response = f'<math {NS}><mrow><mi intent="not-a-w3c-concept">x</mi></mrow></math>'
     fake = FakeVisionAgent([response])
     pipeline = EquationPipeline(llm=FakeLLM("unused"))
     pipeline.vision_agent = fake
@@ -293,10 +314,10 @@ def test_vision_flow_returns_last_invalid_mathml_without_fallback():
     )
 
     assert result.flow is Flow.VISION
-    assert not result.validation.acceptable
+    assert not result.validation.ok
     assert result.latex == ""
     assert result.mathml.endswith("</math>")
-    assert "<mi>x</mi>" in result.mathml
+    assert ">x</mi>" in result.mathml
     assert result.attempts == 2
     assert any("last LLM" in warning for warning in result.warnings)
     assert any("returning last LLM candidate" in item for item in result.trace)
@@ -369,13 +390,13 @@ def test_direct_flow_can_use_the_vision_agent():
 
 
 def test_direct_vision_falls_back_to_latex_when_available():
-    response = f"<math {NS}><mrow><mi>x</mi></mrow></math>"
+    response = f'<math {NS}><mrow><mi intent="not-a-w3c-concept">x</mi></mrow></math>'
     fake = FakeVisionAgent([response])
     pipeline = EquationPipeline(llm=FakeLLM("unused"))
     pipeline.vision_agent = fake
     result = pipeline.run(
         EquationRequest(
-            latex=r"\frac{a}{b}",
+            latex=r"x^{2}",
             image_path="equation.png",
             flow=Flow.DIRECT,
             direct_vision=True,
@@ -386,7 +407,7 @@ def test_direct_vision_falls_back_to_latex_when_available():
     assert result.flow is Flow.DIRECT
     assert not result.llm_used
     assert result.structure_source == "latex2mathml"
-    assert 'intent="fraction($num,$den)"' in result.mathml
+    assert 'intent="power($base,$exp)"' in result.mathml
     assert any("deterministic fallback" in warning for warning in result.warnings)
     assert len(result.llm_outputs) == 1
 
@@ -461,3 +482,17 @@ def test_offline_flow_splits_matrix_reference_outside_the_table():
     assert result.validation.ok
     assert "<mn>11</mn>" not in result.mathml
     assert result.mathml.count("<mn>1</mn>") >= 4
+
+
+def test_an_expression_with_nothing_to_annotate_is_a_valid_result():
+    """A valid intent-less answer is accepted instead of forcing retries."""
+
+    fake = FakeLLM('{"annotations": []}')
+    result = EquationPipeline(llm=fake).run(
+        EquationRequest(latex=r"\frac{a}{b}", flow=Flow.HYBRID)
+    )
+
+    assert fake.calls == 1
+    assert result.llm_used
+    assert result.validation.ok
+    assert "intent=" not in result.mathml

@@ -322,16 +322,24 @@ FRACTION_JSON = (
     '"args": {"a1": "n4", "a2": "n5"}}]}'
 )
 
+# x^{2} has the same ids as \frac{a}{b}: n3 is the msup, n4 the base, n5 the
+# exponent.  A power is used because the guide keeps it, while a fraction
+# intent on an mfrac is dropped as a default reading.
+POWER_JSON = (
+    '{"version": 1, "annotations": [{"target": "n3", "concept": "power", '
+    '"args": {"a1": "n4", "a2": "n5"}}]}'
+)
+
 
 def test_pipeline_accepts_semantic_json_and_strips_ids():
-    fake = FakeSemanticLLM([FRACTION_JSON])
+    fake = FakeSemanticLLM([POWER_JSON])
     pipeline = EquationPipeline(llm=fake)
-    result = pipeline.run(EquationRequest(latex=r"\frac{a}{b}", flow=Flow.HYBRID))
+    result = pipeline.run(EquationRequest(latex=r"x^{2}", flow=Flow.HYBRID))
 
     assert result.validation.acceptable
     assert result.llm_used
     assert result.attempts == 1
-    assert 'intent="fraction($num,$den)"' in result.mathml
+    assert 'intent="power($base,$exp)"' in result.mathml
     assert 'id="' not in result.mathml
     assert "JSON contract" in fake.messages[0][0]["content"]
     assert "temporary ids" in fake.messages[0][1]["content"]
@@ -343,11 +351,11 @@ def test_pipeline_accepts_semantic_json_and_strips_ids():
 
 
 def test_pipeline_retries_after_invalid_json():
-    fake = FakeSemanticLLM(["not json", FRACTION_JSON])
+    fake = FakeSemanticLLM(["not json", POWER_JSON])
     pipeline = EquationPipeline(llm=fake)
     result = pipeline.run(
         EquationRequest(
-            latex=r"\frac{a}{b}",
+            latex=r"x^{2}",
             flow=Flow.HYBRID,
             max_repair_attempts=1,
         )
@@ -365,11 +373,11 @@ def test_pipeline_retries_after_semantic_error():
         '{"version": 1, "annotations": [{"target": "missing", '
         '"concept": "fraction", "args": {"a1": "n4", "a2": "n5"}}]}'
     )
-    fake = FakeSemanticLLM([bad, FRACTION_JSON])
+    fake = FakeSemanticLLM([bad, POWER_JSON])
     pipeline = EquationPipeline(llm=fake)
     result = pipeline.run(
         EquationRequest(
-            latex=r"\frac{a}{b}",
+            latex=r"x^{2}",
             flow=Flow.HYBRID,
             max_repair_attempts=1,
         )
@@ -385,7 +393,7 @@ def test_pipeline_falls_back_when_semantic_json_is_never_valid():
     pipeline = EquationPipeline(llm=fake)
     result = pipeline.run(
         EquationRequest(
-            latex=r"\frac{a}{b}",
+            latex=r"x^{2}",
             flow=Flow.HYBRID,
             max_repair_attempts=1,
         )
@@ -394,7 +402,7 @@ def test_pipeline_falls_back_when_semantic_json_is_never_valid():
     assert result.validation.ok
     assert not result.llm_used
     assert result.attempts == 2
-    assert 'intent="fraction($num,$den)"' in result.mathml
+    assert 'intent="power($base,$exp)"' in result.mathml
     assert any("semantic JSON" in warning for warning in result.warnings)
     assert 'id="' not in result.mathml
 

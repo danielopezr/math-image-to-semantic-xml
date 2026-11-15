@@ -170,7 +170,7 @@ def test_pipeline_sends_retrieved_cards_to_the_semantic_prompt():
     pipeline = EquationPipeline(llm=fake)
     result = pipeline.run(EquationRequest(latex=r"\frac{a}{b}", flow=Flow.HYBRID))
 
-    assert result.validation.acceptable
+    assert result.validation.ok
     system = fake.messages[0][0]["content"]
     assert "candidate concepts" in system
     assert "fraction; arity 2; roles num, den" in system
@@ -190,7 +190,7 @@ def test_pipeline_can_disable_concept_rag():
     )
     result = pipeline.run(EquationRequest(latex=r"\frac{a}{b}", flow=Flow.HYBRID))
 
-    assert result.validation.acceptable
+    assert result.validation.ok
     system = fake.messages[0][0]["content"]
     assert "Core names are:" in system
 

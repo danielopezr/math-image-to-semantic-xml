@@ -75,8 +75,18 @@ class Settings:
     # two or more arguments.  False restores exactly two.
     nary_associative: bool = True
     # Annotate implicit multiplication (2x, i(1+r)) with a deterministic
-    # times(...) rule.  Off until the annotation guide settles the convention.
-    annotate_implicit_times: bool = False
+    # times(...) rule (agreed in the annotation guide).
+    annotate_implicit_times: bool = True
+    # Annotate plain fractions, subscripts and roots although their default
+    # reading is already right.  Off per the annotation guide.
+    annotate_default_structures: bool = False
+    # Primes and y^{(n)} as derivative($y, _x, n): "auto" (calculus context),
+    # "on" or "off".
+    derivative_primes: str = "auto"
+    derivative_variable: str = "x"
+    # Round (u, v) as an inner product: "auto" (inner-product topic), "on",
+    # "off".  <u, v> is always an inner product.
+    inner_product_pairs: str = "auto"
     temperature: float = 0.0
     num_predict: int = 1600
     num_ctx: int = 8192
@@ -173,6 +183,22 @@ class Settings:
             annotate_implicit_times=_env_bool(
                 "IMAGE_TO_MATHML_IMPLICIT_TIMES", cls.annotate_implicit_times
             ),
+            annotate_default_structures=_env_bool(
+                "IMAGE_TO_MATHML_ANNOTATE_DEFAULTS", cls.annotate_default_structures
+            ),
+            derivative_primes=os.getenv(
+                "IMAGE_TO_MATHML_DERIVATIVE_PRIMES", cls.derivative_primes
+            )
+            .strip()
+            .lower(),
+            derivative_variable=os.getenv(
+                "IMAGE_TO_MATHML_DERIVATIVE_VARIABLE", cls.derivative_variable
+            ).strip(),
+            inner_product_pairs=os.getenv(
+                "IMAGE_TO_MATHML_INNER_PRODUCT_PAIRS", cls.inner_product_pairs
+            )
+            .strip()
+            .lower(),
             ocr_backend=os.getenv("IMAGE_TO_MATHML_OCR", cls.ocr_backend),
             direct_vision=_env_bool("IMAGE_TO_MATHML_DIRECT_VISION", cls.direct_vision),
             ocr_preprocess=_env_bool("IMAGE_TO_MATHML_PREPROCESS", cls.ocr_preprocess),

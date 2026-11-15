@@ -252,6 +252,52 @@ def _wrap_math_root(element: etree._Element) -> None:
     element.insert(0, wrapper)
 
 
+_PRIME_CHARS = frozenset("\u2032\u2033\u2034\u2057'")
+
+
+def _is_prime_token(element: etree._Element) -> bool:
+    if localname(element.tag) not in {"mo", "mi"} or len(element):
+        return False
+    text = (element.text or "").strip()
+    return bool(text) and all(char in _PRIME_CHARS for char in text)
+
+
+def _canonicalise_primes(root: etree._Element) -> None:
+    """Write every prime as ``<msup>base <mo>prime</mo></msup>``.
+
+    Labels often put the prime next to its base (``<mi>y</mi><mo>'</mo>``)
+    while LaTeX converters attach it as a superscript; both render and read
+    the same.  A row that only holds the base and its prime becomes the
+    ``msup`` itself, so an intent on that row stays on the same element.
+    """
+
+    for prime in [node for node in root.iter() if is_element(node)]:
+        if not _is_prime_token(prime):
+            continue
+        prime.tag = _new_element_like(prime, "mo").tag
+        parent = prime.getparent()
+        if parent is None:
+            continue
+        siblings = [child for child in parent if is_element(child)]
+        position = siblings.index(prime)
+        if localname(parent.tag) == "msup" and position == 1:
+            continue  # already a superscript
+        if position == 0 or localname(parent.tag) not in {"mrow", "math", "mtd"}:
+            continue
+        base = siblings[position - 1]
+        if localname(base.tag) == "mo":
+            continue
+        if localname(parent.tag) == "mrow" and len(siblings) == 2:
+            parent.tag = _new_element_like(parent, "msup").tag
+            continue
+        script = _new_element_like(parent, "msup")
+        parent.insert(parent.index(base), script)
+        script.tail = prime.tail
+        prime.tail = None
+        script.append(base)
+        script.append(prime)
+
+
 def _unwrap_redundant_mrows(root: etree._Element) -> None:
     """Replace attribute-less single-child ``<mrow>`` wrappers by their child.
 
@@ -438,6 +484,7 @@ def normalize_mathml_tree(
 
     root = _parse_mathml(markup)
     _clean_children(root)
+    _canonicalise_primes(root)
     _wrap_math_root(root)
     _unwrap_redundant_mrows(root)
     _flatten_associative(root)

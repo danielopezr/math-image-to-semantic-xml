@@ -1,39 +1,18 @@
-# Guía de anotación (borrador)
+# Guía de anotación
 
-Estado: **propuesta pendiente de acuerdo con el equipo.** Las decisiones marcadas
-como *pendiente* deben cerrarse antes de usar las métricas para comparar
-modelos, porque hoy el F1 de intents mide sobre todo la diferencia de
-convención entre etiquetas y pipeline.
+Estado: **acordada por el equipo (2026-11-15).** Aplica por igual a las
+etiquetas del dataset (`image-to-mathML-dataset`), al anotador determinista,
+al LLM y a las métricas. Cada regla indica la opción que la controla en el
+código, por si hay que revisarla.
 
-La guía aplica por igual a las etiquetas del dataset
-(`image-to-mathML-dataset`), al anotador determinista, al LLM y a las métricas.
+Principio general: **se anota lo que cambia o aclara la lectura; lo que ya se
+lee bien por defecto no se anota.** Un intent que repite la lectura por
+defecto no ayuda al lector de pantalla y es otro sitio donde equivocarse.
 
-## 1. Productos y sumas (decidido en el código, configurable)
+## 1. Multiplicación implícita: se anota
 
-- Los operadores asociativos `times`, `plus`, `and`, `or`, `union` e
-  `intersection` se escriben **planos, con todos sus argumentos**:
-  `times($a,$b,$c)`, no `times($a,times($b,$c))`.
-- `minus`, `divided-by` y `power` llevan **exactamente 2** argumentos: su orden
-  y su agrupación cambian el significado.
-- Las métricas tratan como equivalentes la forma plana y la anidada, así que
-  una etiqueta anidada no se penaliza; aun así, la forma plana es la
-  recomendada.
-- Validador: `IMAGE_TO_MATHML_NARY_ASSOCIATIVE` (por defecto `true`). No se pudo
-  confirmar en la especificación W3C de intent que un infijo admita más de dos
-  argumentos (Content MathML sí lo permite); si se confirma lo contrario,
-  basta con desactivarlo y el pipeline anidará por pares.
-
-## 2. Multiplicación implícita — *pendiente*
-
-¿Se anota `times` cuando no hay un operador visible (`2x`, `i(1+r)`)?
-
-- Las etiquetas actuales lo hacen (132 veces en 75 ecuaciones).
-- El pipeline puede hacerlo con una regla determinista
-  (`IMAGE_TO_MATHML_IMPLICIT_TIMES=true`). Con ella, sobre las 75 ecuaciones de
-  la evaluación nocturna, el F1 de intents de la línea base sin LLM pasa de
-  0,29 a 0,51.
-
-Qué cuenta como factor (propuesta, ya implementada en la regla):
+Los factores contiguos sin operador visible se anotan con `times`, mediante
+una regla determinista (`IMAGE_TO_MATHML_IMPLICIT_TIMES`, activada).
 
 | Expresión | Anotación |
 |---|---|
@@ -41,31 +20,81 @@ Qué cuenta como factor (propuesta, ya implementada en la regla):
 | `2x^2y` | `times(2, power(x,2), y)` |
 | `i(1+r)^t(1+r)` | `times(i, power((1+r),t), (1+r))` |
 | `2f(x)` | `times(2, f(x))` |
-| `a(b+c)` | `times(a, (b+c))` (no es la función `a`) |
+| `a(b+c)`, `n(n+1)` | `times(a, (b+c))`: una expresión entre paréntesis es un factor |
 | `\int 2x\,dx` | `times(2, x)`; el `dx` no es factor |
-| `\sin^2 x` | sin `times`: es una función aplicada |
 
-## 3. Elementos con lectura por defecto — *pendiente*
+No son factores: el `d` de un diferencial, las funciones con nombre
+(`sin`, `sin^2`), los nombres de operador (`dim`, `ker`), los operadores
+grandes y los límites. Dos números seguidos nunca son un producto (son
+dígitos o índices, como el "1 1" de `a_{11}`), y en un subíndice las letras
+contiguas son una lista de índices (`a_{ij}`), no un producto; un coeficiente
+numérico sí lo marca (`a_{2n}`).
 
-¿Se anotan `fraction` en cada `mfrac` e `indexed-by` en cada `msub`?
+## 2. Productos y sumas: forma plana
 
-- Las etiquetas casi nunca lo hacen; el anotador del pipeline siempre.
-- Opción A: anotarlos siempre (explícito, más largo).
-- Opción B: solo cuando la lectura no es la por defecto (por ejemplo `a/b` en
-  línea), como pide el prompt del LLM. Requiere una opción para que el anotador
-  deje de marcarlos.
+- Los operadores asociativos `times`, `plus`, `and`, `or`, `union` e
+  `intersection` se escriben **planos, con todos sus argumentos**:
+  `times($a,$b,$c)`, no `times($a,times($b,$c))`.
+- `minus`, `divided-by` y `power` llevan **exactamente 2** argumentos.
+- Las métricas tratan como equivalentes la forma plana y la anidada.
+- Opción: `IMAGE_TO_MATHML_NARY_ASSOCIATIVE` (activada). No se pudo confirmar
+  en la especificación W3C de intent que un infijo admita más de dos
+  argumentos (Content MathML sí lo permite); si se confirma lo contrario,
+  basta con desactivarla y el pipeline anidará por pares.
 
-## 4. Notación ambigua según el área — *pendiente*
+## 3. Funciones aplicadas
 
-- `(x, y)` en álgebra lineal: ¿`inner-product` o `ordered-pair`? Las etiquetas
-  usan `inner-product` cuando el tema es ortogonalización.
-- Funciones con subíndice como `y_0(t)`: las etiquetas las anotan como
-  `$name($var)`.
-- Derivadas con primas (`y'`, `y''`, `y^{(4)}`): las etiquetas usan
-  `derivative($y, _x, n)`, con la variable como literal `_x` cuando no aparece
-  en la expresión.
+- `f(x)`, `g(t)`, `f_i(x)`, `f'(x)` y nombres de operador (`\operatorname{sgn}`)
+  son aplicaciones: `$name($var)`.
+- Un símbolo seguido de un paréntesis con **una sola variable** también es una
+  función: `T(x)`, `Q(x)`, `y_0(t)`.
+- Un paréntesis con comas, `T(x, y)`, es una lista de argumentos: no es un
+  producto ni se anota como par.
 
-## 5. Reglas generales (ya aplicadas en el dataset corregido)
+## 4. Lecturas por defecto: no se anotan
+
+Una fracción en `mfrac`, un subíndice en `msub` y una raíz en `msqrt`/`mroot`
+**no llevan intent**: su lectura por defecto ya es la correcta. Sí se anotan:
+
+- la fracción en línea `a/b` → `fraction($num,$den)`;
+- las potencias → `power($base,$exp)` (en `msup`; nunca sobre `sin` en
+  `sin^2 x` ni sobre un `msubsup` sin anidar el índice);
+- `e^x` → `exponential($exp)`;
+- los usos no habituales de un `mfrac`, como el coeficiente binomial.
+
+Opción: `IMAGE_TO_MATHML_ANNOTATE_DEFAULTS` (desactivada). El pipeline también
+elimina esos intents si los añade el LLM.
+
+## 5. Notación que depende del tema
+
+- `⟨u, v⟩` es siempre `inner-product`.
+- `(u, v)` es `inner-product` **solo si el tema** habla de producto interno,
+  ortogonalidad u ortogonalización (Gram-Schmidt); en otro caso se deja sin
+  anotar. Opción: `IMAGE_TO_MATHML_INNER_PRODUCT_PAIRS=auto|on|off`.
+- Por eso la columna `topic` de los CSV de evaluación debe rellenarse (regla 7).
+
+## 6. Derivadas con primas
+
+`y'`, `y''`, `y'''` e `y^{(n)}` se anotan como `derivative($y, _x, n)`, con la
+variable como **literal** (`_x`) porque no aparece en la expresión. Se aplica
+en contexto de cálculo o ecuaciones diferenciales
+(`IMAGE_TO_MATHML_DERIVATIVE_PRIMES=auto|on|off`; la variable se cambia con
+`IMAGE_TO_MATHML_DERIVATIVE_VARIABLE`). La prima puede escribirse junto a su
+base o como superíndice: las métricas tratan ambas formas como iguales.
+
+## 7. Columna `topic` en los CSV
+
+Cada área tiene su CSV con las columnas
+`id,img_path,mathml_path,area,topic,timeout,eqn_complexity`. `topic` se
+rellena a mano con el tema de la sección del libro (por ejemplo
+"ortogonalización, bases ortogonales"). `tools/build_eval_csv.py` crea o
+actualiza el CSV de un área conservando lo ya rellenado.
+
+La carpeta `eval/` del proyecto no se versiona (está en `.gitignore`), así que
+esos CSV son locales. Para que los temas rellenados se compartan, conviene
+guardarlos en el repositorio del dataset; está pendiente decidir dónde.
+
+## 8. Reglas generales
 
 - Un único `<mrow>` raíz dentro de `<math>`, sin atributo `display`.
 - Cada `$ref` tiene exactamente un descendiente con `arg="ref"` en su alcance.
@@ -73,5 +102,22 @@ Qué cuenta como factor (propuesta, ya implementada en la regla):
   literal con `_` (`_x`).
 - Lugar de la anotación según W3C: `definite-integral` y `limit` en el
   operador con sus límites; `sum` y `product` en el grupo con límites y
-  cuerpo; delimitadores (`|x|`, `‖v‖`, `⌊x⌋`, `⟨u,v⟩`) y `n!` en el grupo;
-  `power` solo en `msup`.
+  cuerpo; delimitadores (`|x|`, `‖v‖`, `⌊x⌋`, `⟨u,v⟩`) y `n!` en el grupo.
+
+## Efecto medido
+
+Sobre 75 ecuaciones del dataset (OCR + anotador determinista, sin LLM), frente
+a las etiquetas corregidas:
+
+| | Convención anterior | Esta guía |
+|---|---|---|
+| F1 de intents | 0,36 | 0,81 |
+| BLEU de estructura | 0,74 | 0,84 |
+| BLEU con intents | 0,56 | 0,78 |
+
+## Pendiente
+
+- Rellenar `topic` en los CSV (hoy solo lo tienen 5 filas de álgebra lineal).
+- Etiquetar lógica matemática y probabilidad, y completar matemáticas
+  discretas.
+- Verificar en la especificación W3C los argumentos múltiples de `times`.

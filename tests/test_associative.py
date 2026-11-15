@@ -141,7 +141,7 @@ def test_without_nary_products_are_nested_pairs():
     ]
 
 
-def test_implicit_times_is_off_by_default_and_configurable():
+def test_implicit_times_is_on_by_default_and_configurable():
     class NoLLM:
         model = "none"
         base_url = ""
@@ -160,8 +160,16 @@ def test_implicit_times_is_off_by_default_and_configurable():
 
     request = EquationRequest(latex="2x", flow=Flow.OFFLINE)
     default = EquationPipeline(Settings(), llm=NoLLM()).run(request)
-    assert "times" not in default.mathml
-    enabled = EquationPipeline(Settings(annotate_implicit_times=True), llm=NoLLM()).run(
-        request
-    )
-    assert 'intent="times($arg1,$arg2)"' in enabled.mathml
+    assert 'intent="times($arg1,$arg2)"' in default.mathml
+    disabled = EquationPipeline(
+        Settings(annotate_implicit_times=False), llm=NoLLM()
+    ).run(request)
+    assert "times" not in disabled.mathml
+
+
+def test_adjacent_numbers_and_index_lists_are_not_products():
+    # Matrix entry a_11 (digits split into "1 1") and a_ij (an index pair).
+    assert _times(r"\begin{matrix} a_{11} & a_{12} \end{matrix}") == []
+    assert _times(r"a_{ij}") == []
+    # A numeric coefficient in a subscript still marks a product.
+    assert _times(r"a_{2n}") == ["times($arg1,$arg2)"]

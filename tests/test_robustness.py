@@ -276,7 +276,8 @@ def test_deterministic_annotator_fills_what_the_llm_left_unannotated():
 
     assert result.llm_used
     assert result.validation.acceptable
-    assert 'intent="fraction($num,$den)"' in result.mathml
+    # The LLM's fraction only repeats the default reading and is dropped.
+    assert "fraction(" not in result.mathml
     assert 'intent="$name($var)"' in result.mathml
     assert 'intent="exponential($exp)"' in result.mathml
     assert any("deterministic fill (+2" in step for step in result.trace)

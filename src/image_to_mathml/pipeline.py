@@ -16,7 +16,7 @@ from .agents import DirectMathMLAgent, HybridIntentAgent, VisionMathMLAgent
 from .config import Settings
 from .llm.base import LLMClient, LLMError, current_request_timeout, request_timeout
 from .llm.factory import build_llm
-from .mathml.annotator import annotate_tree
+from .mathml.annotator import annotate_tree, strip_default_intents
 from .mathml.concept_rag import ConceptRAG
 from .mathml.concepts import ConceptRegistry, get_registry
 from .mathml.converter import LatexToMathML
@@ -60,6 +60,35 @@ from .timing import TimingRecorder
 # Recognised LaTeX kept per (backend, image, mtime) so repeated runs of the
 # same image (evaluation retries, compare) do not repeat the OCR.
 _OCR_CACHE_SIZE = 256
+
+
+_CALCULUS_CUES = (
+    "calculo",
+    "calculus",
+    "ecuaciones diferenciales",
+    "ecuacion diferencial",
+    "differential",
+    "derivad",
+    "derivative",
+)
+_INNER_PRODUCT_CUES = (
+    "producto interno",
+    "producto escalar",
+    "inner product",
+    "ortogonal",
+    "orthogonal",
+    "ortonormal",
+    "orthonormal",
+    "gram-schmidt",
+    "gram schmidt",
+)
+
+
+def _fold(text: str) -> str:
+    import unicodedata
+
+    decomposed = unicodedata.normalize("NFKD", text or "")
+    return "".join(c for c in decomposed if not unicodedata.combining(c)).lower()
 
 
 def _dedupe(items: list[str]) -> list[str]:
@@ -121,6 +150,24 @@ class EquationPipeline:
         result.timings = timings.as_list()
         result.elapsed_seconds = time.perf_counter() - started
         result.warnings = _dedupe(result.warnings)
+        if not self.settings.annotate_default_structures and result.mathml:
+            try:
+                root = parse_and_normalize(result.mathml)
+            except NormalizationError:
+                return result
+            removed = strip_default_intents(root)
+            if removed:
+                prune_orphan_args(root)
+                result.mathml = serialize_mathml(root)
+                result.validation = validate_mathml(
+                    result.mathml,
+                    allow_open_concepts=self.settings.allow_open_concepts,
+                    allowed_open_concepts=self._allowed_open(
+                        self.settings.allow_open_concepts
+                    ),
+                    registry=self.registry,
+                )
+                result.trace.append(f"removed {removed} default-reading intent(s)")
         return result
 
     # ------------------------------------------------------------------
@@ -129,6 +176,7 @@ class EquationPipeline:
     def run(self, request: EquationRequest) -> PipelineResult:
         started = time.perf_counter()
         timings = TimingRecorder()
+        self._run_context = request.context
         with self._request_timeout(request.timeout):
             result = self._run_request(request, timings)
         return self._finish(result, started, timings)
@@ -193,7 +241,7 @@ class EquationPipeline:
                 max_repairs,
                 timings,
             )
-            if hybrid.validation.acceptable:
+            if self._accepts(hybrid.validation):
                 hybrid.trace.insert(
                     0, "auto: hybrid accepted; skipped the slower direct flow"
                 )
@@ -208,7 +256,7 @@ class EquationPipeline:
                 max_repairs,
                 timings,
             )
-            if direct.validation.acceptable:
+            if self._accepts(direct.validation):
                 result = direct
                 chosen = "direct"
             else:
@@ -513,7 +561,7 @@ class EquationPipeline:
                         allowed_open_concepts=self._allowed_open(allow_open),
                         registry=self.registry,
                     )
-                if report.acceptable:
+                if self._accepts(report):
                     output.accepted = True
                     trace.append(f"attempt {attempts}: accepted")
                     return PipelineResult(
@@ -672,7 +720,7 @@ class EquationPipeline:
                         registry=self.registry,
                     )
                 last_report = report
-                if report.acceptable:
+                if self._accepts(report):
                     output.accepted = True
                     trace.append(f"attempt {attempts}: accepted")
                     return PipelineResult(
@@ -940,7 +988,7 @@ class EquationPipeline:
                                 len(applied.errors),
                             )
                     continue
-                if applied.applied == 0:
+                if applied.applied == 0 and self.settings.annotate_default_structures:
                     feedback = list(applied.warnings) or [
                         (
                             "No annotations were applied; choose the semantic "
@@ -964,7 +1012,7 @@ class EquationPipeline:
                         allowed_open_concepts=self._allowed_open(allow_open),
                         registry=self.registry,
                     )
-                if report.acceptable:
+                if self._accepts(report):
                     output.accepted = True
                     trace.append(f"attempt {attempts}: accepted")
                     with timings.measure(
@@ -1118,10 +1166,47 @@ class EquationPipeline:
             return None
         return candidate, report
 
-    def _annotator_options(self) -> dict[str, bool]:
+    def _accepts(self, report: ValidationReport) -> bool:
+        """Whether a validated candidate can be returned as the result.
+
+        When plain fractions, subscripts and roots are annotated, every useful
+        result has at least one intent, so an intent-less candidate means the
+        model did nothing.  Under the annotation guide (defaults not
+        annotated) an expression such as ``a/b`` written with ``\\frac``
+        legitimately has no intent, so a valid document is enough.
+        """
+
+        if self.settings.annotate_default_structures:
+            return report.acceptable
+        return report.ok
+
+    def _annotator_options(self) -> dict[str, object]:
+        """Annotator options from the settings and the current run context."""
+
+        context = getattr(self, "_run_context", None) or MathContext()
+        text = _fold(
+            " ".join((context.area, context.topic, context.surrounding_text[:2000]))
+        )
+        topic = _fold(" ".join((context.topic, context.surrounding_text[:2000])))
+
+        def decide(mode: str, keywords: tuple[str, ...], haystack: str) -> bool:
+            if mode == "on":
+                return True
+            if mode == "off":
+                return False
+            return any(keyword in haystack for keyword in keywords)
+
+        primes = decide(self.settings.derivative_primes, _CALCULUS_CUES, text)
         return {
             "implicit_times": self.settings.annotate_implicit_times,
             "nary_associative": self.registry.nary_associative,
+            "default_structures": self.settings.annotate_default_structures,
+            "derivative_variable": self.settings.derivative_variable
+            if primes
+            else None,
+            "inner_product_pairs": decide(
+                self.settings.inner_product_pairs, _INNER_PRODUCT_CUES, topic
+            ),
         }
 
     def _fill_unannotated(
@@ -1192,7 +1277,7 @@ class EquationPipeline:
             allowed_open_concepts=self._allowed_open(allow_open),
             registry=self.registry,
         )
-        if report.acceptable:
+        if self._accepts(report):
             return candidate, report, []
 
         if report.errors:
@@ -1212,7 +1297,7 @@ class EquationPipeline:
                 allowed_open_concepts=self._allowed_open(allow_open),
                 registry=self.registry,
             )
-            if merged_report.acceptable:
+            if self._accepts(merged_report):
                 return merged, merged_report, []
             return None, merged_report, merged_report.error_messages()
 
