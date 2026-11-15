@@ -87,6 +87,7 @@ def _make(
     model: str | None,
     preprocess: PreprocessConfig,
     stream: bool | None = None,
+    timeout: float | None = None,
 ) -> OCREngine:
     if name == "texify":
         from .texify import TexifyOCR
@@ -111,7 +112,12 @@ def _make(
     if name == "ollama_vision":
         from .ollama_vision import OllamaVisionOCR
 
-        return OllamaVisionOCR(model=model, preprocess=preprocess, stream=stream)
+        return OllamaVisionOCR(
+            model=model,
+            timeout=timeout,
+            preprocess=preprocess,
+            stream=stream,
+        )
     raise AssertionError(f"unhandled OCR backend: {name}")
 
 
@@ -122,6 +128,7 @@ def build_ocr(
     model: str | None = None,
     preprocess: PreprocessConfig | None = None,
     stream: bool | None = None,
+    timeout: float | None = None,
 ) -> OCREngine | None:
     name = _canonical_name(backend)
     if name == "none":
@@ -132,7 +139,7 @@ def build_ocr(
     if name == "auto":
         for candidate in _AUTO_ORDER:
             if _installed(_MODULES[candidate]):
-                return _make(candidate, device, model, preprocess, stream)
+                return _make(candidate, device, model, preprocess, stream, timeout)
         hints = ", ".join(f"`{_INSTALL_HINTS[candidate]}`" for candidate in _AUTO_ORDER)
         raise OCRError(
             "No equation OCR backend is available. Install one of texify, "
@@ -144,4 +151,4 @@ def build_ocr(
     if name not in _MODULES:
         options = ", ".join(OCR_BACKENDS)
         raise OCRError(f"Unknown OCR backend {backend!r}. Use one of: {options}.")
-    return _make(name, device, model, preprocess, stream)
+    return _make(name, device, model, preprocess, stream, timeout)

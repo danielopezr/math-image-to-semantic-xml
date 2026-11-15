@@ -306,19 +306,70 @@ Both documents are normalised before scoring:
   `mathcolor`, `displaystyle` and `columnalign` are ignored;
 - text and attribute whitespace is collapsed and attribute order is canonical.
 
-The `evaluate` command reads a JSON array or a JSONL dataset. Each record needs
-an input (`latex` or `image`) and a reference (`reference_mathml`, `reference`,
-`mathml`, or `reference_latex`). Optional fields are `id`, `area`, `topic`,
-`context_text`, `lang`, `flow`, `ocr`, `allow_open_concepts` and
-`max_repair_attempts`.
+The `evaluate` command reads a JSON array, JSONL or CSV dataset. Each record
+needs an input (`latex` or `image`) and a reference (`reference_mathml`,
+`reference`, `mathml`, or `reference_latex`). The MathML can also live in a
+separate file referenced with `reference_mathml_file`, `reference_file`,
+`mathml_file` or `reference_path`; relative paths are resolved from the dataset
+directory. Optional fields are `id`, `area`, `topic`, `context_text`, `lang`,
+`flow`, `ocr`, `allow_open_concepts`, `max_repair_attempts`, `timeout` and
+`eqn_complexity`.
 
 ```json
 {"id":"power","latex":"x^{2}","reference_mathml":"<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><mrow><msup intent=\"power($base,$exp)\"><mi arg=\"base\">x</mi><mi arg=\"exp\">2</mi></msup></mrow></math>","area":"álgebra","topic":"potencias"}
+{"id":"power-file","latex":"x^{2}","reference_mathml_file":"refs/power.mathml","area":"álgebra","topic":"potencias"}
 {"id":"fraction","latex":"\\frac{a}{b}","reference_latex":"\\frac{a}{b}","flow":"offline"}
 ```
 
+For image datasets, CSV is supported with the columns
+`id,img_path,mathml_path,area,topic,timeout,eqn_complexity`:
+
+```csv
+id,img_path,mathml_path,area,topic,timeout,eqn_complexity
+alg001,alg001.jpeg,alg001.mathml,Álgebra lineal,ortogonalización,300,muy simple
+alg002,alg002.jpeg,alg002.mathml,Álgebra lineal,bases ortogonales,600,compleja
+```
+
+`img_path` and `mathml_path` are resolved relative to the CSV file. `timeout` is
+the initial request timeout in seconds for that sample. If Ollama or the
+semantic annotator reports a timeout, the sample is retried with a larger
+timeout (`initial + --timeout-increment`) up to `--max-timeout-retries` times.
+In CSV mode the command defaults to the hybrid flow, `--ocr ollama_vision`,
+`--model qwen3:4b-instruct` and `--vision-model qwen3-vl:4b-instruct`; explicit
+flags still override those defaults.
+
+To avoid repeating absolute paths in the CSV, use a YAML file:
+
+```yaml
+csv: dataset.csv
+images_dir: /home/andres/dataset/images
+mathml_dir: /home/andres/dataset/labels
+complexity_weights:
+  muy simple: 1.0
+  simple: 1.0
+  media: 1.5
+  compleja: 2.0
+```
+
+`csv`, `images_dir` and `mathml_dir` can be absolute or relative to the YAML
+file. In this example the CSV only contains file names such as `alg001.jpeg`
+and `alg001.mathml`.
+
+The report includes corpus BLEU, a corpus BLEU per `eqn_complexity`, and a
+weighted BLEU across classifications. If `complexity_weights` is omitted, each
+classification is weighted by its number of samples; if a classification has no
+explicit weight, `1.0` is used.
+
 ```bash
 image-to-mathml evaluate --dataset examples/evaluation.jsonl --flow hybrid
+image-to-mathml evaluate --dataset eval/data_eval.yaml \
+  --timeout-increment 60 --max-timeout-retries 3 \
+  --json --output results/bleu.yaml.json
+image-to-mathml evaluate --dataset eval/dataset.csv --flow hybrid \
+  --ocr ollama_vision --model qwen3:4b-instruct \
+  --vision-model qwen3-vl:4b-instruct \
+  --timeout-increment 60 --max-timeout-retries 3 \
+  --json --output results/bleu.csv.json
 image-to-mathml evaluate --dataset examples/evaluation.jsonl --flow offline \
   --n-gram 4 --json --output results/bleu.json
 ```

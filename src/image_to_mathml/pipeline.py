@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import copy
 import time
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import replace
 
 from lxml import etree
@@ -83,6 +85,7 @@ class EquationPipeline:
         self.direct_agent = DirectMathMLAgent(self.llm, self.settings)
         self.hybrid_agent = HybridIntentAgent(self.llm, self.settings)
         self.vision_agent = VisionMathMLAgent(self.settings)
+        self._active_timeout: float | None = None
 
     def _finish(
         self,
@@ -100,6 +103,41 @@ class EquationPipeline:
     def run(self, request: EquationRequest) -> PipelineResult:
         started = time.perf_counter()
         timings = TimingRecorder()
+        with self._request_timeout(request.timeout):
+            result = self._run_request(request, timings)
+        return self._finish(result, started, timings)
+
+    @contextmanager
+    def _request_timeout(self, timeout: float | None) -> Iterator[None]:
+        if timeout is None:
+            yield
+            return
+
+        settings = self.settings
+        llm_settings = getattr(self.llm, "settings", None)
+        vision_client = getattr(self.vision_agent, "client", None)
+        vision_timeout = getattr(vision_client, "timeout", None)
+        self._active_timeout = timeout
+        self.settings = replace(settings, ollama_timeout=timeout)
+        if llm_settings is not None:
+            self.llm.settings = replace(llm_settings, ollama_timeout=timeout)
+        if vision_client is not None:
+            vision_client.timeout = timeout
+        try:
+            yield
+        finally:
+            self._active_timeout = None
+            self.settings = settings
+            if llm_settings is not None:
+                self.llm.settings = llm_settings
+            if vision_client is not None:
+                vision_client.timeout = vision_timeout
+
+    def _run_request(
+        self,
+        request: EquationRequest,
+        timings: TimingRecorder,
+    ) -> PipelineResult:
         allow_open = (
             self.settings.allow_open_concepts
             if request.allow_open_concepts is None
@@ -114,12 +152,11 @@ class EquationPipeline:
 
         if request.flow is Flow.VISION:
             with timings.group("vision"):
-                result = self._vision(request, allow_open, max_repairs, timings=timings)
-            return self._finish(result, started, timings)
+                return self._vision(request, allow_open, max_repairs, timings=timings)
 
         if request.flow is Flow.DIRECT and self._direct_vision_enabled(request):
             with timings.group("direct"):
-                result = self._vision(
+                return self._vision(
                     request,
                     allow_open,
                     max_repairs,
@@ -127,7 +164,6 @@ class EquationPipeline:
                     allow_fallback=True,
                     timings=timings,
                 )
-            return self._finish(result, started, timings)
 
         latex, ocr_backend = self._resolve_latex(request, timings=timings)
 
@@ -145,7 +181,7 @@ class EquationPipeline:
                 hybrid.trace.insert(
                     0, "auto: hybrid accepted; skipped the slower direct flow"
                 )
-                return self._finish(hybrid, started, timings)
+                return hybrid
 
             direct = self._run_flow(
                 Flow.DIRECT,
@@ -166,9 +202,9 @@ class EquationPipeline:
             result.trace.insert(
                 0, f"auto: evaluated hybrid and direct; selected {chosen}"
             )
-            return self._finish(result, started, timings)
+            return result
 
-        result = self._run_flow(
+        return self._run_flow(
             request.flow,
             request,
             latex,
@@ -177,7 +213,6 @@ class EquationPipeline:
             max_repairs,
             timings,
         )
-        return self._finish(result, started, timings)
 
     # ------------------------------------------------------------------
     # input resolution
@@ -208,6 +243,7 @@ class EquationPipeline:
                         profile=self.settings.ocr_preprocess_profile,
                     ),
                     stream=self.settings.ollama_stream,
+                    timeout=self._active_timeout,
                 )
         if engine is None:
             raise ValueError(

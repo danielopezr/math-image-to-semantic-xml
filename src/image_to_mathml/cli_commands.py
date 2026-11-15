@@ -12,6 +12,7 @@ from pathlib import Path
 from .config import Settings
 from .evaluation import (
     evaluate_samples,
+    load_evaluation_config,
     load_evaluation_samples,
     report_markdown,
 )
@@ -243,8 +244,24 @@ def cmd_convert(args: argparse.Namespace) -> int:
 
 def cmd_evaluate(args: argparse.Namespace) -> int:
     settings = _settings_from_args(args)
+    dataset_path = Path(args.dataset)
+    suffix = dataset_path.suffix.lower()
+    complexity_weights: dict[str, float] = {}
+    if suffix in {".yaml", ".yml"}:
+        config = load_evaluation_config(dataset_path)
+        complexity_weights = config.complexity_weights
+    if suffix in {".csv", ".yaml", ".yml"}:
+        csv_defaults: dict[str, object] = {}
+        if not getattr(args, "ocr", None):
+            csv_defaults["ocr_backend"] = "ollama_vision"
+        if not getattr(args, "model", None):
+            csv_defaults["ollama_model"] = "qwen3:4b-instruct"
+        if not getattr(args, "vision_model", None):
+            csv_defaults["ollama_vision_model"] = "qwen3-vl:4b-instruct"
+        if csv_defaults:
+            settings = replace(settings, **csv_defaults)
     pipeline = EquationPipeline(settings)
-    samples = load_evaluation_samples(args.dataset)
+    samples = load_evaluation_samples(dataset_path)
     max_samples = getattr(args, "max_samples", None)
     if max_samples is not None and max_samples >= 0:
         samples = samples[:max_samples]
@@ -255,6 +272,11 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
         default_flow=Flow(getattr(args, "flow", Flow.HYBRID.value)),
         max_n=max(1, int(getattr(args, "n_gram", 4) or 4)),
         smooth=not getattr(args, "no_smooth", False),
+        timeout_increment=max(
+            0.0, float(getattr(args, "timeout_increment", 60.0) or 0.0)
+        ),
+        max_timeout_retries=max(0, int(getattr(args, "max_timeout_retries", 3) or 0)),
+        complexity_weights=complexity_weights,
     )
     payload = report.as_dict()
     output = getattr(args, "output", None)

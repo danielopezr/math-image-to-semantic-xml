@@ -174,13 +174,25 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate.add_argument(
         "--dataset",
         required=True,
-        help="JSON array or JSONL file with labelled equations",
+        help="YAML, JSON array, JSONL or CSV file with labelled equations",
     )
     evaluate.add_argument(
         "--n-gram",
         type=int,
         default=4,
         help="Maximum BLEU n-gram order (default: 4)",
+    )
+    evaluate.add_argument(
+        "--timeout-increment",
+        type=float,
+        default=60.0,
+        help="Seconds added to the sample timeout after a timeout (default: 60)",
+    )
+    evaluate.add_argument(
+        "--max-timeout-retries",
+        type=int,
+        default=3,
+        help="Retries after a timeout before using/failing the sample (default: 3)",
     )
     evaluate.add_argument(
         "--no-smooth",

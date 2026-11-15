@@ -1,0 +1,9 @@
+csv: linear-algebra.csv
+images_dir: /home/andres/Documents/Fundamentos de investigacion/dataset/chopped/algebra-lineal
+mathml_dir: /home/andres/Documents/Fundamentos de investigacion/dataset/chopped/algebra-lineal/labels
+
+complexity_weights:
+  muy simple: 1.0
+  simple: 1.0
+  media: 1.5
+  compleja: 2.0

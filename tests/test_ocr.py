@@ -55,6 +55,12 @@ def test_build_ocr_ollama_alias():
     assert engine.model == "qwen3-vl:2b"
 
 
+def test_build_ocr_ollama_accepts_a_timeout():
+    engine = factory.build_ocr("ollama", model="qwen3-vl:2b", timeout=42.0)
+    assert engine is not None
+    assert engine.client.timeout == 42.0
+
+
 def test_auto_uses_first_installed_backend(monkeypatch):
     monkeypatch.setattr(
         factory, "_installed", lambda module: module == "rapid_latex_ocr"

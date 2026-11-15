@@ -1,0 +1,6 @@
+id,img_path,mathml_path,area,topic,timeout,eqn_complexity
+alg001,alg001.jpeg,alg001.txt,Algebra lineal,ortogonalizacion-bases ortogonales,300,simple
+alg002,alg002.jpeg,alg002.txt,Algebra lineal,ortogonalizacion-bases ortogonales,300,simple
+alg003,alg003.jpeg,alg003.txt,Algebra lineal,ortogonalizacion-bases ortogonales,600,media
+alg004,alg004.jpeg,alg004.txt,Algebra lineal,ortogonalizacion-bases ortogonales,600,media
+alg005,alg005.jpeg,alg005.txt,Algebra lineal,ortogonalizacion-bases ortogonales,300,simple

@@ -64,6 +64,7 @@ class EquationRequest:
     allow_open_concepts: bool | None = None
     max_repair_attempts: int | None = None
     direct_vision: bool | None = None
+    timeout: float | None = None
 
 
 @dataclass(frozen=True)
