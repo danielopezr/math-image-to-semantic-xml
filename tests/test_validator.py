@@ -123,3 +123,61 @@ def test_registry_has_core_and_open_concepts():
     assert registry.accepts_arity("fraction", 2)
     assert not registry.accepts_arity("fraction", 1)
     assert registry.accepts_arity("list", 0)
+
+
+def test_wrong_child_count_of_positional_elements_is_an_error():
+    single = f"<math {NS}><mrow><mfrac><mi>b</mi></mfrac></mrow></math>"
+    report = validate_mathml(single)
+    assert not report.ok
+    assert any(issue.code == "structure.arity" for issue in report.errors)
+
+    triple = (
+        f"<math {NS}><mrow><msup><mi>x</mi><mn>2</mn><mn>3</mn></msup></mrow></math>"
+    )
+    assert any(
+        issue.code == "structure.arity" for issue in validate_mathml(triple).errors
+    )
+
+
+def test_table_rows_and_cells_are_checked():
+    markup = f"<math {NS}><mrow><mtable><mtd><mi>a</mi></mtd></mtable></mrow></math>"
+    report = validate_mathml(markup)
+    assert any(issue.code == "structure.children" for issue in report.errors)
+
+
+def test_empty_mrow_placeholder_in_a_positional_slot_is_valid():
+    markup = f"<math {NS}><mrow><mfrac><mrow/><mi>b</mi></mfrac></mrow></math>"
+    report = validate_mathml(markup)
+    assert report.ok
+    assert report.redundant_mrows == 0
+
+
+def test_missing_namespace_and_redundant_mrow_break_the_contract():
+    no_namespace = "<math><mrow><mi>x</mi></mrow></math>"
+    assert any(
+        issue.code == "structure.namespace"
+        for issue in validate_mathml(no_namespace).errors
+    )
+    redundant = f"<math {NS}><mrow><mi>a</mi><mrow><mi>x</mi></mrow></mrow></math>"
+    assert any(
+        issue.code == "structure.redundant-mrow"
+        for issue in validate_mathml(redundant).errors
+    )
+
+
+def test_ambiguous_reference_is_an_error():
+    markup = (
+        f'<math {NS}><mrow intent="fraction($num,$den)">'
+        '<mi arg="num">a</mi><mi arg="num">c</mi><mi arg="den">b</mi>'
+        "</mrow></math>"
+    )
+    report = validate_mathml(markup)
+    assert any(issue.code == "intent.ambiguous-reference" for issue in report.errors)
+
+
+def test_beta_function_accepts_two_arguments():
+    markup = (
+        f'<math {NS}><mrow intent="beta-function($x,$y)"><mi>B</mi><mo>(</mo>'
+        '<mi arg="x">x</mi><mo>,</mo><mi arg="y">y</mi><mo>)</mo></mrow></math>'
+    )
+    assert validate_mathml(markup, allowed_open_concepts={"beta-function"}).ok

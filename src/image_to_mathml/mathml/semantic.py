@@ -16,10 +16,20 @@ from typing import Any
 from lxml import etree
 
 from .concepts import ConceptRegistry, get_registry
-from .dom import element_children, is_element, new_element, path
+from .dom import (
+    element_children,
+    has_positional_children,
+    is_element,
+    localname,
+    new_element,
+    path,
+)
+from .normalizer import strip_reasoning
 
 ID_ATTR = "id"
 
+# Single source of truth for argument role names.  The concept cards shown to
+# the language model and the deterministic JSON application both read it.
 CONCEPT_ROLES: dict[str, tuple[str, ...]] = {
     "fraction": ("num", "den"),
     "power": ("base", "exp"),
@@ -59,8 +69,22 @@ CONCEPT_ROLES: dict[str, tuple[str, ...]] = {
     "complex-conjugate": ("arg",),
     "inverse": ("arg",),
     "gamma-function": ("arg",),
-    "beta-function": ("arg",),
+    "beta-function": ("arg1", "arg2"),
     "error-function": ("arg",),
+    "max": ("arg",),
+    "min": ("arg",),
+    "matrix": ("arg",),
+    "set": ("arg",),
+    "inner-product": ("arg1", "arg2"),
+    "dot-product": ("arg1", "arg2"),
+    "cross-product": ("arg1", "arg2"),
+    "outer-product": ("arg1", "arg2"),
+    "cartesian-product": ("arg1", "arg2"),
+    "ordered-pair": ("arg1", "arg2"),
+    "coordinate": ("arg1", "arg2"),
+    "polar-coordinate": ("arg1", "arg2"),
+    "spherical-coordinate": ("arg1", "arg2", "arg3"),
+    "cartesian-coordinate": ("arg1", "arg2"),
     "plus": ("arg1", "arg2"),
     "minus": ("arg1", "arg2"),
     "times": ("arg1", "arg2"),
@@ -151,28 +175,52 @@ def semantic_tree_markup(root: etree._Element) -> str:
     return etree.tostring(root, encoding="unicode", pretty_print=True).strip()
 
 
+def _is_payload(data: Any) -> bool:
+    if isinstance(data, list):
+        return all(isinstance(item, dict) for item in data)
+    return isinstance(data, dict) and ("annotations" in data or "concept" in data)
+
+
+def _decode_json_payload(text: str) -> Any:
+    """Decode the JSON payload embedded in ``text``.
+
+    The whole text is tried first.  Otherwise every ``{`` or ``[`` is tried as
+    the start of a JSON value with :meth:`json.JSONDecoder.raw_decode`, so
+    surrounding prose, top-level lists and stray braces do not break parsing.
+    """
+
+    try:
+        return json.loads(text)
+    except ValueError as exc:
+        first_error = exc
+
+    decoder = json.JSONDecoder()
+    fallback: Any = None
+    for index, character in enumerate(text):
+        if character not in "{[":
+            continue
+        try:
+            data, _ = decoder.raw_decode(text, index)
+        except ValueError:
+            continue
+        if _is_payload(data):
+            return data
+        if fallback is None and isinstance(data, (dict, list)):
+            fallback = data
+    if fallback is not None:
+        return fallback
+    raise SemanticError(f"Invalid JSON: {first_error}") from first_error
+
+
 def parse_semantic_payload(raw: str) -> list[dict[str, Any]]:
     """Extract the annotations list from a model answer."""
 
-    text = (raw or "").strip()
+    text = strip_reasoning(raw or "").strip()
     fenced = _FENCE_RE.search(text)
     if fenced:
         text = fenced.group(1).strip()
 
-    start = text.find("{")
-    end = text.rfind("}")
-    if start != -1 and end > start:
-        text = text[start : end + 1]
-    else:
-        start = text.find("[")
-        end = text.rfind("]")
-        if start != -1 and end > start:
-            text = text[start : end + 1]
-
-    try:
-        data = json.loads(text)
-    except ValueError as exc:
-        raise SemanticError(f"Invalid JSON: {exc}") from exc
+    data = _decode_json_payload(text)
 
     if isinstance(data, dict):
         if "annotations" in data:
@@ -390,6 +438,12 @@ def _contiguous_nodes(
         raise SemanticError("Grouped nodes must share the same parent")
     parent = nodes[0].getparent()
     assert parent is not None
+    if has_positional_children(parent):
+        raise SemanticError(
+            f"Cannot group the children of <{localname(parent.tag)}>: each child "
+            "has a fixed role (numerator, base, exponent, ...). Target the "
+            f"<{localname(parent.tag)}> element itself instead"
+        )
     siblings = element_children(parent)
     try:
         indexed = sorted(
@@ -535,6 +589,43 @@ def _annotation_target_id(annotation: dict[str, Any]) -> str | None:
     if isinstance(wrap, list) and len(wrap) == 1 and isinstance(wrap[0], str):
         return wrap[0]
     return None
+
+
+def semantic_json_schema(concept_names: list[str] | None = None) -> dict[str, Any]:
+    """JSON Schema of the semantic contract, for constrained decoding.
+
+    Local servers such as Ollama use it to force a syntactically valid answer.
+    When ``concept_names`` is given, ``concept`` is restricted to those names.
+    """
+
+    concept: dict[str, Any] = {"type": "string"}
+    if concept_names:
+        concept["enum"] = sorted(set(concept_names) | {"generic-application"})
+    id_list = {"type": "array", "items": {"type": "string"}, "minItems": 1}
+    annotation = {
+        "type": "object",
+        "properties": {
+            "target": {"type": "string"},
+            "wrap": id_list,
+            "new_id": {"type": "string"},
+            "concept": concept,
+            "args": {"type": "object", "additionalProperties": {"type": "string"}},
+            "groups": {"type": "object", "additionalProperties": id_list},
+            "literals": {
+                "type": "object",
+                "additionalProperties": {"type": "string"},
+            },
+        },
+        "required": ["concept"],
+    }
+    return {
+        "type": "object",
+        "properties": {
+            "version": {"type": "integer"},
+            "annotations": {"type": "array", "items": annotation},
+        },
+        "required": ["annotations"],
+    }
 
 
 def apply_semantic_payload(

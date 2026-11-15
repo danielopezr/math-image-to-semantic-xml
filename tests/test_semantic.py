@@ -397,3 +397,57 @@ def test_pipeline_falls_back_when_semantic_json_is_never_valid():
     assert 'intent="fraction($num,$den)"' in result.mathml
     assert any("semantic JSON" in warning for warning in result.warnings)
     assert 'id="' not in result.mathml
+
+
+def test_parse_semantic_payload_accepts_a_top_level_list():
+    raw = (
+        '[{"target": "n3", "concept": "power", "args": ["n4", "n5"]},'
+        ' {"target": "n6", "concept": "fraction", "args": ["n7", "n8"]}]'
+    )
+    annotations = parse_semantic_payload(raw)
+    assert [item["concept"] for item in annotations] == ["power", "fraction"]
+
+
+def test_parse_semantic_payload_ignores_reasoning_and_prose():
+    raw = (
+        "<think>The tree {n3} looks like a power.</think>\n"
+        'Here you go: {"annotations": [{"target": "n3", "concept": "power"}]} done.'
+    )
+    assert parse_semantic_payload(raw) == [{"target": "n3", "concept": "power"}]
+
+
+def test_grouping_the_children_of_a_positional_element_is_rejected():
+    root = _with_ids(
+        f"<math {NS}><mrow><msup><mi>x</mi><mn>2</mn></msup></mrow></math>"
+    )
+    result = apply_semantic_payload(
+        root,
+        [{"wrap": ["n4", "n5"], "concept": "power", "args": {"a1": "n4", "a2": "n5"}}],
+    )
+    assert result.errors
+    assert "fixed role" in result.errors[0]
+
+
+def test_semantic_json_schema_restricts_concepts_to_the_candidates():
+    from image_to_mathml.mathml.semantic import semantic_json_schema
+
+    schema = semantic_json_schema(["fraction", "power"])
+    concept = schema["properties"]["annotations"]["items"]["properties"]["concept"]
+    assert concept["enum"] == ["fraction", "generic-application", "power"]
+    assert (
+        "enum"
+        not in semantic_json_schema()["properties"]["annotations"]["items"][
+            "properties"
+        ]["concept"]
+    )
+
+
+def test_concept_roles_only_use_known_concepts():
+    from image_to_mathml.mathml.concepts import get_registry
+    from image_to_mathml.mathml.semantic import CONCEPT_ROLES
+
+    registry = get_registry()
+    unknown = [
+        name for name in CONCEPT_ROLES if registry.classification(name) == "unknown"
+    ]
+    assert unknown == []

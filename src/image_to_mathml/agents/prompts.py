@@ -10,28 +10,138 @@ from ..models import MathContext
 
 _CORE_NAMES = ", ".join(get_registry().names())
 
+# The vision model has a small context window shared with the image tokens, so
+# its prompt lists only the core concepts that appear in textbook equations.
+# Any other core name is still accepted by the validator.
+_COMMON_CORE_CANDIDATES = (
+    "fraction",
+    "power",
+    "root",
+    "indexed-by",
+    "exponential",
+    "natural-logarithm",
+    "logarithm",
+    "sine",
+    "cosine",
+    "tangent",
+    "secant",
+    "cosecant",
+    "cotangent",
+    "arcsine",
+    "arccosine",
+    "arctangent",
+    "absolute-value",
+    "norm",
+    "determinant",
+    "transpose",
+    "inverse",
+    "factorial",
+    "floor",
+    "ceiling",
+    "sum",
+    "product",
+    "definite-integral",
+    "derivative",
+    "partial-derivative",
+    "limit",
+    "matrix",
+    "vector",
+    "set",
+    "max",
+    "min",
+    "inner-product",
+    "cross-product",
+    "ordered-pair",
+    "complex-conjugate",
+    "real-part",
+    "imaginary-part",
+)
+_COMMON_CORE_NAMES = ", ".join(
+    name
+    for name in _COMMON_CORE_CANDIDATES
+    if get_registry().classification(name) == "core"
+)
+
+DEFAULT_ALLOWED_OPEN_CONCEPTS = ("gamma-function", "beta-function", "error-function")
+
+
+def _join_names(names: Sequence[str]) -> str:
+    names = list(dict.fromkeys(names))
+    if not names:
+        return "none"
+    if len(names) == 1:
+        return names[0]
+    return ", ".join(names[:-1]) + " and " + names[-1]
+
+
+def _open_policy(
+    allow_open_concepts: bool,
+    allow_all_open_concepts: bool,
+    allowed_open_concepts: Sequence[str] | None,
+) -> str:
+    if not allow_open_concepts:
+        return "Do NOT use open concepts."
+    if allow_all_open_concepts:
+        return (
+            "Any documented W3C open concept is allowed when it is the correct "
+            "meaning, but prefer a core concept whenever one exists."
+        )
+    allowed = (
+        DEFAULT_ALLOWED_OPEN_CONCEPTS
+        if allowed_open_concepts is None
+        else tuple(allowed_open_concepts)
+    )
+    if not allowed:
+        return "Do NOT use open concepts."
+    return (
+        f"The only open concepts allowed by the current policy are "
+        f"{_join_names(allowed)}. Do not use any other open concept."
+    )
+
+
+def _gamma_allowed(
+    allow_open_concepts: bool,
+    allow_all_open_concepts: bool,
+    allowed_open_concepts: Sequence[str] | None,
+) -> bool:
+    if not allow_open_concepts:
+        return False
+    if allow_all_open_concepts:
+        return True
+    allowed = (
+        DEFAULT_ALLOWED_OPEN_CONCEPTS
+        if allowed_open_concepts is None
+        else allowed_open_concepts
+    )
+    return "gamma-function" in allowed
+
 
 def _structure_rules(
-    allow_open_concepts: bool, allow_all_open_concepts: bool = False
+    allow_open_concepts: bool,
+    allow_all_open_concepts: bool = False,
+    allowed_open_concepts: Sequence[str] | None = None,
+    *,
+    compact: bool = False,
 ) -> str:
     function_rule = """11. A recognised named function must use its core concept
    name instead of a generic application (for example sine for sin)."""
-    if not allow_open_concepts:
-        concept_rule = f"""10. Use only the following W3C intent core concept names.
-   Do NOT use open concepts. Core names are:
+    policy = _open_policy(
+        allow_open_concepts, allow_all_open_concepts, allowed_open_concepts
+    )
+    if compact:
+        names_block = f"""Common core names are:
+   {_COMMON_CORE_NAMES}
+   Other W3C core concept names are also valid; never invent a name."""
+    else:
+        names_block = f"""Core names are:
    {_CORE_NAMES}"""
-    elif allow_all_open_concepts:
-        concept_rule = f"""10. Use only names from the W3C intent registries. Do not
-   invent names. Core names are:
-   {_CORE_NAMES}
-   Any documented W3C open concept is allowed when it is the correct meaning,
-   but prefer a core concept whenever one exists."""
+    if not allow_open_concepts:
+        concept_rule = f"""10. Use only W3C intent core concept names.
+   Do NOT use open concepts. {names_block}"""
     else:
         concept_rule = f"""10. Use only names from the W3C intent registries. Do not
-   invent names. Core names are:
-   {_CORE_NAMES}
-   The only open concepts allowed by the current policy are gamma-function,
-   beta-function and error-function. Do not use any other open concept."""
+   invent names. {names_block}
+   {policy}"""
 
     return f"""Hard output contract:
 1. Return ONLY one MathML Presentation document. Never use Content MathML
@@ -81,19 +191,25 @@ def _structure_rules(
 
 
 def _direct_system(
-    allow_open_concepts: bool, allow_all_open_concepts: bool = False
+    allow_open_concepts: bool,
+    allow_all_open_concepts: bool = False,
+    allowed_open_concepts: Sequence[str] | None = None,
 ) -> str:
     gamma_example = ""
-    if allow_open_concepts:
+    if _gamma_allowed(
+        allow_open_concepts, allow_all_open_concepts, allowed_open_concepts
+    ):
         gamma_example = """
 LaTeX: \\Gamma(x)
-<math xmlns="http://www.w3.org/1998/Math/MathML"><mrow intent="gamma-function($arg)"><mi>\u0393</mi><mo>(</mo><mi arg="arg">x</mi><mo>)</mo></mrow></math>
+<math xmlns="http://www.w3.org/1998/Math/MathML"><mrow intent="gamma-function($arg)"><mi>Γ</mi><mo>(</mo><mi arg="arg">x</mi><mo>)</mo></mrow></math>
 """
     return (
         "You are a meticulous MathML 4 accessibility engineer. You convert LaTeX "
         "equations into Presentation MathML annotated with W3C intent attributes "
         "for screen readers.\n"
-        + _structure_rules(allow_open_concepts, allow_all_open_concepts)
+        + _structure_rules(
+            allow_open_concepts, allow_all_open_concepts, allowed_open_concepts
+        )
         + f"""
 Examples (output the full XML, not an ellipsis):
 LaTeX: \\frac{{a}}{{b}}
@@ -114,41 +230,11 @@ LaTeX: \\sin(x)
     )
 
 
-def _hybrid_system(
-    allow_open_concepts: bool, allow_all_open_concepts: bool = False
-) -> str:
-    return (
-        "You are a MathML accessibility annotator. You receive correct Presentation "
-        "MathML and the LaTeX it came from. Your ONLY task is to add or correct "
-        "intent and arg attributes.\n"
-        "You MUST keep every element, its order, its text and its grouping exactly "
-        "as given. Never add, remove, move or rename elements. If you cannot "
-        "determine an intent safely, leave the element unchanged.\n"
-        + _structure_rules(allow_open_concepts, allow_all_open_concepts)
-        + """
-Example:
-Base MathML:
-<math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mfrac><mi>a</mi><mi>b</mi></mfrac></mrow></math>
-Annotated MathML:
-<math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mfrac intent="fraction($num,$den)"><mi arg="num">a</mi><mi arg="den">b</mi></mfrac></mrow></math>
-
-Base MathML:
-<math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mi>f</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>
-Annotated MathML:
-<math xmlns="http://www.w3.org/1998/Math/MathML"><mrow intent="$name($var)"><mi arg="name">f</mi><mo>(</mo><mi arg="var">x</mi><mo>)</mo></mrow></math>
-
-Base MathML:
-<math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><msub><mi>f</mi><mi>i</mi></msub><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>
-Annotated MathML:
-<math xmlns="http://www.w3.org/1998/Math/MathML"><mrow intent="$name($var)"><msub arg="name"><mi>f</mi><mi>i</mi></msub><mo>(</mo><mi arg="var">x</mi><mo>)</mo></mrow></math>
-"""
-    )
-
-
 def _semantic_concept_policy(
     allow_open_concepts: bool,
     allow_all_open_concepts: bool,
     concept_cards: Sequence[ConceptCard] | None = None,
+    allowed_open_concepts: Sequence[str] | None = None,
 ) -> str:
     if concept_cards is not None:
         if not concept_cards:
@@ -157,28 +243,31 @@ empty annotations list."""
         return f"""Use only the following candidate concepts for this expression.
 Do not use any concept name that is not in this list.
 {render_concept_cards(list(concept_cards))}"""
+    policy = _open_policy(
+        allow_open_concepts, allow_all_open_concepts, allowed_open_concepts
+    )
     if not allow_open_concepts:
         return f"""Use only the following W3C intent core concept names. Do NOT
 use open concepts. Core names are:
 {_CORE_NAMES}"""
-    if allow_all_open_concepts:
-        return f"""Use only names from the W3C intent registries. Do not invent
-names. Core names are:
-{_CORE_NAMES}
-Any documented W3C open concept is allowed when it is the correct meaning, but
-prefer a core concept whenever one exists."""
     return f"""Use only names from the W3C intent registries. Do not invent
 names. Core names are:
 {_CORE_NAMES}
-The only open concepts allowed by the current policy are gamma-function,
-beta-function and error-function."""
+{policy}"""
 
 
 def _semantic_system(
     allow_open_concepts: bool,
     allow_all_open_concepts: bool = False,
     concept_cards: Sequence[ConceptCard] | None = None,
+    allowed_open_concepts: Sequence[str] | None = None,
 ) -> str:
+    policy = _semantic_concept_policy(
+        allow_open_concepts,
+        allow_all_open_concepts,
+        concept_cards,
+        allowed_open_concepts,
+    )
     return f"""You are a W3C MathML 4 semantic annotator. You receive a clean
 Presentation MathML tree with temporary id attributes and the LaTeX it came
 from. Decide which concepts and argument positions carry a non-default
@@ -210,7 +299,8 @@ Rules:
    list of contiguous siblings to wrap in a new mrow). Never use both. A wrap
    does not need a new id unless another annotation references that wrapper.
    Never emit two annotations for the same target; choose one concept or omit
-   both.
+   both. Never wrap or group the children of mfrac, msup, msub, msubsup,
+   mroot, munder, mover or munderover: target that element itself.
 3. Argument slots are positional: "a1" is the first argument, "a2" the second,
    and so on. Do not use concept role names in the JSON.
 4. For common concepts the positions mean:
@@ -230,12 +320,13 @@ Rules:
    the tree, such as the index 2 of a square root.
 7. A generic function application such as f(x) or f_i(x+1) uses
    concept="generic-application": a1 is the complete function name and a2 is
-   the complete argument.
+   the complete argument. A letter followed by parentheses, such as a(b+c) or
+   2x(x+1), is usually a product: do not annotate it as a function.
 8. Do not annotate the default meaning of common operators such as +, -, =,
    <, >, times or a standard fraction. Prefer no annotation over a misleading
    one.
 9. Do not annotate a plain symbol that has no special mathematical role.
-10. {_semantic_concept_policy(allow_open_concepts, allow_all_open_concepts, concept_cards)}
+10. {policy}
 11. Keep every element, its text and its order unchanged. The code will add
     the intent and arg attributes and any wrapper mrows.
 12. A node may have its own intent and also be an argument of an outer intent;
@@ -243,7 +334,7 @@ Rules:
 13. If you are not sure, omit that annotation.
 14. Each candidate card lists possible target element kinds after "targets",
     preferred first. Target the smallest element that contains every argument
-    id. For an infix operation such as a\u22c5b, target the <mo> operator when
+    id. For an infix operation such as a⋅b, target the <mo> operator when
     its operands are siblings. When a fenced or compound notation represents
     the whole concept, such as <a,b> or (a,b) for an inner product or an
     ordered pair, target the enclosing <mrow> that contains the delimiters and
@@ -296,7 +387,9 @@ def _feedback_block(feedback: list[str] | None) -> str:
 
 
 def _vision_system(
-    allow_open_concepts: bool, allow_all_open_concepts: bool = False
+    allow_open_concepts: bool,
+    allow_all_open_concepts: bool = False,
+    allowed_open_concepts: Sequence[str] | None = None,
 ) -> str:
     return (
         "You are a meticulous MathML 4 accessibility engineer. You receive an "
@@ -304,7 +397,12 @@ def _vision_system(
         "its Presentation MathML annotated with W3C intent attributes. Do not "
         "transcribe the image to LaTeX first and do not include any LaTeX in "
         "your answer.\n"
-        + _structure_rules(allow_open_concepts, allow_all_open_concepts)
+        + _structure_rules(
+            allow_open_concepts,
+            allow_all_open_concepts,
+            allowed_open_concepts,
+            compact=True,
+        )
         + """
 Examples of valid final outputs:
 <math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mfrac intent="fraction($num,$den)"><mi arg="num">a</mi><mi arg="den">b</mi></mfrac></mrow></math>
@@ -322,6 +420,7 @@ def vision_messages(
     *,
     allow_open_concepts: bool = True,
     allow_all_open_concepts: bool = False,
+    allowed_open_concepts: Sequence[str] | None = None,
 ) -> list[dict[str, str]]:
     user = (
         "Read the mathematical equation in the attached image and return its "
@@ -332,7 +431,9 @@ def vision_messages(
     return [
         {
             "role": "system",
-            "content": _vision_system(allow_open_concepts, allow_all_open_concepts),
+            "content": _vision_system(
+                allow_open_concepts, allow_all_open_concepts, allowed_open_concepts
+            ),
         },
         {"role": "user", "content": user},
     ]
@@ -345,6 +446,7 @@ def direct_messages(
     *,
     allow_open_concepts: bool = True,
     allow_all_open_concepts: bool = False,
+    allowed_open_concepts: Sequence[str] | None = None,
 ) -> list[dict[str, str]]:
     user = (
         "Convert this LaTeX equation to accessible MathML with intent attributes.\n\n"
@@ -354,33 +456,9 @@ def direct_messages(
     return [
         {
             "role": "system",
-            "content": _direct_system(allow_open_concepts, allow_all_open_concepts),
-        },
-        {"role": "user", "content": user},
-    ]
-
-
-def hybrid_messages(
-    latex: str,
-    base_mathml: str,
-    context: MathContext,
-    feedback: list[str] | None = None,
-    *,
-    allow_open_concepts: bool = True,
-    allow_all_open_concepts: bool = False,
-) -> list[dict[str, str]]:
-    user = (
-        "Add W3C intent/arg attributes to the following MathML. Keep the "
-        "structure exactly the same.\n\n"
-        f"LaTeX:\n{latex}\n\n"
-        f"Base MathML:\n{base_mathml}\n\n"
-        f"{_context_block(context)}\n"
-        f"{_feedback_block(feedback)}"
-    )
-    return [
-        {
-            "role": "system",
-            "content": _hybrid_system(allow_open_concepts, allow_all_open_concepts),
+            "content": _direct_system(
+                allow_open_concepts, allow_all_open_concepts, allowed_open_concepts
+            ),
         },
         {"role": "user", "content": user},
     ]
@@ -395,6 +473,7 @@ def semantic_messages(
     allow_open_concepts: bool = True,
     allow_all_open_concepts: bool = False,
     concept_cards: Sequence[ConceptCard] | None = None,
+    allowed_open_concepts: Sequence[str] | None = None,
 ) -> list[dict[str, str]]:
     user = (
         "Choose the W3C intent semantics for this expression and return the "
@@ -411,6 +490,7 @@ def semantic_messages(
                 allow_open_concepts,
                 allow_all_open_concepts,
                 concept_cards,
+                allowed_open_concepts,
             ),
         },
         {"role": "user", "content": user},

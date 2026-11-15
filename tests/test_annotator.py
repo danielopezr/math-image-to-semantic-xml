@@ -41,7 +41,61 @@ def test_annotates_generic_function_exactly_as_requested():
 def test_annotates_named_and_gamma_functions():
     assert 'intent="sine($arg)"' in _annotated(r"\sin(x)")
     assert 'intent="gamma-function($arg)"' in _annotated(r"\Gamma(x)")
-    assert 'intent="beta-function($arg)"' in _annotated(r"\beta(x)")
+
+
+def test_greek_letters_are_not_guessed_as_special_functions():
+    # beta is usually a variable, and the beta function B(x,y) takes two
+    # arguments; a bare Gamma x is a product.
+    assert "beta-function" not in _annotated(r"\beta(x)")
+    assert "beta-function" not in _annotated(r"\beta x")
+    assert "gamma-function" not in _annotated(r"\Gamma x")
+
+
+def test_products_with_parentheses_are_not_function_applications():
+    for latex in (r"a(b+c)", r"2x(x+1)", r"k(x-1)"):
+        assert "$name($var)" not in _annotated(latex), latex
+
+
+def test_conventional_and_operator_names_are_function_applications():
+    assert 'intent="$name($var)"' in _annotated(r"g(t)")
+    assert 'intent="$name($var)"' in _annotated(r"\operatorname{sgn}(x)")
+
+
+def test_primed_function_name_is_a_generic_application_not_a_power():
+    result = _annotated(r"f'(x)")
+    assert "power(" not in result
+    assert 'intent="$name($var)"' in result
+    assert '<msup arg="name">' in result
+
+
+def test_non_exponent_superscripts_are_not_powers():
+    for latex in (r"A^{T}", r"z^{*}", r"A^{\dagger}", r"y''"):
+        assert "power(" not in _annotated(latex), latex
+    assert 'intent="transpose($arg)"' in _annotated(r"A^{\top}")
+
+
+def test_operator_names_written_as_mo_are_recognised():
+    assert 'intent="determinant($arg)"' in _annotated(r"\det(A)")
+    assert 'intent="determinant($arg)"' in _annotated(r"\det A")
+    assert 'intent="max($arg)"' in _annotated(r"\max(a,b)")
+
+
+def test_limits_are_not_indexed_symbols():
+    result = _annotated(r"\lim_{x\to 0} f(x)")
+    assert "indexed-by" not in result
+
+
+def test_logarithm_with_base():
+    for latex in (r"\log_2(x)", r"\log_{2} x"):
+        result = _annotated(latex)
+        assert 'intent="logarithm($arg,$base)"' in result, latex
+        assert 'arg="base"' in result
+
+
+def test_indexed_power_and_large_operators():
+    assert 'intent="power(indexed-by($base,$sub),$exp)"' in _annotated(r"x_i^2")
+    assert "intent=" not in _annotated(r"\sum_{i=1}^{n} i")
+    assert "power(" not in _annotated(r"\int_0^1 t\,dt")
 
 
 def test_annotates_bare_named_functions_when_unambiguous():

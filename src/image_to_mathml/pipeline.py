@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import copy
+import os
 import time
+from collections import OrderedDict
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import replace
@@ -12,7 +14,7 @@ from lxml import etree
 
 from .agents import DirectMathMLAgent, HybridIntentAgent, VisionMathMLAgent
 from .config import Settings
-from .llm.base import LLMClient, LLMError
+from .llm.base import LLMClient, LLMError, current_request_timeout, request_timeout
 from .llm.factory import build_llm
 from .mathml.annotator import annotate_tree
 from .mathml.concept_rag import ConceptRAG
@@ -50,9 +52,28 @@ from .models import (
     ValidationReport,
 )
 from .ocr.base import OCREngine, OCRError
-from .ocr.factory import build_ocr
+from .ocr.factory import build_ocr, canonical_backend_name
 from .ocr.preprocess import PreprocessConfig
 from .timing import TimingRecorder
+
+# Recognised LaTeX kept per (backend, image, mtime) so repeated runs of the
+# same image (evaluation retries, compare) do not repeat the OCR.
+_OCR_CACHE_SIZE = 256
+
+
+def _dedupe(items: list[str]) -> list[str]:
+    return list(dict.fromkeys(items))
+
+
+def _cached_timing(tool: str, note: str):
+    from .timing import PhaseTiming
+
+    return PhaseTiming(
+        phase="ocr",
+        tool=tool,
+        duration_ms=0.0,
+        note=(f"{note}; " if note else "") + "cached result",
+    )
 
 
 class EquationPipeline:
@@ -85,7 +106,10 @@ class EquationPipeline:
         self.direct_agent = DirectMathMLAgent(self.llm, self.settings)
         self.hybrid_agent = HybridIntentAgent(self.llm, self.settings)
         self.vision_agent = VisionMathMLAgent(self.settings)
-        self._active_timeout: float | None = None
+        # OCR engines are expensive to load (texify, pix2text...): build each
+        # backend once per pipeline and reuse it.
+        self._ocr_engines: dict[str, OCREngine | None] = {}
+        self._ocr_latex: OrderedDict[tuple[str, str, float], str] = OrderedDict()
 
     def _finish(
         self,
@@ -95,6 +119,7 @@ class EquationPipeline:
     ) -> PipelineResult:
         result.timings = timings.as_list()
         result.elapsed_seconds = time.perf_counter() - started
+        result.warnings = _dedupe(result.warnings)
         return result
 
     # ------------------------------------------------------------------
@@ -109,29 +134,19 @@ class EquationPipeline:
 
     @contextmanager
     def _request_timeout(self, timeout: float | None) -> Iterator[None]:
-        if timeout is None:
-            yield
-            return
+        """Apply ``timeout`` to every LLM, vision and OCR request of one run.
 
-        settings = self.settings
-        llm_settings = getattr(self.llm, "settings", None)
-        vision_client = getattr(self.vision_agent, "client", None)
-        vision_timeout = getattr(vision_client, "timeout", None)
-        self._active_timeout = timeout
-        self.settings = replace(settings, ollama_timeout=timeout)
-        if llm_settings is not None:
-            self.llm.settings = replace(llm_settings, ollama_timeout=timeout)
-        if vision_client is not None:
-            vision_client.timeout = timeout
-        try:
+        The value travels in a context variable read by the HTTP clients, so
+        the pipeline, its settings and its clients are never mutated and
+        concurrent runs in other threads keep their own timeout.
+        """
+
+        with request_timeout(timeout):
             yield
-        finally:
-            self._active_timeout = None
-            self.settings = settings
-            if llm_settings is not None:
-                self.llm.settings = llm_settings
-            if vision_client is not None:
-                vision_client.timeout = vision_timeout
+
+    @property
+    def _active_timeout(self) -> float | None:
+        return current_request_timeout()
 
     def _run_request(
         self,
@@ -235,29 +250,83 @@ class EquationPipeline:
         engine = self.ocr
         if engine is None:
             backend = request.ocr_backend or self.settings.ocr_backend
-            with recorder.measure("ocr-setup", backend, note=note):
-                engine = build_ocr(
-                    backend,
-                    preprocess=PreprocessConfig.from_env(
-                        enabled=self.settings.ocr_preprocess,
-                        profile=self.settings.ocr_preprocess_profile,
-                    ),
-                    stream=self.settings.ollama_stream,
-                    timeout=self._active_timeout,
-                )
+            engine = self._ocr_engine(backend, recorder, note)
         if engine is None:
             raise ValueError(
                 "An image was provided but OCR is disabled. Install a supported "
                 "OCR backend (texify, pix2tex, rapid_latex_ocr, pix2text or "
                 "paddleocr) or pass the recognised LaTeX directly."
             )
+
+        cache_key = self._ocr_cache_key(engine, request.image_path)
+        cached = self._ocr_latex.get(cache_key) if cache_key is not None else None
+        if cached is not None:
+            self._ocr_latex.move_to_end(cache_key)  # type: ignore[arg-type]
+            recorder.entries.append(
+                replace(
+                    _cached_timing(engine.name, note),
+                    group=recorder._group,
+                )
+            )
+            return cached, engine.name
+
         with recorder.measure("ocr", engine.name, note=note):
             raw_latex = engine.image_to_latex(request.image_path)
         with recorder.measure("latex-clean", "clean_latex", note=note):
             latex = clean_latex(raw_latex)
         if not latex:
             raise ValueError("The OCR backend returned an empty LaTeX string")
+        if cache_key is not None:
+            self._ocr_latex[cache_key] = latex
+            while len(self._ocr_latex) > _OCR_CACHE_SIZE:
+                self._ocr_latex.popitem(last=False)
         return latex, engine.name
+
+    def _ocr_options(self) -> dict[str, object]:
+        """Settings forwarded to the ``ollama_vision`` OCR backend."""
+
+        return {
+            "model": self.settings.ollama_vision_model,
+            "base_url": self.settings.vision_base_url,
+            "timeout": self.settings.ollama_vision_timeout,
+            "num_ctx": self.settings.ollama_vision_num_ctx,
+            "num_predict": self.settings.ollama_vision_num_predict,
+            "max_side": self.settings.ollama_vision_max_side,
+            "stream": self.settings.ollama_stream,
+            "think": self.settings.ollama_think,
+            "retries": self.settings.llm_retries,
+        }
+
+    def _ocr_engine(
+        self, backend: str, recorder: TimingRecorder, note: str
+    ) -> OCREngine | None:
+        key = canonical_backend_name(backend)
+        if key in self._ocr_engines:
+            return self._ocr_engines[key]
+        with recorder.measure("ocr-setup", backend, note=note):
+            engine = build_ocr(
+                backend,
+                preprocess=PreprocessConfig.from_env(
+                    enabled=self.settings.ocr_preprocess,
+                    profile=self.settings.ocr_preprocess_profile,
+                ),
+                ollama_options=self._ocr_options(),
+            )
+        self._ocr_engines[key] = engine
+        return engine
+
+    @staticmethod
+    def _ocr_cache_key(
+        engine: OCREngine, image_path: str
+    ) -> tuple[str, str, float] | None:
+        try:
+            return (
+                engine.name,
+                os.path.abspath(image_path),
+                os.path.getmtime(image_path),
+            )
+        except OSError:
+            return None
 
     # ------------------------------------------------------------------
     # flow dispatch
@@ -383,7 +452,7 @@ class EquationPipeline:
         llm_outputs: list[LLMOutput] = []
         tool = f"{self.direct_agent.role}[{self.llm.model}]"
 
-        with timings.measure("llm-check", "ollama"):
+        with timings.measure("llm-check", self.settings.llm_backend):
             llm_ready = self._llm_ready(warnings)
         if not llm_ready:
             result = self._offline(
@@ -520,21 +589,30 @@ class EquationPipeline:
 
         with timings.measure("vision-availability", "ollama", note=flow.value):
             available = self.vision_agent.is_available()
+        unavailable_reason: str | None = None
         if not available:
-            raise RuntimeError(
+            unavailable_reason = (
                 "The Ollama vision server is not reachable at "
                 f"{self.vision_agent.client.base_url}"
             )
-        with timings.measure(
-            "vision-model-check", "ollama", note=self.vision_agent.model
-        ):
-            has_model = self.vision_agent.has_model()
-        if not has_model:
-            raise RuntimeError(
-                f"Vision model {self.vision_agent.model!r} is not installed on "
-                "the Ollama server; run "
-                f"`ollama pull {self.vision_agent.model}`"
-            )
+        else:
+            with timings.measure(
+                "vision-model-check", "ollama", note=self.vision_agent.model
+            ):
+                has_model = self.vision_agent.has_model()
+            if not has_model:
+                unavailable_reason = (
+                    f"Vision model {self.vision_agent.model!r} is not installed on "
+                    "the Ollama server; run "
+                    f"`ollama pull {self.vision_agent.model}`"
+                )
+        if unavailable_reason is not None:
+            if not allow_fallback:
+                raise RuntimeError(unavailable_reason)
+            # The direct flow promises a deterministic fallback: use it instead
+            # of failing when the vision model cannot run at all.
+            warnings.append(unavailable_reason)
+            trace.append("vision unavailable; skipping LLM attempts")
 
         feedback: list[str] | None = None
         attempts = 0
@@ -542,7 +620,8 @@ class EquationPipeline:
         last_report = None
         llm_outputs: list[LLMOutput] = []
 
-        for attempt in range(max_repairs + 1):
+        vision_attempts = 0 if unavailable_reason is not None else max_repairs + 1
+        for attempt in range(vision_attempts):
             attempts = attempt + 1
             with timings.measure("attempt", tool, attempt=attempts):
                 try:
@@ -719,7 +798,7 @@ class EquationPipeline:
         with timings.measure("clean", "semantic-cleaner", note="drop intent/arg/id"):
             strip_semantic_attributes(base_root)
 
-        with timings.measure("llm-check", "ollama"):
+        with timings.measure("llm-check", self.settings.llm_backend):
             llm_ready = self._llm_ready(warnings)
         if not llm_ready:
             result = self._annotate_base(
@@ -735,6 +814,12 @@ class EquationPipeline:
             result.trace = trace + result.trace
             return result
 
+        # The candidate concepts depend only on the expression and its context,
+        # so they are retrieved once and reused by every repair attempt.
+        concept_cards = self._retrieve_concept_cards(
+            latex, base_root, context, allow_open, timings, trace
+        )
+
         feedback: list[str] | None = None
         attempts = 0
         for attempt in range(max_repairs + 1):
@@ -744,48 +829,6 @@ class EquationPipeline:
                 with timings.measure("assign-ids", "semantic-json", attempt=attempts):
                     assign_node_ids(attempt_root)
                     semantic_tree = semantic_tree_markup(attempt_root)
-                concept_cards = None
-                if self.concept_rag is not None:
-                    with timings.measure(
-                        "concept-rag", "concept-rag", attempt=attempts
-                    ):
-                        concept_cards = self.concept_rag.retrieve(
-                            latex,
-                            attempt_root,
-                            context,
-                            allow_open=allow_open,
-                            allowed_open_concepts=self._allowed_open(allow_open),
-                            top_k=self.settings.concept_rag_top_k,
-                        )
-                    trace.append(
-                        f"attempt {attempts}: concept-rag ({len(concept_cards)} cards)"
-                    )
-                    if self.open_concept_rag is not None:
-                        with timings.measure(
-                            "open-concept-rag",
-                            "open-concept-rag",
-                            attempt=attempts,
-                        ):
-                            open_cards = self.open_concept_rag.retrieve(
-                                latex,
-                                attempt_root,
-                                context,
-                                allow_open=allow_open,
-                                allowed_open_concepts=self._allowed_open(allow_open),
-                                top_k=self.settings.open_concept_rag_top_k,
-                            )
-                        seen = {card.name for card in concept_cards}
-                        added = 0
-                        for card in open_cards:
-                            if card.name in seen:
-                                continue
-                            concept_cards.append(card)
-                            seen.add(card.name)
-                            added += 1
-                        trace.append(
-                            f"attempt {attempts}: open-concept-rag "
-                            f"({len(open_cards)} cards, {added} added)"
-                        )
                 try:
                     with timings.measure("llm", tool, attempt=attempts):
                         raw = self.hybrid_agent.run(
@@ -944,6 +987,50 @@ class EquationPipeline:
         fallback.trace = trace + fallback.trace
         fallback.llm_outputs = llm_outputs
         return fallback
+
+    def _retrieve_concept_cards(
+        self,
+        latex: str,
+        root: etree._Element,
+        context: MathContext,
+        allow_open: bool,
+        timings: TimingRecorder,
+        trace: list[str],
+    ):
+        if self.concept_rag is None:
+            return None
+        allowed = self._allowed_open(allow_open)
+        with timings.measure("concept-rag", "concept-rag"):
+            concept_cards = self.concept_rag.retrieve(
+                latex,
+                root,
+                context,
+                allow_open=allow_open,
+                allowed_open_concepts=allowed,
+                top_k=self.settings.concept_rag_top_k,
+            )
+        trace.append(f"concept-rag ({len(concept_cards)} cards)")
+        if self.open_concept_rag is None:
+            return concept_cards
+        with timings.measure("open-concept-rag", "open-concept-rag"):
+            open_cards = self.open_concept_rag.retrieve(
+                latex,
+                root,
+                context,
+                allow_open=allow_open,
+                allowed_open_concepts=allowed,
+                top_k=self.settings.open_concept_rag_top_k,
+            )
+        seen = {card.name for card in concept_cards}
+        added = 0
+        for card in open_cards:
+            if card.name in seen:
+                continue
+            concept_cards.append(card)
+            seen.add(card.name)
+            added += 1
+        trace.append(f"open-concept-rag ({len(open_cards)} cards, {added} added)")
+        return concept_cards
 
     def _looks_like_mathml(self, text: str) -> bool:
         lowered = (text or "").lower()

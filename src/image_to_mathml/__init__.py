@@ -29,4 +29,10 @@ __all__ = [
     "compare_flows",
 ]
 
-__version__ = "0.1.0"
+try:
+    # Single source of truth: the version declared in pyproject.toml.
+    from importlib.metadata import PackageNotFoundError, version
+
+    __version__ = version("image-to-mathml")
+except PackageNotFoundError:  # pragma: no cover - running from a source tree
+    __version__ = "0+unknown"

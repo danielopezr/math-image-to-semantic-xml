@@ -109,6 +109,24 @@ def parse_template_page(markup: str, kind: str) -> dict:
 
 ZERO_OR_MORE = {"list", "tuple"}
 
+# Signatures added on top of the scraped ones.  The W3C tables do not always
+# state every arity (entries with fixity "???" fall back to one argument), so
+# well-known mathematical signatures are added here and survive regeneration.
+EXTRA_SIGNATURES: dict[str, list[dict]] = {
+    # B(x, y) takes two arguments.
+    "beta-function": [{"fixity": "function", "min_arity": 2, "max_arity": 2}],
+}
+
+
+def apply_extra_signatures(concepts: dict) -> None:
+    for name, signatures in EXTRA_SIGNATURES.items():
+        entry = concepts.get(name)
+        if entry is None:
+            continue
+        for signature in signatures:
+            if signature not in entry["signatures"]:
+                entry["signatures"].append(dict(signature))
+
 
 def parse_default_fixity(markup: str, concepts: dict) -> None:
     document = html.fromstring(markup)
@@ -197,6 +215,8 @@ def main() -> int:
             ]
     for entry in core.values():
         entry["kind"] = "core"
+    apply_extra_signatures(core)
+    apply_extra_signatures(open_concepts)
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     write_registry(

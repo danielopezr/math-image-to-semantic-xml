@@ -16,6 +16,44 @@ class OCREngine(Protocol):
         """Return a LaTeX representation of the equation in ``image_path``."""
 
 
+def flatten_transparency(image):
+    """Composite a transparent image on a background that contrasts with it.
+
+    ``Image.convert("RGB")`` turns transparent pixels black, so black text on
+    a transparent background (the usual export of equation editors) becomes a
+    completely black image.  The ink colour is estimated from the opaque
+    pixels: dark ink goes on white, light ink on black (polarity normalisation
+    later inverts the light case).
+    """
+
+    from PIL import Image
+
+    has_alpha = image.mode in {"RGBA", "LA", "PA"} or (
+        image.mode == "P" and "transparency" in image.info
+    )
+    if not has_alpha:
+        return image.convert("RGB")
+
+    rgba = image.convert("RGBA")
+    alpha = rgba.getchannel("A")
+    if alpha.getextrema() == (255, 255):
+        return rgba.convert("RGB")
+
+    opaque = alpha.point(lambda value: 255 if value > 127 else 0)
+    gray = rgba.convert("L")
+    histogram = gray.histogram(mask=opaque)
+    count = sum(histogram)
+    mean = (
+        sum(level * hits for level, hits in enumerate(histogram)) / count
+        if count
+        else 0
+    )
+    background_color = (255, 255, 255, 255) if mean < 128 else (0, 0, 0, 255)
+
+    background = Image.new("RGBA", rgba.size, background_color)
+    return Image.alpha_composite(background, rgba).convert("RGB")
+
+
 def open_rgb(image_path: str):
     """Open ``image_path`` as an RGB Pillow image or raise :class:`OCRError`."""
 
@@ -24,7 +62,9 @@ def open_rgb(image_path: str):
     except ImportError as exc:  # pragma: no cover - Pillow is a base dependency
         raise OCRError("Pillow is required for image input") from exc
     try:
-        return Image.open(image_path).convert("RGB")
+        with Image.open(image_path) as image:
+            image.load()
+            return flatten_transparency(image)
     except Exception as exc:
         raise OCRError(f"Could not open image {image_path!r}: {exc}") from exc
 

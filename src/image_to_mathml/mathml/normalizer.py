@@ -21,6 +21,7 @@ from .corrections import split_matrix_subscripts
 from .dom import (
     MATHML_NS,
     element_children,
+    has_positional_children,
     is_element,
     localname,
     qname,
@@ -36,6 +37,17 @@ _MATH_RE = re.compile(r"<math\b[^>]*>.*?</math>", re.DOTALL | re.IGNORECASE)
 _MROW_RE = re.compile(r"<mrow\b[^>]*>.*?</mrow>", re.DOTALL | re.IGNORECASE)
 _ANY_ELEMENT_RE = re.compile(r"<([A-Za-z][\w.-]*)\b[^>]*>.*?</\1>", re.DOTALL)
 _NAMED_ENTITY_RE = re.compile(r"&([A-Za-z][A-Za-z0-9]+);")
+_THINK_RE = re.compile(r"<think\b[^>]*>.*?(?:</think>|$)", re.DOTALL | re.IGNORECASE)
+
+
+def strip_reasoning(text: str) -> str:
+    """Remove ``<think>`` blocks emitted by reasoning models.
+
+    An unterminated block (the model ran out of tokens while thinking) is
+    removed up to the end of the text.
+    """
+
+    return _THINK_RE.sub("", text or "")
 
 
 def _sanitize_entities(markup: str) -> str:
@@ -59,7 +71,7 @@ def extract_math_markup(text: str) -> str:
     Models sometimes surround the markup with Markdown fences or brief prose.
     """
 
-    cleaned = _FENCE_RE.sub("", text or "").replace("```", "").strip()
+    cleaned = _FENCE_RE.sub("", strip_reasoning(text)).replace("```", "").strip()
     match = _MATH_RE.search(cleaned)
     if match:
         return match.group(0)
@@ -127,6 +139,20 @@ def _ensure_single_mrow(math: etree._Element) -> etree._Element:
     return mrow
 
 
+def _remove_preserving_tail(element: etree._Element) -> None:
+    parent = element.getparent()
+    if parent is None:
+        return
+    tail = element.tail
+    if tail:
+        previous = element.getprevious()
+        if previous is not None:
+            previous.tail = (previous.tail or "") + tail
+        else:
+            parent.text = (parent.text or "") + tail
+    parent.remove(element)
+
+
 def _simplify(element: etree._Element, *, is_root_mrow: bool = False) -> None:
     for child in list(element):
         if is_element(child):
@@ -141,7 +167,11 @@ def _simplify(element: etree._Element, *, is_root_mrow: bool = False) -> None:
         return
 
     if not children:
-        parent.remove(element)
+        if has_positional_children(parent) or (element.text or "").strip():
+            # An empty <mrow/> in \frac{}{b} or {}^{2}H holds a position; removing
+            # it would shift the remaining children into the wrong roles.
+            return
+        _remove_preserving_tail(element)
         return
 
     if len(children) == 1 and not (element.text or "").strip():

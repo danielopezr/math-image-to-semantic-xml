@@ -7,6 +7,8 @@ from dataclasses import dataclass, fields
 
 from .base import OCRError, open_rgb
 
+# Suggested value for IMAGE_TO_MATHML_PREPROCESS_DEBUG_DIR.  Nothing is written
+# unless that variable is set.
 PREPROCESSED_IMAGE_DIR = "results/preprocessed"
 
 
@@ -163,19 +165,34 @@ def preprocess_image(image_path: str, config: PreprocessConfig | None = None):
     except Exception as exc:
         raise OCRError(f"Could not preprocess image {image_path!r}: {exc}") from exc
 
-    debug_dir = os.getenv(
-        "IMAGE_TO_MATHML_PREPROCESS_DEBUG_DIR", PREPROCESSED_IMAGE_DIR
-    )
-    if debug_dir:
-        from pathlib import Path
-
-        try:
-            output = Path(debug_dir)
-            output.mkdir(parents=True, exist_ok=True)
-            image.save(output / f"{Path(image_path).stem}_preprocessed.png")
-        except OSError:
-            pass
+    _save_debug_image(image, image_path)
     return image
+
+
+def _save_debug_image(image, image_path: str) -> None:
+    """Write the preprocessed image when a debug directory is configured.
+
+    Saving is opt-in (``IMAGE_TO_MATHML_PREPROCESS_DEBUG_DIR``): a library
+    must not write files into the caller's working directory by default.  A
+    short hash of the full source path keeps images with the same file name in
+    different folders from overwriting each other.
+    """
+
+    debug_dir = os.getenv("IMAGE_TO_MATHML_PREPROCESS_DEBUG_DIR", "").strip()
+    if not debug_dir:
+        return
+
+    import hashlib
+    from pathlib import Path
+
+    source = Path(image_path)
+    digest = hashlib.sha1(str(source.resolve()).encode("utf-8")).hexdigest()[:8]
+    try:
+        output = Path(debug_dir)
+        output.mkdir(parents=True, exist_ok=True)
+        image.save(output / f"{source.stem}_{digest}_preprocessed.png")
+    except OSError:
+        pass
 
 
 def _background_level(gray) -> int:

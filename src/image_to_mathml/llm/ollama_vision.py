@@ -6,16 +6,16 @@ import base64
 import io
 import json
 import os
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 
 import requests
 
-from .base import LLMError
+from .base import LLMError, effective_timeout, model_matches, post_with_retries
 from .ollama_stream import collect_stream_content
 
 DEFAULT_MODEL = "qwen3-vl:4b-instruct"
 DEFAULT_BASE_URL = "http://localhost:11434"
-DEFAULT_TIMEOUT = 600.0
+DEFAULT_TIMEOUT = 180.0
 DEFAULT_NUM_PREDICT = 1024
 DEFAULT_NUM_CTX = 4096
 DEFAULT_MAX_SIDE = 1600
@@ -66,13 +66,20 @@ class OllamaVisionClient:
         num_ctx: int | None = None,
         max_side: int | None = None,
         stream: bool | None = None,
+        think: bool | None = None,
+        retries: int = 1,
     ) -> None:
         self.model = (
             model or os.getenv("IMAGE_TO_MATHML_OLLAMA_VISION_MODEL") or DEFAULT_MODEL
         )
         self.base_url = (
-            base_url or os.getenv("OLLAMA_BASE_URL") or DEFAULT_BASE_URL
+            base_url
+            or os.getenv("IMAGE_TO_MATHML_OLLAMA_VISION_BASE_URL")
+            or os.getenv("OLLAMA_BASE_URL")
+            or DEFAULT_BASE_URL
         ).rstrip("/")
+        self.think = think
+        self.retries = max(0, retries)
         self.timeout = (
             timeout
             if timeout is not None
@@ -113,7 +120,7 @@ class OllamaVisionClient:
 
     def _payload(
         self,
-        messages: Sequence[dict[str, object]],
+        messages: Sequence[Mapping[str, object]],
         image,
         temperature: float,
         num_predict: int,
@@ -125,7 +132,7 @@ class OllamaVisionClient:
                 break
         else:
             raise LLMError("Ollama vision requires one user message with an image")
-        return {
+        payload: dict[str, object] = {
             "model": self.model,
             "messages": payload_messages,
             "stream": self.stream,
@@ -135,10 +142,13 @@ class OllamaVisionClient:
                 "num_ctx": self.num_ctx,
             },
         }
+        if self.think is not None:
+            payload["think"] = self.think
+        return payload
 
     def chat(
         self,
-        messages: Sequence[dict[str, object]],
+        messages: Sequence[Mapping[str, object]],
         image,
         *,
         temperature: float = 0.0,
@@ -150,13 +160,17 @@ class OllamaVisionClient:
             temperature,
             self.num_predict if num_predict is None else num_predict,
         )
+        timeout = effective_timeout(self.timeout)
         try:
-            response = requests.post(
-                self._url("/api/chat"),
-                data=json.dumps(payload),
-                headers={"Content-Type": "application/json"},
-                timeout=self.timeout,
-                stream=self.stream,
+            response = post_with_retries(
+                lambda: requests.post(
+                    self._url("/api/chat"),
+                    data=json.dumps(payload),
+                    headers={"Content-Type": "application/json"},
+                    timeout=timeout,
+                    stream=self.stream,
+                ),
+                retries=self.retries,
             )
         except requests.RequestException as exc:
             raise LLMError(f"Could not reach Ollama at {self.base_url}: {exc}") from exc
@@ -208,9 +222,4 @@ class OllamaVisionClient:
             models = self.list_models()
         except LLMError:
             return False
-        return any(
-            name == self.model
-            or name.startswith(self.model + ":")
-            or self.model in name
-            for name in models
-        )
+        return any(model_matches(name, self.model) for name in models)

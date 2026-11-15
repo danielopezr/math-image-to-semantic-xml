@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import json
 from collections.abc import Sequence
+from typing import Any
 
 import requests
 
 from ..config import Settings
-from .base import LLMError
+from .base import LLMError, effective_timeout, model_matches, post_with_retries
 from .ollama_stream import collect_stream_content
 
 
@@ -44,22 +45,19 @@ class OllamaClient:
             models = self.list_models()
         except LLMError:
             return False
-        return any(
-            name == self.model or name.startswith(self.model + ":") for name in models
-        )
+        return any(model_matches(name, self.model) for name in models)
 
-    def chat(
+    def _payload(
         self,
         messages: Sequence[dict[str, str]],
-        *,
-        temperature: float | None = None,
-        num_predict: int | None = None,
-    ) -> str:
-        stream = self.settings.ollama_stream
-        payload = {
+        temperature: float | None,
+        num_predict: int | None,
+        json_schema: dict[str, Any] | None,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
             "model": self.model,
             "messages": list(messages),
-            "stream": stream,
+            "stream": self.settings.ollama_stream,
             "options": {
                 "temperature": (
                     self.settings.temperature if temperature is None else temperature
@@ -70,13 +68,33 @@ class OllamaClient:
                 "num_ctx": self.settings.num_ctx,
             },
         }
+        if json_schema is not None and self.settings.structured_output:
+            payload["format"] = json_schema
+        if self.settings.ollama_think is not None:
+            payload["think"] = self.settings.ollama_think
+        return payload
+
+    def chat(
+        self,
+        messages: Sequence[dict[str, str]],
+        *,
+        temperature: float | None = None,
+        num_predict: int | None = None,
+        json_schema: dict[str, Any] | None = None,
+    ) -> str:
+        stream = self.settings.ollama_stream
+        payload = self._payload(messages, temperature, num_predict, json_schema)
+        timeout = effective_timeout(self.settings.ollama_timeout)
         try:
-            response = requests.post(
-                self._url("/api/chat"),
-                data=json.dumps(payload),
-                headers={"Content-Type": "application/json"},
-                timeout=self.settings.ollama_timeout,
-                stream=stream,
+            response = post_with_retries(
+                lambda: requests.post(
+                    self._url("/api/chat"),
+                    data=json.dumps(payload),
+                    headers={"Content-Type": "application/json"},
+                    timeout=timeout,
+                    stream=stream,
+                ),
+                retries=self.settings.llm_retries,
             )
         except requests.RequestException as exc:
             raise LLMError(f"Could not reach Ollama at {self.base_url}: {exc}") from exc

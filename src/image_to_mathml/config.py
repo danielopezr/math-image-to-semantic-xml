@@ -33,6 +33,13 @@ def _env_bool(name: str, default: bool) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
+def _env_optional_bool(name: str) -> bool | None:
+    value = os.getenv(name)
+    if value is None or not value.strip():
+        return None
+    return value.strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
 def _env_csv(name: str, default: tuple[str, ...]) -> tuple[str, ...]:
     value = os.getenv(name)
     if value is None or not value.strip():
@@ -50,8 +57,20 @@ class Settings:
     ollama_vision_num_predict: int = 1024
     ollama_vision_num_ctx: int = 4096
     ollama_vision_max_side: int = 1600
+    # Empty means "same server as ollama_base_url".
+    ollama_vision_base_url: str = ""
+    ollama_vision_timeout: float = 180.0
     ollama_timeout: float = 180.0
     ollama_stream: bool = False
+    # None leaves Ollama's default; False disables the reasoning trace of
+    # thinking models, True enables it.
+    ollama_think: bool | None = None
+    # Constrain the semantic JSON answer with a JSON Schema when the server
+    # supports it (Ollama "format", OpenAI "response_format").
+    structured_output: bool = True
+    # Extra attempts for connection errors and 502/503/504 answers.  Read
+    # timeouts are not retried here: the evaluation decides about those.
+    llm_retries: int = 1
     temperature: float = 0.0
     num_predict: int = 1600
     num_ctx: int = 8192
@@ -75,6 +94,10 @@ class Settings:
     openai_base_url: str = "http://localhost:8000/v1"
     openai_api_key: str = "not-needed"
 
+    @property
+    def vision_base_url(self) -> str:
+        return self.ollama_vision_base_url or self.ollama_base_url
+
     @classmethod
     def from_env(cls) -> Settings:
         return cls(
@@ -95,8 +118,21 @@ class Settings:
                 "IMAGE_TO_MATHML_OLLAMA_VISION_MAX_SIDE",
                 cls.ollama_vision_max_side,
             ),
+            ollama_vision_base_url=os.getenv(
+                "IMAGE_TO_MATHML_OLLAMA_VISION_BASE_URL", cls.ollama_vision_base_url
+            ).strip(),
+            ollama_vision_timeout=_env_float(
+                "IMAGE_TO_MATHML_OLLAMA_VISION_TIMEOUT", cls.ollama_vision_timeout
+            ),
             ollama_timeout=_env_float("OLLAMA_TIMEOUT", cls.ollama_timeout),
             ollama_stream=_env_bool("OLLAMA_STREAM", cls.ollama_stream),
+            ollama_think=_env_optional_bool("OLLAMA_THINK"),
+            structured_output=_env_bool(
+                "IMAGE_TO_MATHML_STRUCTURED_OUTPUT", cls.structured_output
+            ),
+            llm_retries=max(
+                0, _env_int("IMAGE_TO_MATHML_LLM_RETRIES", cls.llm_retries)
+            ),
             temperature=_env_float("OLLAMA_TEMPERATURE", cls.temperature),
             num_predict=_env_int("OLLAMA_NUM_PREDICT", cls.num_predict),
             num_ctx=_env_int("OLLAMA_NUM_CTX", cls.num_ctx),

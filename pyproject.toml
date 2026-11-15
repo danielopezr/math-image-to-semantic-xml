@@ -21,7 +21,7 @@ texify = ["texify>=0.2.1"]
 rapid-latex-ocr = ["rapid_latex_ocr>=0.0.9"]
 pix2text = ["pix2text>=1.1.7"]
 paddleocr = ["paddleocr>=3.7.0"]
-dev = ["pytest>=8.0", "ruff>=0.6"]
+dev = ["pytest>=8.0", "ruff>=0.6", "numpy>=1.24"]
 
 [project.scripts]
 image-to-mathml = "image_to_mathml.cli:main"

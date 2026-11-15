@@ -2,11 +2,15 @@
 
 from .bleu import (
     BleuScore,
+    IntentF1,
     MathMLBleuScore,
     MathMLNormalizationError,
+    canonical_intents,
     canonical_mathml_tokens,
     corpus_bleu,
+    exact_match,
     intent_bleu,
+    intent_f1,
     mathml_bleu,
     mathml_corpus_bleu,
     normalize_mathml_tree,
@@ -16,11 +20,15 @@ from .bleu import (
 
 __all__ = [
     "BleuScore",
+    "IntentF1",
     "MathMLBleuScore",
     "MathMLNormalizationError",
+    "canonical_intents",
     "canonical_mathml_tokens",
     "corpus_bleu",
+    "exact_match",
     "intent_bleu",
+    "intent_f1",
     "mathml_bleu",
     "mathml_corpus_bleu",
     "normalize_mathml_tree",

@@ -139,13 +139,35 @@ OCR-specific environment variables:
 - `IMAGE_TO_MATHML_OLLAMA_VISION_MODEL`: default `qwen3-vl:4b-instruct`; use
   `qwen3-vl:2b` on very low-RAM machines.
 - `IMAGE_TO_MATHML_OLLAMA_VISION_BASE_URL`: default `OLLAMA_BASE_URL` or
-  `http://localhost:11434`.
-- `IMAGE_TO_MATHML_OLLAMA_VISION_TIMEOUT`: default `180` seconds.
+  `http://localhost:11434`. Used by both the vision agent and the
+  `ollama_vision` OCR backend.
+- `IMAGE_TO_MATHML_OLLAMA_VISION_TIMEOUT`: default `180` seconds (`--timeout`
+  sets it together with the text-model timeout).
 - `IMAGE_TO_MATHML_OLLAMA_VISION_NUM_CTX`: context window, default `4096`.
 - `IMAGE_TO_MATHML_OLLAMA_VISION_NUM_PREDICT`: maximum output tokens, default
   `1024`.
 - `IMAGE_TO_MATHML_OLLAMA_VISION_MAX_SIDE`: resize larger images to this maximum
   side before sending, default `1600`; use `0` to disable.
+
+`--vision-model`, `--base-url`, `--timeout` and `--stream` apply to the
+`ollama_vision` OCR backend as well as to the vision agent. Each OCR backend is
+loaded once per pipeline, and the LaTeX recognised for an image is reused while
+the file does not change, so repeated runs (for example evaluation retries) do
+not repeat the OCR.
+
+LLM client environment variables:
+
+- `OLLAMA_TEMPERATURE`: sampling temperature used by every agent (default `0`).
+- `OLLAMA_THINK`: `false` disables the reasoning trace of thinking models such
+  as `qwen3`; `true` enables it. Unset leaves the server default. `<think>`
+  blocks are removed from answers in any case.
+- `IMAGE_TO_MATHML_STRUCTURED_OUTPUT`: send the JSON Schema of the semantic
+  contract to the server (`format` in Ollama, `response_format` in
+  OpenAI-compatible servers), restricted to the retrieved candidate concepts.
+  Default `true`. Servers that reject `response_format` are retried without it.
+- `IMAGE_TO_MATHML_LLM_RETRIES`: extra attempts after a connection error or an
+  HTTP 502/503/504 answer, default `1`. Read timeouts are not retried by the
+  client.
 
 ## Image preprocessing
 
@@ -180,11 +202,16 @@ Individual steps can be overridden through environment variables:
 - `IMAGE_TO_MATHML_PREPROCESS_MIN_SIDE`
 - `IMAGE_TO_MATHML_PREPROCESS_BINARIZE`
 
-Set `IMAGE_TO_MATHML_PREPROCESS_DEBUG_DIR` to override the output directory.
-By default, the exact image sent to the OCR engine is written to
-`results/preprocessed/<image>_preprocessed.png`. Deskew needs NumPy and CLAHE
-needs OpenCV; when they are unavailable the pipeline silently keeps the
-Pillow-only steps.
+Images with transparency are composited on a background that contrasts with
+their ink before any other step, so black formulas exported on a transparent
+background are not lost.
+
+Set `IMAGE_TO_MATHML_PREPROCESS_DEBUG_DIR` (for example to
+`results/preprocessed`) to save the exact image sent to the OCR engine as
+`<image>_<hash>_preprocessed.png`; the hash of the full source path keeps
+images with the same name in different folders apart. Nothing is written when
+the variable is not set. Deskew needs NumPy and CLAHE needs OpenCV; when they
+are unavailable the pipeline silently keeps the Pillow-only steps.
 
 ## CLI
 
@@ -250,7 +277,7 @@ input.
 - `--direct-vision`: in `--flow direct`, use the Ollama vision agent on the
   image instead of the text model on LaTeX. Requires `--image`; falls back to
   the deterministic LaTeX annotator when an OCR LaTeX representation is
-  available.
+  available, also when the vision server or model is not available.
 - `--backend`: `ollama`, `openai`, `openai-compatible`, `vllm`, `vert`, or
   `lmstudio`.
 - `--base-url`: LLM server base URL.
@@ -270,20 +297,49 @@ By default, open concepts are accepted only when they are in the documented
 exception list: `gamma-function`, `beta-function` and `error-function`. Other
 open concepts require `--allow-open-concepts` or an explicit
 `--allowed-open-concepts` list. With `--strict-core`, even the documented
-exceptions are rejected.
+exceptions are rejected. The prompts of every agent state the same policy as
+the validator, including a custom `--allowed-open-concepts` list.
 
 ### Validation contract
 
-Generated MathML must satisfy:
+Generated MathML must satisfy (each point is a validation error):
 
 - one `<math>` root in the MathML namespace;
 - no `display` attribute on the root;
 - exactly one top-level `<mrow>` wrapping the whole expression;
 - no redundant single-child `<mrow>` elements;
+- the right number of children for elements with positional children
+  (`mfrac`, `msup`, `msub`, `mroot`, `munder`, `mover`: 2; `msubsup`,
+  `munderover`: 3) and only `mtr`/`mtd` inside tables. An empty `<mrow/>` is
+  accepted as the placeholder of an empty slot, as in `\frac{}{b}`;
 - valid W3C intent grammar;
-- every `$reference` must have a matching `arg="reference"`;
+- every `$reference` must have exactly one matching `arg="reference"` in its
+  scope;
 - known concept names and arities;
 - generic `f(x)` uses `intent="$name($var)"`.
+
+In the hybrid flow the semantic JSON can never group the children of those
+positional elements, so the language model cannot change the structure.
+
+### Deterministic annotator
+
+The fallback annotator only adds intents whose reading is unambiguous; when a
+notation has several common readings it leaves the plain Presentation MathML,
+which screen readers already read correctly:
+
+- `f(x)`-style applications only for `f`, `g`, `h`, `F`, `G`, `H`, operator
+  names (`\operatorname{sgn}`), indexed names (`f_i`) and primed names (`f'`).
+  `a(b+c)` or `2x(x+1)` are products and stay unannotated.
+- Superscripts that are not exponents (primes, `*`, `\dagger`, `T`, complement
+  marks) are not annotated as powers; `^{\top}` becomes `transpose`.
+- `\beta` is never guessed as the beta function and `\Gamma` only with
+  parentheses.
+- Operator names written as `<mo>` (`\det`, `\max`, `\min`) are recognised;
+  `\lim_{x\to0}` is not an indexed symbol; `\log_b x` becomes
+  `logarithm($arg,$base)`; `x_i^2` becomes
+  `power(indexed-by($base,$sub),$exp)`.
+- Sums, integrals and `|x|` are left to the reader or the LLM because their
+  meaning depends on context (`|A|` can be a determinant).
 
 ## BLEU evaluation
 
@@ -304,7 +360,18 @@ Both documents are normalised before scoring:
   wrappers are transparent;
 - presentation attributes such as `stretchy`, `mathvariant`, `mathsize`,
   `mathcolor`, `displaystyle` and `columnalign` are ignored;
+- attribute-less single-child `<mrow>` wrappers are unwrapped;
 - text and attribute whitespace is collapsed and attribute order is canonical.
+
+A `reference_latex` reference is converted and normalised with the same code
+as the pipeline output, so an identical offline result scores 1.0. Such a
+reference has no intents, so its intent scores do not measure the semantic
+annotation; the report adds a note when it is used.
+
+Besides BLEU, every sample reports exact matches (structure only and with
+intents) and an intent F1 that compares the canonical intents element by
+element; the report adds the validation rate, the exact-match rates and the
+mean intent F1.
 
 The `evaluate` command reads a JSON array, JSONL or CSV dataset. Each record
 needs an input (`latex` or `image`) and a reference (`reference_mathml`,
@@ -331,19 +398,24 @@ alg002,alg002.jpeg,alg002.mathml,Álgebra lineal,bases ortogonales,600,compleja
 ```
 
 `img_path` and `mathml_path` are resolved relative to the CSV file. `timeout` is
-the initial request timeout in seconds for that sample. If Ollama or the
-semantic annotator reports a timeout, the sample is retried with a larger
-timeout (`initial + --timeout-increment`) up to `--max-timeout-retries` times.
-In CSV mode the command defaults to the hybrid flow, `--ocr ollama_vision`,
-`--model qwen3:4b-instruct` and `--vision-model qwen3-vl:4b-instruct`; explicit
-flags still override those defaults.
+the initial timeout in seconds of **each request** (OCR, LLM and vision calls)
+for that sample, not a budget for the whole sample: with OCR and several repair
+attempts a sample can take several times that value. If Ollama or the semantic
+annotator reports a timeout, the sample is retried with a larger timeout
+(`initial + --timeout-increment`) up to `--max-timeout-retries` times; the OCR
+result of the image is reused between retries. In CSV mode the command defaults
+to the hybrid flow, `--ocr ollama_vision`, `--model qwen3:4b-instruct` and
+`--vision-model qwen3-vl:4b-instruct`; each default applies only when neither
+the flag nor its environment variable (`IMAGE_TO_MATHML_OCR`, `OLLAMA_MODEL`,
+`IMAGE_TO_MATHML_OLLAMA_VISION_MODEL`) is set. The report header shows the
+model, vision model and OCR backend that were used.
 
 To avoid repeating absolute paths in the CSV, use a YAML file:
 
 ```yaml
 csv: dataset.csv
-images_dir: /home/andres/dataset/images
-mathml_dir: /home/andres/dataset/labels
+images_dir: ${IMAGE_TO_MATHML_DATASET_DIR:-../dataset}/images
+mathml_dir: ${IMAGE_TO_MATHML_DATASET_DIR:-../dataset}/labels
 complexity_weights:
   muy simple: 1.0
   simple: 1.0
@@ -352,13 +424,26 @@ complexity_weights:
 ```
 
 `csv`, `images_dir` and `mathml_dir` can be absolute or relative to the YAML
-file. In this example the CSV only contains file names such as `alg001.jpeg`
-and `alg001.mathml`.
+file, and may use `$VAR`, `${VAR}` or `${VAR:-default}` so the same YAML works
+on several machines. `--images-dir` and `--mathml-dir` override the YAML
+folders. In this example the CSV only contains file names such as
+`alg001.jpeg` and `alg001.mathml`. `eval/linear-algebra.yaml` reads the
+dataset folder from `IMAGE_TO_MATHML_DATASET_DIR`.
 
-The report includes corpus BLEU, a corpus BLEU per `eqn_complexity`, and a
-weighted BLEU across classifications. If `complexity_weights` is omitted, each
-classification is weighted by its number of samples; if a classification has no
-explicit weight, `1.0` is used.
+The report separates where each output came from:
+
+- every sample with a valid reference counts in the corpus, per-class and
+  weighted scores; a sample whose run failed counts as an empty output;
+- an LLM flow that ended in the deterministic fallback (LLM unavailable,
+  invalid answers or exhausted timeouts) is marked `respaldo` in the table and
+  counted apart; the "solo LLM" corpus scores include only outputs the LLM
+  really produced;
+- samples that ended in a timeout show the number of retries.
+
+The weighted BLEU is a per-equation average: each class contributes its
+corpus BLEU times its weight times its number of equations. Without
+`complexity_weights` every equation weighs the same. A classification that has
+no explicit weight uses `1.0` and is listed in the report notes.
 
 ```bash
 image-to-mathml evaluate --dataset examples/evaluation.jsonl --flow hybrid
@@ -443,3 +528,17 @@ Run lint and formatting checks:
 .venv/bin/ruff check src tests tools
 .venv/bin/ruff format --check src tests tools
 ```
+
+The GitHub Actions workflow in `.github/workflows/ci.yml` runs the lint,
+format and test steps on Python 3.10 and 3.12. It also runs `mypy` as an
+informative job that does not fail the build yet, because the existing
+annotations still report errors.
+
+`examples/img_test.json` references `images/alg002.jpeg` relative to the
+`examples` folder; the image belongs to the external dataset and is not
+versioned, so copy it there (or edit the path) before running that example.
+
+The concept registries are generated by `tools/build_concept_registry.py`.
+Signatures that the W3C tables do not state, such as the two-argument
+`beta-function`, are added by `EXTRA_SIGNATURES` in that script so they survive
+regeneration.

@@ -8,11 +8,12 @@ Most local runners (vLLM, LM Studio, Jan, llama.cpp, LocalAI and Ollama's
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Any
 
 import requests
 
 from ..config import Settings
-from .base import LLMError
+from .base import LLMError, effective_timeout, model_matches, post_with_retries
 
 
 class OpenAICompatibleClient:
@@ -21,6 +22,8 @@ class OpenAICompatibleClient:
         self.model = self.settings.ollama_model
         self.base_url = self.settings.openai_base_url.rstrip("/")
         self.api_key = self.settings.openai_api_key
+        # Set when the server rejected ``response_format``; later calls skip it.
+        self._structured_output_supported = True
 
     def _headers(self) -> dict[str, str]:
         headers = {"Content-Type": "application/json"}
@@ -57,10 +60,20 @@ class OpenAICompatibleClient:
         except LLMError:
             return False
         return any(
-            name == self.model
-            or name.startswith(self.model + ":")
-            or self.model in name
+            model_matches(name, self.model) or name.endswith("/" + self.model)
             for name in models
+        )
+
+    def _post(self, payload: dict[str, Any]) -> requests.Response:
+        timeout = effective_timeout(self.settings.ollama_timeout)
+        return post_with_retries(
+            lambda: requests.post(
+                self._url("/chat/completions"),
+                json=payload,
+                headers=self._headers(),
+                timeout=timeout,
+            ),
+            retries=self.settings.llm_retries,
         )
 
     def chat(
@@ -69,8 +82,9 @@ class OpenAICompatibleClient:
         *,
         temperature: float | None = None,
         num_predict: int | None = None,
+        json_schema: dict[str, Any] | None = None,
     ) -> str:
-        payload = {
+        payload: dict[str, Any] = {
             "model": self.model,
             "messages": list(messages),
             "temperature": (
@@ -81,13 +95,23 @@ class OpenAICompatibleClient:
             ),
             "stream": False,
         }
+        structured = (
+            json_schema is not None
+            and self.settings.structured_output
+            and self._structured_output_supported
+        )
+        if structured:
+            payload["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {"name": "semantic_annotations", "schema": json_schema},
+            }
         try:
-            response = requests.post(
-                self._url("/chat/completions"),
-                json=payload,
-                headers=self._headers(),
-                timeout=self.settings.ollama_timeout,
-            )
+            response = self._post(payload)
+            if structured and response.status_code in {400, 422}:
+                # Older servers do not know response_format: retry without it.
+                self._structured_output_supported = False
+                payload.pop("response_format", None)
+                response = self._post(payload)
         except requests.RequestException as exc:
             raise LLMError(f"Could not reach {self.base_url}: {exc}") from exc
 
@@ -104,6 +128,12 @@ class OpenAICompatibleClient:
             raise LLMError(
                 "Invalid chat completion response from local server"
             ) from exc
+        if isinstance(content, list):
+            # Some servers return content parts: [{"type": "text", "text": ...}].
+            content = "".join(
+                str(part.get("text", "")) if isinstance(part, dict) else str(part)
+                for part in content
+            )
         if not content or not str(content).strip():
             raise LLMError("The local server returned an empty response")
         return str(content)

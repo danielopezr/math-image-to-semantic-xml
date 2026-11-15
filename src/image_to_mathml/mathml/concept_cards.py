@@ -63,7 +63,6 @@ def _function_cards() -> dict[str, dict[str, object]]:
             "symbols": symbols,
             "examples": (f"\\{example_token}(x)",),
             "requires": tuple(sorted({*latex, *symbols})),
-            "roles": ("arg",),
         }
     return cards
 
@@ -76,7 +75,6 @@ _STRUCTURE_OVERRIDES: dict[str, dict[str, object]] = {
         "symbols": ("/",),
         "examples": ("\\frac{a}{b}",),
         "requires": ("mfrac", "\\frac", "/"),
-        "roles": ("num", "den"),
         "priority": 5,
     },
     "power": {
@@ -86,7 +84,6 @@ _STRUCTURE_OVERRIDES: dict[str, dict[str, object]] = {
         "symbols": ("^",),
         "examples": ("x^{2}",),
         "requires": ("msup", "^"),
-        "roles": ("base", "exp"),
         "priority": 5,
     },
     "exponential": {
@@ -95,7 +92,6 @@ _STRUCTURE_OVERRIDES: dict[str, dict[str, object]] = {
         "mathml_tags": ("msup",),
         "examples": ("e^{x}", "\\exp(x)"),
         "requires": ("e^", "\\exp", "exp"),
-        "roles": ("exp",),
         "priority": 3,
     },
     "root": {
@@ -105,7 +101,6 @@ _STRUCTURE_OVERRIDES: dict[str, dict[str, object]] = {
         "symbols": ("\u221a",),
         "examples": ("\\sqrt{x}", "\\sqrt[3]{x}"),
         "requires": ("msqrt", "mroot", "\\sqrt", "\u221a"),
-        "roles": ("radicand", "index"),
         "priority": 5,
     },
     "indexed-by": {
@@ -115,7 +110,6 @@ _STRUCTURE_OVERRIDES: dict[str, dict[str, object]] = {
         "symbols": ("_",),
         "examples": ("x_{i}",),
         "requires": ("msub", "_"),
-        "roles": ("base", "sub"),
         "priority": 4,
     },
     "factorial": {
@@ -123,7 +117,6 @@ _STRUCTURE_OVERRIDES: dict[str, dict[str, object]] = {
         "symbols": ("!",),
         "examples": ("n!",),
         "requires": ("!",),
-        "roles": ("arg",),
         "priority": 4,
     },
     "absolute-value": {
@@ -131,7 +124,6 @@ _STRUCTURE_OVERRIDES: dict[str, dict[str, object]] = {
         "symbols": ("|",),
         "examples": ("|x|",),
         "requires": ("|",),
-        "roles": ("arg",),
         "priority": 4,
     },
     "norm": {
@@ -139,7 +131,6 @@ _STRUCTURE_OVERRIDES: dict[str, dict[str, object]] = {
         "symbols": ("\u2016", "\u2225"),
         "examples": ("\\lVert x \\rVert",),
         "requires": ("\u2016", "\u2225"),
-        "roles": ("arg",),
         "priority": 3,
     },
     "sum": {
@@ -149,7 +140,6 @@ _STRUCTURE_OVERRIDES: dict[str, dict[str, object]] = {
         "mathml_tags": ("munder", "munderover", "msubsup"),
         "examples": ("\\sum_{i=1}^{n} a_{i}",),
         "requires": ("\\sum", "\u2211"),
-        "roles": ("arg1", "arg2", "arg3"),
         "priority": 4,
     },
     "product": {
@@ -159,7 +149,6 @@ _STRUCTURE_OVERRIDES: dict[str, dict[str, object]] = {
         "mathml_tags": ("munder", "munderover", "msubsup"),
         "examples": ("\\prod_{i=1}^{n} a_{i}",),
         "requires": ("\\prod", "\u220f"),
-        "roles": ("arg1", "arg2", "arg3"),
         "priority": 4,
     },
     "definite-integral": {
@@ -168,7 +157,6 @@ _STRUCTURE_OVERRIDES: dict[str, dict[str, object]] = {
         "symbols": ("\u222b",),
         "examples": ("\\int_{0}^{1} f(x)\\,dx",),
         "requires": ("\\int", "\u222b"),
-        "roles": ("arg1", "arg2"),
         "priority": 4,
     },
     "derivative": {
@@ -176,7 +164,6 @@ _STRUCTURE_OVERRIDES: dict[str, dict[str, object]] = {
         "latex": ("\\frac{d}", "\\mathrm{d}"),
         "examples": ("\\frac{d}{dx} f(x)",),
         "requires": (),
-        "roles": ("arg1", "arg2", "arg3"),
         "priority": 2,
     },
     "partial-derivative": {
@@ -185,7 +172,6 @@ _STRUCTURE_OVERRIDES: dict[str, dict[str, object]] = {
         "symbols": ("\u2202",),
         "examples": ("\\frac{\\partial f}{\\partial x}",),
         "requires": ("\\partial", "\u2202"),
-        "roles": ("arg1", "arg2", "arg3"),
         "priority": 4,
     },
     "limit": {
@@ -195,7 +181,6 @@ _STRUCTURE_OVERRIDES: dict[str, dict[str, object]] = {
         "mathml_tags": ("munder", "munderover", "msub", "msubsup"),
         "examples": ("\\lim_{x \\to 0} f(x)",),
         "requires": ("\\lim", "lim"),
-        "roles": ("arg",),
         "priority": 4,
     },
     "logarithm": {
@@ -203,7 +188,6 @@ _STRUCTURE_OVERRIDES: dict[str, dict[str, object]] = {
         "latex": ("\\log",),
         "examples": ("\\log_{2}(x)",),
         "requires": ("log", "\\log"),
-        "roles": ("arg", "base"),
         "priority": 4,
     },
     "natural-logarithm": {
@@ -211,7 +195,6 @@ _STRUCTURE_OVERRIDES: dict[str, dict[str, object]] = {
         "latex": ("\\ln",),
         "examples": ("\\ln(x)",),
         "requires": ("ln", "\\ln"),
-        "roles": ("arg",),
         "priority": 4,
     },
     "determinant": {
@@ -220,7 +203,6 @@ _STRUCTURE_OVERRIDES: dict[str, dict[str, object]] = {
         "symbols": ("det",),
         "examples": ("\\det(A)",),
         "requires": ("det", "\\det"),
-        "roles": ("arg",),
         "priority": 3,
     },
     "matrix": {
@@ -228,7 +210,6 @@ _STRUCTURE_OVERRIDES: dict[str, dict[str, object]] = {
         "mathml_tags": ("mtable",),
         "examples": ("\\begin{matrix} a & b \\\\ c & d \\end{matrix}",),
         "requires": ("mtable",),
-        "roles": ("arg",),
         "priority": 2,
     },
     "inner-product": {
@@ -237,7 +218,6 @@ _STRUCTURE_OVERRIDES: dict[str, dict[str, object]] = {
         "symbols": ("\u22c5", "\u00b7", "\u27e8", "\u27e9"),
         "examples": ("a \\cdot b", "\\langle a,b \\rangle"),
         "requires": ("\u22c5", "\u00b7", "\u27e8", "\\cdot", "\\langle"),
-        "roles": ("arg1", "arg2"),
         "priority": 4,
     },
     "dot-product": {
@@ -246,7 +226,6 @@ _STRUCTURE_OVERRIDES: dict[str, dict[str, object]] = {
         "symbols": ("\u22c5", "\u00b7"),
         "examples": ("a \\cdot b",),
         "requires": ("\u22c5", "\u00b7", "\\cdot"),
-        "roles": ("arg1", "arg2"),
         "priority": 4,
     },
     "cross-product": {
@@ -255,7 +234,6 @@ _STRUCTURE_OVERRIDES: dict[str, dict[str, object]] = {
         "symbols": ("\u00d7",),
         "examples": ("a \\times b",),
         "requires": ("\u00d7", "\\times"),
-        "roles": ("arg1", "arg2"),
         "priority": 4,
     },
     "outer-product": {
@@ -264,7 +242,6 @@ _STRUCTURE_OVERRIDES: dict[str, dict[str, object]] = {
         "symbols": ("\u2297",),
         "examples": ("a \\otimes b",),
         "requires": ("\u2297", "\\otimes"),
-        "roles": ("arg1", "arg2"),
         "priority": 4,
     },
     "cartesian-product": {
@@ -273,7 +250,6 @@ _STRUCTURE_OVERRIDES: dict[str, dict[str, object]] = {
         "symbols": ("\u00d7",),
         "examples": ("A \\times B",),
         "requires": ("\u00d7", "\\times"),
-        "roles": ("arg1", "arg2"),
         "priority": 3,
     },
     "ordered-pair": {
@@ -283,7 +259,6 @@ _STRUCTURE_OVERRIDES: dict[str, dict[str, object]] = {
         "examples": ("(a,b)", "\\langle a,b \\rangle"),
         "requires": ("(", "\u27e8", "\\langle"),
         "requires_all": (",",),
-        "roles": ("arg1", "arg2"),
         "priority": 4,
     },
     "coordinate": {
@@ -292,7 +267,6 @@ _STRUCTURE_OVERRIDES: dict[str, dict[str, object]] = {
         "examples": ("(x,y)",),
         "requires": ("(", "\u27e8", "\\langle"),
         "requires_all": (",",),
-        "roles": ("arg1", "arg2"),
         "priority": 3,
     },
     "polar-coordinate": {
@@ -301,7 +275,6 @@ _STRUCTURE_OVERRIDES: dict[str, dict[str, object]] = {
         "examples": ("(r,\\theta)",),
         "requires": ("(", "\u27e8"),
         "requires_all": (",",),
-        "roles": ("arg1", "arg2"),
         "priority": 3,
     },
     "spherical-coordinate": {
@@ -310,7 +283,6 @@ _STRUCTURE_OVERRIDES: dict[str, dict[str, object]] = {
         "examples": ("(r,\\theta,\\phi)",),
         "requires": ("(", "\u27e8"),
         "requires_all": (",",),
-        "roles": ("arg1", "arg2", "arg3"),
         "priority": 3,
     },
     "cartesian-coordinate": {
@@ -319,7 +291,6 @@ _STRUCTURE_OVERRIDES: dict[str, dict[str, object]] = {
         "examples": ("(x,y)",),
         "requires": ("(", "\u27e8"),
         "requires_all": (",",),
-        "roles": ("arg1", "arg2"),
         "priority": 3,
     },
     "set": {
@@ -328,7 +299,6 @@ _STRUCTURE_OVERRIDES: dict[str, dict[str, object]] = {
         "examples": ("\\{a,b,c\\}",),
         "requires": ("{", "}"),
         "requires_all": ("{", "}"),
-        "roles": ("arg",),
         "priority": 5,
     },
 }

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+from typing import Any
 
 from .base import OCREngine, OCRError
 from .preprocess import PreprocessConfig
@@ -76,9 +77,12 @@ def _installed(module: str) -> bool:
     return importlib.util.find_spec(module) is not None
 
 
-def _canonical_name(backend: str | None) -> str:
+def canonical_backend_name(backend: str | None) -> str:
     name = (backend or "auto").strip().lower().replace("-", "_")
     return _ALIASES.get(name, name)
+
+
+_canonical_name = canonical_backend_name
 
 
 def _make(
@@ -88,6 +92,7 @@ def _make(
     preprocess: PreprocessConfig,
     stream: bool | None = None,
     timeout: float | None = None,
+    ollama_options: dict[str, Any] | None = None,
 ) -> OCREngine:
     if name == "texify":
         from .texify import TexifyOCR
@@ -112,12 +117,14 @@ def _make(
     if name == "ollama_vision":
         from .ollama_vision import OllamaVisionOCR
 
-        return OllamaVisionOCR(
-            model=model,
-            timeout=timeout,
-            preprocess=preprocess,
-            stream=stream,
-        )
+        options = dict(ollama_options or {})
+        if model is not None:
+            options["model"] = model
+        if timeout is not None:
+            options["timeout"] = timeout
+        if stream is not None:
+            options["stream"] = stream
+        return OllamaVisionOCR(preprocess=preprocess, **options)
     raise AssertionError(f"unhandled OCR backend: {name}")
 
 
@@ -129,8 +136,17 @@ def build_ocr(
     preprocess: PreprocessConfig | None = None,
     stream: bool | None = None,
     timeout: float | None = None,
+    ollama_options: dict[str, Any] | None = None,
 ) -> OCREngine | None:
-    name = _canonical_name(backend)
+    """Build an OCR engine.
+
+    ``ollama_options`` configures the ``ollama_vision`` backend (``model``,
+    ``base_url``, ``timeout``, ``num_ctx``, ``num_predict``, ``max_side``,
+    ``think``, ``retries``); explicit ``model``/``timeout``/``stream``
+    arguments take precedence over it.
+    """
+
+    name = canonical_backend_name(backend)
     if name == "none":
         return None
 
@@ -139,7 +155,15 @@ def build_ocr(
     if name == "auto":
         for candidate in _AUTO_ORDER:
             if _installed(_MODULES[candidate]):
-                return _make(candidate, device, model, preprocess, stream, timeout)
+                return _make(
+                    candidate,
+                    device,
+                    model,
+                    preprocess,
+                    stream,
+                    timeout,
+                    ollama_options,
+                )
         hints = ", ".join(f"`{_INSTALL_HINTS[candidate]}`" for candidate in _AUTO_ORDER)
         raise OCRError(
             "No equation OCR backend is available. Install one of texify, "
@@ -151,4 +175,4 @@ def build_ocr(
     if name not in _MODULES:
         options = ", ".join(OCR_BACKENDS)
         raise OCRError(f"Unknown OCR backend {backend!r}. Use one of: {options}.")
-    return _make(name, device, model, preprocess, stream, timeout)
+    return _make(name, device, model, preprocess, stream, timeout, ollama_options)

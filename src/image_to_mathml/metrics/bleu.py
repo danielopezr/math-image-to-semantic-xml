@@ -244,6 +244,33 @@ def _wrap_math_root(element: etree._Element) -> None:
     element.insert(0, wrapper)
 
 
+def _unwrap_redundant_mrows(root: etree._Element) -> None:
+    """Replace attribute-less single-child ``<mrow>`` wrappers by their child.
+
+    Such wrappers do not change the rendering or the reading, and the
+    pipeline's normaliser removes them; without this step, a reference that
+    keeps them (for example raw ``latex2mathml`` output) is penalised for a
+    purely cosmetic difference.  The top-level ``<mrow>`` is kept.
+    """
+
+    top = [child for child in root if is_element(child)]
+    keep = top[0] if len(top) == 1 and localname(top[0].tag) == "mrow" else None
+    for element in list(root.iter()):
+        if not is_element(element) or element is keep:
+            continue
+        if localname(element.tag) != "mrow" or element.attrib:
+            continue
+        children = [child for child in element if is_element(child)]
+        parent = element.getparent()
+        if parent is None or len(children) != 1 or (element.text or "").strip():
+            continue
+        child = children[0]
+        if (child.tail or "").strip():
+            continue
+        child.tail = element.tail
+        parent.replace(element, child)
+
+
 def _normalise_attribute(value: str) -> str:
     return _normalise_text(value)
 
@@ -299,6 +326,7 @@ def normalize_mathml_tree(
     root = _parse_mathml(markup)
     _clean_children(root)
     _wrap_math_root(root)
+    _unwrap_redundant_mrows(root)
     _canonicalise_intents(root)
     if not include_intent:
         for element in root.iter():
@@ -572,14 +600,33 @@ def mathml_bleu(
     )
 
 
+def _candidate_tokens(document: str | None, *, include_intent: bool) -> list[str]:
+    """Tokens of a candidate; a missing or empty candidate scores as empty.
+
+    Samples whose pipeline run failed are passed as ``""`` so they count as a
+    zero-length output instead of disappearing from the corpus.
+    """
+
+    if document is None or not document.strip():
+        return []
+    try:
+        return canonical_mathml_tokens(document, include_intent=include_intent)
+    except MathMLNormalizationError:
+        return []
+
+
 def mathml_corpus_bleu(
     reference_mathml_documents: Sequence[str],
-    candidate_mathml_documents: Sequence[str],
+    candidate_mathml_documents: Sequence[str | None],
     *,
     max_n: int = 4,
     smooth: bool = True,
 ) -> MathMLBleuScore:
-    """Compare several MathML documents at corpus level."""
+    """Compare several MathML documents at corpus level.
+
+    An empty (or unparsable) candidate counts as an empty output, so failed
+    samples lower the corpus score instead of being silently excluded.
+    """
 
     if len(reference_mathml_documents) != len(candidate_mathml_documents):
         raise ValueError("The reference and candidate lists must have equal length")
@@ -589,7 +636,7 @@ def mathml_corpus_bleu(
         for document in reference_mathml_documents
     ]
     candidate_structure = [
-        canonical_mathml_tokens(document, include_intent=False)
+        _candidate_tokens(document, include_intent=False)
         for document in candidate_mathml_documents
     ]
     reference_intent = [
@@ -597,7 +644,7 @@ def mathml_corpus_bleu(
         for document in reference_mathml_documents
     ]
     candidate_intent = [
-        canonical_mathml_tokens(document, include_intent=True)
+        _candidate_tokens(document, include_intent=True)
         for document in candidate_mathml_documents
     ]
     return MathMLBleuScore(
@@ -614,3 +661,73 @@ def mathml_corpus_bleu(
             smooth=smooth,
         ),
     )
+
+
+# ---------------------------------------------------------------------------
+# complementary metrics
+# ---------------------------------------------------------------------------
+@dataclass(frozen=True)
+class IntentF1:
+    """Precision/recall of the intents, compared per annotated element.
+
+    Each intent is identified by the tag that carries it and its canonical
+    value (argument names already made positional), so ``power($b,$e)`` on an
+    ``msup`` matches ``power($base,$exp)`` on an ``msup``.
+    """
+
+    precision: float
+    recall: float
+    f1: float
+    reference_count: int
+    candidate_count: int
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "precision": round(self.precision, 6),
+            "recall": round(self.recall, 6),
+            "f1": round(self.f1, 6),
+            "reference_count": self.reference_count,
+            "candidate_count": self.candidate_count,
+        }
+
+
+def canonical_intents(markup: str) -> Counter[str]:
+    root = normalize_mathml_tree(markup, include_intent=True)
+    return Counter(
+        f"{localname(element.tag)}:{element.get('intent')}"
+        for element in root.iter()
+        if is_element(element) and element.get("intent") is not None
+    )
+
+
+def intent_f1(reference_mathml: str, candidate_mathml: str | None) -> IntentF1:
+    reference = canonical_intents(reference_mathml)
+    candidate = (
+        Counter()
+        if candidate_mathml is None or not candidate_mathml.strip()
+        else canonical_intents(candidate_mathml)
+    )
+    reference_count = sum(reference.values())
+    candidate_count = sum(candidate.values())
+    if reference_count == 0 and candidate_count == 0:
+        return IntentF1(1.0, 1.0, 1.0, 0, 0)
+    matches = sum((reference & candidate).values())
+    precision = matches / candidate_count if candidate_count else 0.0
+    recall = matches / reference_count if reference_count else 0.0
+    f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
+    return IntentF1(precision, recall, f1, reference_count, candidate_count)
+
+
+def exact_match(
+    reference_mathml: str,
+    candidate_mathml: str | None,
+    *,
+    include_intent: bool,
+) -> bool:
+    """True when both documents have the same canonical token stream."""
+
+    if candidate_mathml is None or not candidate_mathml.strip():
+        return False
+    return canonical_mathml_tokens(
+        reference_mathml, include_intent=include_intent
+    ) == canonical_mathml_tokens(candidate_mathml, include_intent=include_intent)

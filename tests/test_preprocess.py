@@ -144,15 +144,58 @@ def test_deskew_reduces_rotation():
     assert abs(_principal_angle(result)) < 2
 
 
-def test_preprocessed_image_is_saved_by_default(tmp_path, monkeypatch):
-    output_dir = tmp_path / "preprocessed"
+def test_preprocessed_image_is_not_saved_by_default(tmp_path, monkeypatch):
     monkeypatch.delenv("IMAGE_TO_MATHML_PREPROCESS_DEBUG_DIR", raising=False)
-    monkeypatch.setattr(preprocess_module, "PREPROCESSED_IMAGE_DIR", str(output_dir))
+    monkeypatch.chdir(tmp_path)
     path = _make_image(tmp_path, (80, 30), bar=(20, 10, 60, 20))
 
     preprocess_image(path, PreprocessConfig.from_env(profile="safe"))
 
-    assert (output_dir / "equation_preprocessed.png").is_file()
+    assert not (tmp_path / preprocess_module.PREPROCESSED_IMAGE_DIR).exists()
+
+
+def test_preprocessed_image_is_saved_when_a_debug_dir_is_set(tmp_path, monkeypatch):
+    output_dir = tmp_path / "preprocessed"
+    monkeypatch.setenv("IMAGE_TO_MATHML_PREPROCESS_DEBUG_DIR", str(output_dir))
+    first = _make_image(tmp_path, (80, 30), bar=(20, 10, 60, 20))
+    other_dir = tmp_path / "other"
+    other_dir.mkdir()
+    second = _make_image(other_dir, (80, 30), bar=(20, 10, 60, 20))
+
+    preprocess_image(first, PreprocessConfig.from_env(profile="safe"))
+    preprocess_image(second, PreprocessConfig.from_env(profile="safe"))
+
+    saved = sorted(output_dir.glob("equation_*_preprocessed.png"))
+    assert len(saved) == 2
+
+
+def test_transparent_png_keeps_its_content(tmp_path):
+    from image_to_mathml.ocr.base import open_rgb
+
+    image = Image.new("RGBA", (120, 40), (0, 0, 0, 0))
+    ImageDraw.Draw(image).rectangle((20, 10, 100, 30), fill=(0, 0, 0, 255))
+    path = tmp_path / "transparent.png"
+    image.save(path)
+
+    loaded = open_rgb(str(path))
+
+    levels = {value for _, value in loaded.convert("L").getcolors(256)}
+    assert levels == {0, 255}
+    assert loaded.convert("L").getpixel((5, 5)) == 255
+
+
+def test_transparent_png_with_light_ink_gets_a_dark_background(tmp_path):
+    from image_to_mathml.ocr.base import open_rgb
+
+    image = Image.new("RGBA", (120, 40), (255, 255, 255, 0))
+    ImageDraw.Draw(image).rectangle((20, 10, 100, 30), fill=(255, 255, 255, 255))
+    path = tmp_path / "light.png"
+    image.save(path)
+
+    loaded = open_rgb(str(path)).convert("L")
+
+    assert loaded.getpixel((5, 5)) == 0
+    assert loaded.getpixel((50, 20)) == 255
 
 
 def test_config_from_env(monkeypatch):

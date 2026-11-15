@@ -299,15 +299,32 @@ def test_evaluate_samples_groups_and_weights_by_complexity(tmp_path):
     assert "Por clasificación" in report_markdown(report)
 
 
-def test_pipeline_applies_a_request_timeout_temporarily():
+def test_pipeline_applies_a_request_timeout_temporarily(monkeypatch):
     pipeline = EquationPipeline()
-    original = pipeline.settings.ollama_timeout
+    original = pipeline.settings
+    seen: list[float] = []
+
+    class _Response:
+        status_code = 200
+
+        @staticmethod
+        def json():
+            return {"message": {"content": "ok"}}
+
+    def fake_post(url, data=None, headers=None, timeout=None, stream=False):
+        seen.append(timeout)
+        return _Response()
+
+    monkeypatch.setattr("image_to_mathml.llm.ollama.requests.post", fake_post)
 
     with pipeline._request_timeout(123.0):
-        assert pipeline.settings.ollama_timeout == 123.0
         assert pipeline._active_timeout == 123.0
+        pipeline.llm.chat([{"role": "user", "content": "x"}])
+        # The settings object is never replaced or mutated.
+        assert pipeline.settings is original
 
-    assert pipeline.settings.ollama_timeout == original
+    pipeline.llm.chat([{"role": "user", "content": "x"}])
+    assert seen == [123.0, original.ollama_timeout]
     assert pipeline._active_timeout is None
 
 

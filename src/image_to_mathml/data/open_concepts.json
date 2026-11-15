@@ -875,6 +875,11 @@
           "fixity": "function",
           "min_arity": 1,
           "max_arity": 1
+        },
+        {
+          "fixity": "function",
+          "min_arity": 2,
+          "max_arity": 2
         }
       ],
       "kind": "open"

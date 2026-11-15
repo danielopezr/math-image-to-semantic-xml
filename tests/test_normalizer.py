@@ -248,3 +248,28 @@ def test_repeated_correction_rebuilds_indexes_from_already_split_matrix():
     subscripts = _all(root, "msub")
     for msub in subscripts:
         assert [child.text for child in list(msub)[1]] == ["1", "1"]
+
+
+def test_keeps_empty_mrow_that_holds_a_positional_slot():
+    from image_to_mathml.mathml.converter import LatexToMathML
+    from image_to_mathml.mathml.validator import validate_mathml
+
+    for latex in (r"\frac{}{b}", r"{}^{2}H"):
+        result = normalize_mathml(LatexToMathML().convert(latex))
+        report = validate_mathml(result)
+        assert not any(issue.code == "structure.arity" for issue in report.errors), (
+            latex,
+            result,
+        )
+
+
+def test_removing_an_empty_mrow_keeps_the_following_text():
+    result = normalize_mathml(
+        "<math><mrow><mi>a</mi><mrow/>tail<mi>b</mi></mrow></math>"
+    )
+    assert "tail" in result
+
+
+def test_strips_reasoning_blocks_before_extracting_mathml():
+    answer = "<think>maybe <math><mi>wrong</mi></math></think><math><mi>x</mi></math>"
+    assert "wrong" not in normalize_mathml(answer)

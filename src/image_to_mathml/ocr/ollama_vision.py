@@ -31,8 +31,11 @@ _DELIMITER_RE = re.compile(
 )
 
 
+_THINK_RE = re.compile(r"<think\b[^>]*>.*?(?:</think>|$)", re.DOTALL | re.IGNORECASE)
+
+
 def _extract_latex(text: str) -> str:
-    cleaned = (text or "").strip()
+    cleaned = _THINK_RE.sub("", text or "").strip()
     fenced = _FENCE_RE.search(cleaned)
     if fenced:
         cleaned = fenced.group(1).strip()
@@ -53,9 +56,22 @@ class OllamaVisionOCR:
         timeout: float | None = None,
         preprocess: PreprocessConfig | None = None,
         stream: bool | None = None,
+        num_ctx: int | None = None,
+        num_predict: int | None = None,
+        max_side: int | None = None,
+        think: bool | None = None,
+        retries: int = 1,
     ) -> None:
         self.client = OllamaVisionClient(
-            model=model, base_url=base_url, timeout=timeout, stream=stream
+            model=model,
+            base_url=base_url,
+            timeout=timeout,
+            stream=stream,
+            num_ctx=num_ctx,
+            num_predict=num_predict,
+            max_side=max_side,
+            think=think,
+            retries=retries,
         )
         self.model = self.client.model
         self.base_url = self.client.base_url

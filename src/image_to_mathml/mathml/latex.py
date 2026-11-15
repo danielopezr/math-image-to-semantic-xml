@@ -4,17 +4,21 @@ from __future__ import annotations
 
 import re
 
+# Each pattern strips one outer math delimiter.  The body groups exclude "$"
+# so that "$a$ y $b$" (two separate formulas) is left untouched instead of
+# being turned into "a$ y $b".
 _DELIMITER_PATTERNS = (
-    (re.compile(r"^\s*\$\$\s*(.*?)\s*\$\$\s*$", re.DOTALL), r"\1"),
-    (re.compile(r"^\s*\$\s*(.*?)\s*\$\s*$", re.DOTALL), r"\1"),
+    (re.compile(r"^\s*\$\$\s*([^$]*?)\s*\$\$\s*$", re.DOTALL), r"\1"),
+    (re.compile(r"^\s*\$(?!\$)\s*([^$]*?)\s*\$\s*$", re.DOTALL), r"\1"),
     (re.compile(r"^\s*\\\[\s*(.*?)\s*\\\]\s*$", re.DOTALL), r"\1"),
     (re.compile(r"^\s*\\\(\s*(.*?)\s*\\\)\s*$", re.DOTALL), r"\1"),
     (
         re.compile(
-            r"^\s*\\begin\{(?:equation|displaymath|math)\*?\}\s*(.*?)\s*\\end\{\1(?:\*)?\}\s*$",
+            r"^\s*\\begin\{(?P<env>equation|displaymath|math)(?P<star>\*?)\}"
+            r"\s*(?P<body>.*?)\s*\\end\{(?P=env)(?P=star)\}\s*$",
             re.DOTALL,
         ),
-        r"\1",
+        r"\g<body>",
     ),
 )
 

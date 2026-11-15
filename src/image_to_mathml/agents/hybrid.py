@@ -7,8 +7,9 @@ from collections.abc import Sequence
 from ..config import Settings
 from ..llm.base import LLMClient
 from ..mathml.concept_cards import ConceptCard
+from ..mathml.semantic import semantic_json_schema
 from ..models import MathContext
-from .prompts import hybrid_messages, semantic_messages
+from .prompts import semantic_messages
 
 
 class HybridIntentAgent:
@@ -31,6 +32,10 @@ class HybridIntentAgent:
     ) -> str:
         """Return a semantic JSON decision for a tree with temporary ids."""
 
+        schema = None
+        if self.settings.structured_output:
+            names = [card.name for card in concept_cards] if concept_cards else None
+            schema = semantic_json_schema(names)
         return self.llm.chat(
             semantic_messages(
                 latex,
@@ -40,32 +45,9 @@ class HybridIntentAgent:
                 allow_open_concepts=allow_open_concepts,
                 allow_all_open_concepts=allow_all_open_concepts,
                 concept_cards=concept_cards,
+                allowed_open_concepts=self.settings.allowed_open_concepts,
             ),
-            temperature=0.0,
+            temperature=self.settings.temperature,
             num_predict=self.settings.num_predict,
-        )
-
-    def run_legacy(
-        self,
-        latex: str,
-        base_mathml: str,
-        context: MathContext,
-        feedback: list[str] | None = None,
-        *,
-        allow_open_concepts: bool = True,
-        allow_all_open_concepts: bool = False,
-    ) -> str:
-        """Generate annotated MathML directly (compatibility fallback)."""
-
-        return self.llm.chat(
-            hybrid_messages(
-                latex,
-                base_mathml,
-                context,
-                feedback,
-                allow_open_concepts=allow_open_concepts,
-                allow_all_open_concepts=allow_all_open_concepts,
-            ),
-            temperature=0.0,
-            num_predict=self.settings.num_predict,
+            json_schema=schema,
         )

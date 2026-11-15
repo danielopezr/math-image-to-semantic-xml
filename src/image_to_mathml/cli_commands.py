@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import os
 import sys
 from dataclasses import replace
 from pathlib import Path
@@ -42,6 +43,7 @@ def _settings_from_args(args: argparse.Namespace) -> Settings:
         changes["openai_api_key"] = args.api_key
     if getattr(args, "timeout", None) is not None:
         changes["ollama_timeout"] = args.timeout
+        changes["ollama_vision_timeout"] = args.timeout
     if getattr(args, "stream", None) is not None:
         changes["ollama_stream"] = args.stream
     if getattr(args, "max_repairs", None) is not None:
@@ -242,26 +244,50 @@ def cmd_convert(args: argparse.Namespace) -> int:
     return 0 if result.validation.ok else 2
 
 
+# Defaults of the image (CSV/YAML) evaluation mode.  Each one applies only when
+# neither the command-line flag nor its environment variable is set.
+_IMAGE_DATASET_DEFAULTS = (
+    ("ocr", "IMAGE_TO_MATHML_OCR", "ocr_backend", "ollama_vision"),
+    ("model", "OLLAMA_MODEL", "ollama_model", "qwen3:4b-instruct"),
+    (
+        "vision_model",
+        "IMAGE_TO_MATHML_OLLAMA_VISION_MODEL",
+        "ollama_vision_model",
+        "qwen3-vl:4b-instruct",
+    ),
+)
+
+
+def _image_dataset_defaults(args: argparse.Namespace) -> dict[str, object]:
+    defaults: dict[str, object] = {}
+    for flag, env_name, field_name, value in _IMAGE_DATASET_DEFAULTS:
+        if getattr(args, flag, None):
+            continue
+        if (os.getenv(env_name) or "").strip():
+            continue
+        defaults[field_name] = value
+    return defaults
+
+
 def cmd_evaluate(args: argparse.Namespace) -> int:
     settings = _settings_from_args(args)
     dataset_path = Path(args.dataset)
     suffix = dataset_path.suffix.lower()
     complexity_weights: dict[str, float] = {}
+    config = None
     if suffix in {".yaml", ".yml"}:
-        config = load_evaluation_config(dataset_path)
+        config = load_evaluation_config(
+            dataset_path,
+            images_dir=getattr(args, "images_dir", None),
+            mathml_dir=getattr(args, "mathml_dir", None),
+        )
         complexity_weights = config.complexity_weights
     if suffix in {".csv", ".yaml", ".yml"}:
-        csv_defaults: dict[str, object] = {}
-        if not getattr(args, "ocr", None):
-            csv_defaults["ocr_backend"] = "ollama_vision"
-        if not getattr(args, "model", None):
-            csv_defaults["ollama_model"] = "qwen3:4b-instruct"
-        if not getattr(args, "vision_model", None):
-            csv_defaults["ollama_vision_model"] = "qwen3-vl:4b-instruct"
+        csv_defaults = _image_dataset_defaults(args)
         if csv_defaults:
             settings = replace(settings, **csv_defaults)
     pipeline = EquationPipeline(settings)
-    samples = load_evaluation_samples(dataset_path)
+    samples = load_evaluation_samples(dataset_path, config=config)
     max_samples = getattr(args, "max_samples", None)
     if max_samples is not None and max_samples >= 0:
         samples = samples[:max_samples]
@@ -459,12 +485,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
             models = client.list_models()
         except LLMError:
             models = []
-    has_model = any(
-        name == settings.ollama_model
-        or name.startswith(settings.ollama_model + ":")
-        or settings.ollama_model in name
-        for name in models
-    )
+    has_model = client.has_model() if available else False
 
     payload = {
         "python": sys.version.split()[0],

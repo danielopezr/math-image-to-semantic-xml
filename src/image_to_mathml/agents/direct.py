@@ -31,7 +31,8 @@ class DirectMathMLAgent:
                 feedback,
                 allow_open_concepts=allow_open_concepts,
                 allow_all_open_concepts=allow_all_open_concepts,
+                allowed_open_concepts=self.settings.allowed_open_concepts,
             ),
-            temperature=0.0,
+            temperature=self.settings.temperature,
             num_predict=self.settings.num_predict,
         )

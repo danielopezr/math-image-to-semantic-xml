@@ -186,13 +186,25 @@ def build_parser() -> argparse.ArgumentParser:
         "--timeout-increment",
         type=float,
         default=60.0,
-        help="Seconds added to the sample timeout after a timeout (default: 60)",
+        help="Seconds added to the per-request timeout after a timeout "
+        "(default: 60). The timeout applies to each LLM/OCR request, not to "
+        "the whole sample",
     )
     evaluate.add_argument(
         "--max-timeout-retries",
         type=int,
         default=3,
         help="Retries after a timeout before using/failing the sample (default: 3)",
+    )
+    evaluate.add_argument(
+        "--images-dir",
+        default=None,
+        help="Override the YAML images_dir (useful on another machine)",
+    )
+    evaluate.add_argument(
+        "--mathml-dir",
+        default=None,
+        help="Override the YAML mathml_dir with the folder of reference labels",
     )
     evaluate.add_argument(
         "--no-smooth",
@@ -234,7 +246,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         return int(args.func(args))
-    except (TypeError, ValueError, RuntimeError, OSError) as exc:
+    except (ValueError, RuntimeError, OSError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 

@@ -8,27 +8,48 @@ from lxml import etree
 
 from ..models import ValidationReport
 from .concepts import CORE_PROPERTIES, ConceptRegistry, get_registry
-from .dom import MATHML_NS, element_children, is_element, localname, path
+from .dom import (
+    FIXED_ARITY,
+    MATHML_NS,
+    REQUIRED_CHILD_TAGS,
+    element_children,
+    has_positional_children,
+    is_element,
+    localname,
+    path,
+)
 from .intent_parser import IntentNode, IntentSyntaxError, parse_intent
 
 _NCNAME_RE = re.compile(r"^[A-Za-z_\u0080-\uffff][A-Za-z0-9._\-\u0080-\uffff]*$")
 
 
-def _resolve_reference(owner: etree._Element, name: str) -> etree._Element | None:
-    def search(parent: etree._Element) -> etree._Element | None:
+def _reference_candidates(owner: etree._Element, name: str) -> list[etree._Element]:
+    """Return every element a ``$name`` reference on ``owner`` can resolve to.
+
+    The search does not descend into elements that carry their own ``arg`` or
+    ``intent``: those start a nested scope.
+    """
+
+    found: list[etree._Element] = []
+
+    def search(parent: etree._Element) -> None:
         for child in parent:
             if not is_element(child):
                 continue
             if child.get("arg") == name:
-                return child
+                found.append(child)
+                continue
             if child.get("arg") is not None or child.get("intent") is not None:
                 continue
-            found = search(child)
-            if found is not None:
-                return found
-        return None
+            search(child)
 
-    return search(owner)
+    search(owner)
+    return found
+
+
+def _resolve_reference(owner: etree._Element, name: str) -> etree._Element | None:
+    candidates = _reference_candidates(owner, name)
+    return candidates[0] if candidates else None
 
 
 class _IntentValidator:
@@ -97,10 +118,18 @@ class _IntentValidator:
 
         if node.kind == "reference":
             self.referenced_args.add(node.value)
-            if _resolve_reference(owner, node.value) is None:
+            candidates = _reference_candidates(owner, node.value)
+            if not candidates:
                 self.report.error(
                     "intent.unresolved-reference",
                     f"Reference '${node.value}' has no descendant with arg='{node.value}'",
+                    path(owner),
+                )
+            elif len(candidates) > 1:
+                self.report.error(
+                    "intent.ambiguous-reference",
+                    f"Reference '${node.value}' matches {len(candidates)} descendants "
+                    f"with arg='{node.value}'; arg names must be unique per intent",
                     path(owner),
                 )
             return
@@ -146,6 +175,41 @@ class _IntentValidator:
         return
 
 
+def _validate_child_structure(
+    elements: list[etree._Element], report: ValidationReport
+) -> None:
+    """Check the child counts and child tags required by Presentation MathML."""
+
+    for element in elements:
+        tag = localname(element.tag)
+        children = element_children(element)
+        expected = FIXED_ARITY.get(tag)
+        if expected is not None and len(children) != expected:
+            report.error(
+                "structure.arity",
+                f"<{tag}> must have exactly {expected} child elements, "
+                f"found {len(children)}",
+                path(element),
+            )
+        elif tag == "mmultiscripts" and not children:
+            report.error(
+                "structure.arity",
+                "<mmultiscripts> needs at least a base element",
+                path(element),
+            )
+        allowed = REQUIRED_CHILD_TAGS.get(tag)
+        if allowed is not None:
+            for child in children:
+                if localname(child.tag) not in allowed:
+                    expected_tags = " or ".join(f"<{name}>" for name in sorted(allowed))
+                    report.error(
+                        "structure.children",
+                        f"<{tag}> may only contain {expected_tags}, "
+                        f"found <{localname(child.tag)}>",
+                        path(child),
+                    )
+
+
 def validate_mathml(
     markup: str,
     *,
@@ -176,7 +240,7 @@ def validate_mathml(
         )
 
     if not root.tag.startswith(f"{{{MATHML_NS}}}"):
-        report.warning(
+        report.error(
             "structure.namespace",
             "The root element is not in the MathML namespace",
             path(root),
@@ -203,6 +267,8 @@ def validate_mathml(
             "Nested <math> elements are not allowed",
             path(root),
         )
+
+    _validate_child_structure(elements, report)
 
     intent_validator = _IntentValidator(
         report,
@@ -257,9 +323,13 @@ def validate_mathml(
         children = element_children(element)
         if element.attrib:
             continue
+        parent = element.getparent()
+        if not children and parent is not None and has_positional_children(parent):
+            # An empty <mrow/> is the standard placeholder for an empty slot.
+            continue
         if len(children) == 1 or not children:
             report.redundant_mrows += 1
-            report.warning(
+            report.error(
                 "structure.redundant-mrow",
                 "Unnecessary <mrow>; unwrap it or use only when it carries "
                 "intent/arg or real grouping",

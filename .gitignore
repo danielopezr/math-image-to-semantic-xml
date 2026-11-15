@@ -9,3 +9,5 @@ dist/
 *.egg-info/
 examples/output/
 results/
+.env
+.env.*

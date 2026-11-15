@@ -6,6 +6,34 @@ from lxml import etree
 
 MATHML_NS = "http://www.w3.org/1998/Math/MathML"
 
+# Presentation elements whose children are positional.  Each child has a fixed
+# role (numerator, base, exponent, ...), so the number of children is part of
+# the structure and children must never be removed or grouped together.
+FIXED_ARITY: dict[str, int] = {
+    "mfrac": 2,
+    "msup": 2,
+    "msub": 2,
+    "mroot": 2,
+    "munder": 2,
+    "mover": 2,
+    "msubsup": 3,
+    "munderover": 3,
+}
+
+# Elements whose element children must all have one specific tag.
+REQUIRED_CHILD_TAGS: dict[str, frozenset[str]] = {
+    "mtable": frozenset({"mtr", "mlabeledtr"}),
+    "mtr": frozenset({"mtd"}),
+    "mlabeledtr": frozenset({"mtd"}),
+}
+
+
+def has_positional_children(element: etree._Element) -> bool:
+    """Return True when the children of ``element`` have fixed roles."""
+
+    tag = localname(element.tag)
+    return tag in FIXED_ARITY or tag == "mmultiscripts"
+
 
 def qname(name: str) -> str:
     return f"{{{MATHML_NS}}}{name}"

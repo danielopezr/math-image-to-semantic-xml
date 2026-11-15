@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from lxml import etree
 
 from ..models import MathContext
-from .annotator import FUNCTION_CONCEPTS
+from .annotator import FUNCTION_CONCEPTS, is_generic_function_name
 from .concept_cards import ConceptCard, get_concept_cards
 from .concepts import ConceptRegistry, get_registry
 from .dom import element_children, element_text, is_element, localname
@@ -280,16 +280,6 @@ def _context_concepts(context: MathContext) -> set[str]:
     return concepts
 
 
-def _is_name_element(element: etree._Element) -> bool:
-    tag = localname(element.tag)
-    if tag == "mi":
-        return bool(element_text(element))
-    if tag == "msub":
-        children = element_children(element)
-        return len(children) == 2 and localname(children[0].tag) == "mi"
-    return False
-
-
 def _matching_paren(children: list[etree._Element], open_index: int) -> int | None:
     depth = 0
     for index in range(open_index, len(children)):
@@ -306,26 +296,20 @@ def _matching_paren(children: list[etree._Element], open_index: int) -> int | No
     return None
 
 
-def _known_function_name(element: etree._Element) -> str | None:
-    if localname(element.tag) == "mi":
-        text = element_text(element).lower()
-        return text if text in FUNCTION_CONCEPTS else None
-    if localname(element.tag) == "msub":
-        children = element_children(element)
-        if children:
-            text = element_text(children[0]).lower()
-            return text if text in FUNCTION_CONCEPTS else None
-    return None
-
-
 def _has_generic_application(root: etree._Element) -> bool:
+    """Detect f(x)-style applications with the same rule as the annotator.
+
+    Only conventional function names (f, g, h, operator names, f_i, f') count;
+    a(b+c) or 2x(x+1) are products and must not anchor generic-application.
+    """
+
     for element in root.iter():
         if not is_element(element) or localname(element.tag) != "mrow":
             continue
         children = element_children(element)
         for index in range(len(children) - 2):
             name = children[index]
-            if not _is_name_element(name):
+            if not is_generic_function_name(name):
                 continue
             if localname(children[index + 1].tag) != "mo":
                 continue
@@ -334,8 +318,7 @@ def _has_generic_application(root: etree._Element) -> bool:
             close_index = _matching_paren(children, index + 1)
             if close_index is None or close_index <= index + 2:
                 continue
-            if _known_function_name(name) is None:
-                return True
+            return True
     return False
 
 
@@ -355,6 +338,10 @@ def _structural_anchors(
         concept = _SYMBOL_CONCEPTS.get(text)
         if concept is not None:
             anchors.add(concept)
+        # latex2mathml writes \det, \max and \min as <mo>.
+        if text in FUNCTION_CONCEPTS:
+            functions.add(text)
+            anchors.add(FUNCTION_CONCEPTS[text])
     elif tag == "mi":
         lowered = text.lower()
         tokens.add(lowered)

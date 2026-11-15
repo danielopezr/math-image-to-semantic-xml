@@ -1,6 +1,6 @@
 from image_to_mathml.agents.prompts import (
     direct_messages,
-    hybrid_messages,
+    semantic_messages,
     vision_messages,
 )
 from image_to_mathml.models import MathContext
@@ -29,14 +29,15 @@ def test_strict_core_prompt_forbids_and_omits_open_concept_example():
     assert "gamma-function($arg)" not in system
 
 
-def test_hybrid_prompt_respects_strict_core():
-    system = hybrid_messages(
+def test_semantic_prompt_respects_strict_core():
+    system = semantic_messages(
         r"\Gamma(x)", BASE, MathContext(), allow_open_concepts=False
     )[0]["content"]
-    assert "Do NOT use open concepts" in system
+    assert "Do NOT\nuse open concepts" in system
 
-    normal = hybrid_messages(r"\Gamma(x)", BASE, MathContext())[0]["content"]
-    assert "Do NOT use open concepts" not in normal
+    normal = semantic_messages(r"\Gamma(x)", BASE, MathContext())[0]["content"]
+    assert "Do NOT\nuse open concepts" not in normal
+    assert "allowed by the current policy" in normal
 
 
 def test_prompts_forbid_content_mathml_and_invented_elements():
@@ -68,12 +69,38 @@ def test_prompts_support_indexed_generic_function_names():
     assert "Never invent a\n    concept name for an indexed function" in system
 
 
-def test_hybrid_prompt_examples_are_well_formed():
-    system = hybrid_messages("f_{i}(x)", BASE, MathContext())[0]["content"]
+def test_semantic_prompt_forbids_grouping_positional_children():
+    system = semantic_messages("x^{2}", BASE, MathContext())[0]["content"]
 
-    assert '<mfrac">' not in system
-    assert '<mfrac intent="fraction($num,$den)">' in system
-    assert '<msub arg="name"><mi>f</mi><mi>i</mi></msub>' in system
+    assert "Never wrap or group the children of mfrac, msup" in system
+    assert "a(b+c)" in system
+
+
+def test_open_concept_policy_follows_the_configured_list():
+    system = direct_messages(
+        r"\operatorname{Ai}(x)",
+        MathContext(),
+        allowed_open_concepts=("airy-function",),
+    )[0]["content"]
+    assert "allowed by the current policy are airy-function." in system
+    assert "gamma-function, beta-function" not in system
+    assert "gamma-function($arg)" not in system
+
+    default = direct_messages(r"\Gamma(x)", MathContext())[0]["content"]
+    assert "gamma-function, beta-function and error-function" in default
+
+    semantic = semantic_messages(
+        "x", BASE, MathContext(), allowed_open_concepts=("airy-function",)
+    )[0]["content"]
+    assert "airy-function" in semantic
+
+
+def test_vision_prompt_is_compact():
+    vision = vision_messages(MathContext())[0]["content"]
+    direct = direct_messages("x", MathContext())[0]["content"]
+
+    assert "Common core names are" in vision
+    assert len(vision) < len(direct) - 1500
 
 
 def test_vision_prompt_requests_direct_mathml_without_latex():
