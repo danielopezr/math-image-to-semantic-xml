@@ -147,10 +147,8 @@ def test_hybrid_retrieves_concepts_once_and_sends_a_schema(monkeypatch):
     assert len(calls) == 1
     assert len(llm.kwargs) == 3
     schema = llm.kwargs[0]["json_schema"]
-    assert (
-        "power"
-        in schema["properties"]["annotations"]["items"]["properties"]["concept"]["enum"]
-    )
+    for variant in schema["properties"]["annotations"]["items"]["anyOf"]:
+        assert "power" in variant["properties"]["concept"]["enum"]
     assert len(result.warnings) == len(set(result.warnings))
 
 
@@ -252,3 +250,51 @@ def test_openai_client_drops_response_format_when_unsupported(monkeypatch):
 )
 def test_model_matches_is_strict(installed, wanted, expected):
     assert model_matches(installed, wanted) is expected
+
+
+class _ScriptedLLM(_JsonErrorLLM):
+    def __init__(self, answer):
+        super().__init__()
+        self.answer = answer
+
+    def chat(self, messages, **kwargs):
+        self.kwargs.append(kwargs)
+        return self.answer
+
+
+def test_deterministic_annotator_fills_what_the_llm_left_unannotated():
+    # The LLM only annotates the fraction of f(x)=1/(1+e^{-x}).
+    llm = _ScriptedLLM(
+        '{"annotations": [{"target": "n8", "concept": "fraction",'
+        ' "args": {"a1": "n9", "a2": "n10"}}]}'
+    )
+    pipeline = EquationPipeline(Settings(max_repair_attempts=0), llm=llm)
+
+    result = pipeline.run(
+        EquationRequest(latex=r"f(x)=\frac{1}{1+e^{-x}}", flow=Flow.HYBRID)
+    )
+
+    assert result.llm_used
+    assert result.validation.acceptable
+    assert 'intent="fraction($num,$den)"' in result.mathml
+    assert 'intent="$name($var)"' in result.mathml
+    assert 'intent="exponential($exp)"' in result.mathml
+    assert any("deterministic fill (+2" in step for step in result.trace)
+
+
+def test_fill_is_skipped_when_it_would_break_the_llm_annotation():
+    # The LLM points $arg1 at the bare "f"; wrapping f(x) in a generic
+    # application would hide that reference, so the fill must be discarded.
+    llm = _ScriptedLLM(
+        '{"annotations": [{"target": "n2", "concept": "equals",'
+        ' "args": {"a1": "n3", "a2": "n8"}}]}'
+    )
+    pipeline = EquationPipeline(Settings(max_repair_attempts=0), llm=llm)
+
+    result = pipeline.run(EquationRequest(latex="f(x)=y", flow=Flow.HYBRID))
+
+    assert result.llm_used
+    assert result.validation.ok
+    assert 'intent="equals($arg1,$arg2)"' in result.mathml
+    assert "$name($var)" not in result.mathml
+    assert not any("deterministic fill" in step for step in result.trace)

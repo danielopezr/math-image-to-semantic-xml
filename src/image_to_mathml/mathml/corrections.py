@@ -112,6 +112,69 @@ def _split_subscript(element: etree._Element) -> None:
         parent.insert(index + offset, digit_cell)
 
 
+_CLOSER_TO_OPENER = {")": "(", "]": "[", "}": "{"}
+_SCRIPT_TAGS = {"msup", "msub", "msubsup"}
+
+
+def _matching_opener_index(
+    siblings: list[etree._Element], close_index: int, opener: str, closer: str
+) -> int | None:
+    depth = 0
+    for index in range(close_index - 1, -1, -1):
+        sibling = siblings[index]
+        if localname(sibling.tag) != "mo":
+            continue
+        text = element_text(sibling)
+        if text == closer:
+            depth += 1
+        elif text == opener:
+            if depth == 0:
+                return index
+            depth -= 1
+    return None
+
+
+def attach_parenthesized_bases(root: etree._Element) -> int:
+    """Make ``(1+r)^t`` a power of the whole parenthesised group.
+
+    ``latex2mathml`` attaches a script to the closing delimiter only:
+    ``( 1 + r <msup>) t</msup>``, which reads as "close parenthesis to the
+    power t".  The opening delimiter and everything up to the closing one are
+    moved into an ``<mrow>`` that becomes the base of the script.  Returns the
+    number of scripts fixed.
+    """
+
+    fixed = 0
+    for script in list(root.iter()):
+        if localname(script.tag) not in _SCRIPT_TAGS:
+            continue
+        children = element_children(script)
+        if not children or localname(children[0].tag) != "mo":
+            continue
+        closer = element_text(children[0])
+        opener = _CLOSER_TO_OPENER.get(closer)
+        parent = script.getparent()
+        if opener is None or parent is None:
+            continue
+        siblings = element_children(parent)
+        script_index = siblings.index(script)
+        open_index = _matching_opener_index(siblings, script_index, opener, closer)
+        if open_index is None:
+            continue
+
+        base = etree.Element(qname("mrow"))
+        for node in siblings[open_index:script_index]:
+            base.append(node)  # moving keeps each node's tail
+        closing = children[0]
+        closing_tail = closing.tail
+        closing.tail = None
+        base.append(closing)
+        base.tail = closing_tail
+        script.insert(0, base)
+        fixed += 1
+    return fixed
+
+
 def split_matrix_subscripts(root: etree._Element) -> None:
     """Split matrix indexes and matching references into individual digits.
 

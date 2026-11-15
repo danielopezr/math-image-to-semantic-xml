@@ -743,7 +743,23 @@ def _card_from_concept(name: str, concept: Concept) -> ConceptCard:
     targets = _TARGET_OVERRIDES.get(name)
     if targets is not None:
         data["targets"] = targets
+    data["targets"] = _reachable_targets(signatures, data["targets"])  # type: ignore[arg-type]
     return ConceptCard(**data)  # type: ignore[arg-type]
+
+
+# Token elements have no element children, so an intent placed on them can
+# never reference an argument ($x must point at a descendant).  For example
+# u × v cannot be annotated on the <mo>×</mo>; it goes on the enclosing mrow.
+_TOKEN_TARGETS = frozenset({"mi", "mo", "mn", "mtext", "mspace"})
+
+
+def _reachable_targets(
+    signatures: tuple[CardSignature, ...], targets: tuple[str, ...]
+) -> tuple[str, ...]:
+    if not signatures or any(signature.min_arity == 0 for signature in signatures):
+        return tuple(targets)
+    reachable = tuple(target for target in targets if target not in _TOKEN_TARGETS)
+    return reachable or ("mrow",)
 
 
 _FUNCTION_CARD_OVERRIDES = _function_cards()

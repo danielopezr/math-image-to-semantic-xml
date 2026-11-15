@@ -287,10 +287,10 @@ JSON contract:
   ]
 }}
 
-Optional keys per annotation: "wrap" instead of "target"; "new_id" only when
-a later annotation must reference the new wrapper; "groups" for an argument
-that spans several sibling ids; "literals" for literal intent arguments that
-are not elements.
+Every annotation starts with "target" (or "wrap"), then "concept", then
+"args". Optional keys: "wrap" instead of "target"; "new_id" only when a later
+annotation must reference the new wrapper; "literals" for literal intent
+arguments that are not elements.
 
 Rules:
 1. Use only ids that exist in the supplied tree. Ids are temporary and must
@@ -314,8 +314,9 @@ Rules:
    natural-logarithm, absolute-value, floor, ceiling, factorial: a1=arg
    logarithm: a1=arg, a2=base
    generic-application: a1=name, a2=var
-5. Use "groups" when one argument spans several sibling elements. Grouped ids
-   must be contiguous siblings under the same parent.
+5. The value of an argument is one id, or a list of ids when the argument
+   spans several sibling elements: "a2": ["n6", "n7", "n8"]. Listed ids must be
+   contiguous siblings under the same parent. Define each slot only once.
 6. Use "literals" only for literal intent arguments that are not elements in
    the tree, such as the index 2 of a square root.
 7. A generic function application such as f(x) or f_i(x+1) uses
@@ -334,20 +335,36 @@ Rules:
 13. If you are not sure, omit that annotation.
 14. Each candidate card lists possible target element kinds after "targets",
     preferred first. Target the smallest element that contains every argument
-    id. For an infix operation such as a⋅b, target the <mo> operator when
-    its operands are siblings. When a fenced or compound notation represents
-    the whole concept, such as <a,b> or (a,b) for an inner product or an
-    ordered pair, target the enclosing <mrow> that contains the delimiters and
-    all argument ids. Do not annotate a child element when the concept belongs
-    to the enclosing expression. If no listed target kind contains all
-    arguments, omit the annotation.
+    id: every argument must be inside the target. An intent on an operator
+    token (<mo>, <mi>, <mn>) can never reference its operands, so for an
+    infix or postfix operation such as u×v, a⋅b or n! target the
+    <mrow> that contains the operator and its operands. Do not annotate a child
+    element when the concept belongs to the enclosing expression. If no listed
+    target kind contains all arguments, omit the annotation.
+15. The tree already groups delimiters and postfix operators with what they
+    apply to: |...|, ||...||, floor, ceiling and <...> with their content, n!
+    with n, and a sum, product, integral or limit with its body. Use those
+    <mrow> groups as follows:
+    - absolute-value, norm, floor, ceiling, inner-product and factorial:
+      target the group; the arguments are the content without the delimiters
+      (one argument, except inner-product with two).
+    - definite-integral and limit follow the W3C prefix pattern: put the
+      intent on the operator element that carries the limits (<msubsup>,
+      <munderover>, <msub> or <munder>). definite-integral: a1=lower limit,
+      a2=upper limit (the integral sign and the integrand are not
+      arguments). limit: a1=the "x -> 0" part.
+    - sum and product: target the group of the operator and its body;
+      a1=lower limit, a2=upper limit, a3=the body ("sum from a1 to a2 of
+      a3"). With only a lower limit use a1=lower limit, a2=body.
+    - power targets an <msup> (never an <msubsup>, never a function name such
+      as sin in sin^2 x); transpose targets the <msup> with a1=its base.
 
 Examples:
 Fraction:
 {{"version": 1, "annotations": [{{"target": "n3", "concept": "fraction", "args": {{"a1": "n4", "a2": "n5"}}}}]}}
 
 Generic function f_i(x+1):
-{{"version": 1, "annotations": [{{"target": "n2", "concept": "generic-application", "args": {{"a1": "n3"}}, "groups": {{"a2": ["n6", "n7", "n8"]}}}}]}}
+{{"version": 1, "annotations": [{{"target": "n2", "concept": "generic-application", "args": {{"a1": "n3", "a2": ["n6", "n7", "n8"]}}}}]}}
 
 Generic function inside a larger expression (use wrap when no container exists):
 {{"version": 1, "annotations": [{{"wrap": ["n2", "n3", "n4", "n5"], "concept": "generic-application", "args": {{"a1": "n2", "a2": "n4"}}}}]}}

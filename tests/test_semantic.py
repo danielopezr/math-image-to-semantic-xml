@@ -428,18 +428,58 @@ def test_grouping_the_children_of_a_positional_element_is_rejected():
     assert "fixed role" in result.errors[0]
 
 
+def _annotation_variants(schema):
+    return schema["properties"]["annotations"]["items"]["anyOf"]
+
+
 def test_semantic_json_schema_restricts_concepts_to_the_candidates():
     from image_to_mathml.mathml.semantic import semantic_json_schema
 
-    schema = semantic_json_schema(["fraction", "power"])
-    concept = schema["properties"]["annotations"]["items"]["properties"]["concept"]
-    assert concept["enum"] == ["fraction", "generic-application", "power"]
-    assert (
-        "enum"
-        not in semantic_json_schema()["properties"]["annotations"]["items"][
-            "properties"
-        ]["concept"]
+    for variant in _annotation_variants(semantic_json_schema(["fraction", "power"])):
+        assert variant["properties"]["concept"]["enum"] == [
+            "fraction",
+            "generic-application",
+            "power",
+        ]
+    for variant in _annotation_variants(semantic_json_schema()):
+        assert "enum" not in variant["properties"]["concept"]
+
+
+def test_semantic_json_schema_requires_a_target_or_a_wrap():
+    from image_to_mathml.mathml.semantic import semantic_json_schema
+
+    by_target, by_wrap = _annotation_variants(semantic_json_schema())
+    assert by_target["required"] == ["target", "concept"]
+    assert by_wrap["required"] == ["wrap", "concept"]
+    for variant in (by_target, by_wrap):
+        assert variant["additionalProperties"] is False
+        # Multi-node arguments are lists inside "args"; there is no "groups"
+        # object that could define the same slot a second time.
+        assert "groups" not in variant["properties"]
+    assert "wrap" not in by_target["properties"]
+    assert "target" not in by_wrap["properties"]
+
+
+def test_list_valued_args_are_applied_as_groups():
+    root = _with_ids(
+        f"<math {NS}><mrow><mi>f</mi><mo>(</mo><mi>x</mi><mo>+</mo><mn>1</mn>"
+        "<mo>)</mo></mrow></math>"
     )
+    result = apply_semantic_payload(
+        root,
+        [
+            {
+                "target": "n2",
+                "concept": "generic-application",
+                "args": {"a1": "n3", "a2": ["n5", "n6", "n7"]},
+            }
+        ],
+    )
+    assert result.ok, result.errors
+    final = _final(root)
+    assert 'intent="$name($var)"' in final
+    assert '<mrow arg="var">' in final
+    assert validate_mathml(final).ok
 
 
 def test_concept_roles_only_use_known_concepts():

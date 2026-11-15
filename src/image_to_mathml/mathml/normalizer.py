@@ -17,7 +17,7 @@ import re
 
 from lxml import etree
 
-from .corrections import split_matrix_subscripts
+from .corrections import attach_parenthesized_bases, split_matrix_subscripts
 from .dom import (
     MATHML_NS,
     element_children,
@@ -205,6 +205,7 @@ def parse_and_normalize(markup: str) -> etree._Element:
     for child in element_children(mrow):
         _simplify(child)
     _simplify(mrow, is_root_mrow=True)
+    attach_parenthesized_bases(root)
     split_matrix_subscripts(root)
 
     children = element_children(root)
@@ -213,8 +214,39 @@ def parse_and_normalize(markup: str) -> etree._Element:
     return root
 
 
+# Token elements whose text is content: whitespace inside them is meaningful.
+_TOKEN_TAGS = frozenset({"mi", "mn", "mo", "mtext", "ms", "mspace", "mglyph"})
+
+
+def _drop_layout_whitespace(root: etree._Element) -> None:
+    """Remove whitespace-only text between elements.
+
+    That whitespace is only indentation from an earlier pretty-print; keeping
+    it makes the indentation inconsistent once elements are inserted or moved.
+    Text inside token elements is never touched.
+    """
+
+    for element in root.iter():
+        if not is_element(element):
+            continue
+        if (
+            localname(element.tag) not in _TOKEN_TAGS
+            and element.text is not None
+            and not element.text.strip()
+        ):
+            element.text = None
+        parent = element.getparent()
+        if (
+            element.tail is not None
+            and not element.tail.strip()
+            and (parent is None or localname(parent.tag) not in _TOKEN_TAGS)
+        ):
+            element.tail = None
+
+
 def serialize_mathml(root: etree._Element) -> str:
     split_matrix_subscripts(root)
+    _drop_layout_whitespace(root)
     return etree.tostring(root, encoding="unicode", pretty_print=True).strip()
 
 

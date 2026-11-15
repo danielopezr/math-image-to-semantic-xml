@@ -20,6 +20,7 @@ from .mathml.annotator import annotate_tree
 from .mathml.concept_rag import ConceptRAG
 from .mathml.concepts import ConceptRegistry, get_registry
 from .mathml.converter import LatexToMathML
+from .mathml.grouping import group_operator_scopes
 from .mathml.latex import clean_latex
 from .mathml.normalizer import (
     NormalizationError,
@@ -797,6 +798,10 @@ class EquationPipeline:
             base_root = parse_and_normalize(base_mathml)
         with timings.measure("clean", "semantic-cleaner", note="drop intent/arg/id"):
             strip_semantic_attributes(base_root)
+        with timings.measure("group", "operator-grouping"):
+            groups = group_operator_scopes(base_root)
+        if groups:
+            trace.append(f"operator-grouping ({groups} group(s))")
 
         with timings.measure("llm-check", self.settings.llm_backend):
             llm_ready = self._llm_ready(warnings)
@@ -822,6 +827,7 @@ class EquationPipeline:
 
         feedback: list[str] | None = None
         attempts = 0
+        best_partial = None
         for attempt in range(max_repairs + 1):
             attempts = attempt + 1
             with timings.measure("attempt", tool, attempt=attempts):
@@ -918,6 +924,21 @@ class EquationPipeline:
                         f"attempt {attempts}: semantic-error "
                         f"({len(applied.errors)} problem(s))"
                     )
+                    if applied.applied:
+                        # The invalid annotations were rolled back; keep the
+                        # valid part in case no later attempt is fully valid.
+                        partial = self._partial_candidate(attempt_root, allow_open)
+                        if partial is not None and (
+                            best_partial is None
+                            or partial[1].intent_count > best_partial[1].intent_count
+                        ):
+                            best_partial = (
+                                partial[0],
+                                partial[1],
+                                attempts,
+                                output,
+                                len(applied.errors),
+                            )
                     continue
                 if applied.applied == 0:
                     feedback = list(applied.warnings) or [
@@ -946,6 +967,17 @@ class EquationPipeline:
                 if report.acceptable:
                     output.accepted = True
                     trace.append(f"attempt {attempts}: accepted")
+                    with timings.measure(
+                        "deterministic-fill", "annotator", attempt=attempts
+                    ):
+                        candidate, report, added = self._fill_unannotated(
+                            candidate, report, allow_open
+                        )
+                    if added:
+                        trace.append(
+                            f"attempt {attempts}: deterministic fill "
+                            f"(+{added} intent(s))"
+                        )
                     return PipelineResult(
                         latex=latex,
                         mathml=candidate,
@@ -968,6 +1000,36 @@ class EquationPipeline:
                     f"attempt {attempts}: rejected ({len(report.errors)} errors, "
                     f"{report.intent_count} intents)"
                 )
+
+        if best_partial is not None:
+            candidate, report, partial_attempt, output, dropped = best_partial
+            output.accepted = True
+            trace.append(
+                f"attempt {partial_attempt}: accepted the valid annotations "
+                f"({dropped} invalid one(s) discarded)"
+            )
+            with timings.measure("deterministic-fill", "annotator"):
+                candidate, report, added = self._fill_unannotated(
+                    candidate, report, allow_open
+                )
+            if added:
+                trace.append(f"deterministic fill (+{added} intent(s))")
+            warnings.append(
+                f"{dropped} invalid LLM annotation(s) were discarded; the valid "
+                "ones were kept."
+            )
+            return PipelineResult(
+                latex=latex,
+                mathml=candidate,
+                flow=Flow.HYBRID,
+                validation=report,
+                attempts=attempts,
+                llm_used=True,
+                ocr_backend=ocr_backend,
+                warnings=warnings,
+                trace=trace,
+                llm_outputs=llm_outputs,
+            )
 
         fallback = self._annotate_base(
             latex,
@@ -1031,6 +1093,60 @@ class EquationPipeline:
             added += 1
         trace.append(f"open-concept-rag ({len(open_cards)} cards, {added} added)")
         return concept_cards
+
+    def _partial_candidate(
+        self, attempt_root: etree._Element, allow_open: bool
+    ) -> tuple[str, ValidationReport] | None:
+        """Validate the annotations that applied cleanly in a failed attempt."""
+
+        root = copy.deepcopy(attempt_root)
+        strip_node_ids(root)
+        try:
+            candidate = normalize_mathml(serialize_mathml(root))
+            candidate_root = parse_and_normalize(candidate)
+        except NormalizationError:
+            return None
+        if prune_orphan_args(candidate_root):
+            candidate = serialize_mathml(candidate_root)
+        report = validate_mathml(
+            candidate,
+            allow_open_concepts=allow_open,
+            allowed_open_concepts=self._allowed_open(allow_open),
+            registry=self.registry,
+        )
+        if not report.acceptable:
+            return None
+        return candidate, report
+
+    def _fill_unannotated(
+        self,
+        candidate: str,
+        report: ValidationReport,
+        allow_open: bool,
+    ) -> tuple[str, ValidationReport, int]:
+        """Complete an accepted LLM annotation with the deterministic annotator.
+
+        Small models often annotate only part of an expression (the fraction
+        but not f(x) or e^{-x}).  The deterministic annotator never touches an
+        element that already has an intent, so it only fills the gaps.  The
+        filled version is kept only if it still validates; otherwise the LLM
+        result is returned unchanged.
+        """
+
+        root = parse_and_normalize(candidate)
+        annotate_tree(root)
+        prune_orphan_args(root)
+        filled = serialize_mathml(root)
+        filled_report = validate_mathml(
+            filled,
+            allow_open_concepts=allow_open,
+            allowed_open_concepts=self._allowed_open(allow_open),
+            registry=self.registry,
+        )
+        added = filled_report.intent_count - report.intent_count
+        if added <= 0 or not filled_report.acceptable:
+            return candidate, report, 0
+        return filled, filled_report, added
 
     def _looks_like_mathml(self, text: str) -> bool:
         lowered = (text or "").lower()

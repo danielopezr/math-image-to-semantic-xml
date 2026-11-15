@@ -67,8 +67,10 @@ def test_operator_and_fenced_concepts_offer_target_alternatives():
 
     assert inner is not None
     assert ordered is not None
-    assert inner.targets == ("mo", "mrow")
-    assert ordered.targets == ("mrow", "mo")
+    # An intent on the <mo> could not reference the operands (they are its
+    # siblings), so concepts with arguments only offer the enclosing mrow.
+    assert inner.targets == ("mrow",)
+    assert ordered.targets == ("mrow",)
     assert "\\cdot" in inner.latex
     assert "\u27e8" in ordered.symbols
 

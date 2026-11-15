@@ -60,6 +60,37 @@ Supported flows:
   the result. If validation fails, the JSON request is repeated with structured
   feedback. Invalid or missing annotations are rebuilt by the deterministic
   annotator.
+
+  Details of the hybrid flow:
+
+  - Before the LLM call, each operator is grouped with what it applies to in
+    an `<mrow>`: sums, products, integrals and limits with their body,
+    `|...|`, `‖...‖`, floor, ceiling and `⟨...⟩` with their content,
+    `d/dx` with its operand and `n!` with `n`. In Presentation MathML these
+    are siblings, and small models cannot build that group themselves.
+  - Each annotation is applied as a transaction: an invalid one is rolled back
+    and reported, and the valid ones are kept. When no attempt is fully valid,
+    the best set of valid annotations is used instead of discarding the LLM
+    answer.
+  - Placement follows the W3C core concept list: delimiter concepts
+    (`absolute-value`, `norm`, `floor`, `inner-product`) and `factorial` go on
+    the group; `definite-integral` and `limit` go on the operator element that
+    carries the limits (`msubsup`, `msub`...), with the limits as arguments;
+    `sum` and `product` go on the group with lower limit, upper limit and
+    body. Concept cards never offer a token (`mo`, `mi`, `mn`) as target for a
+    concept with arguments, because an intent on a token cannot reference its
+    operands.
+  - Concepts with a fixed Presentation form must target it (`power` an
+    `msup`, never an `msubsup` nor a function name such as `sin` in
+    `sin^2 x`; `indexed-by` an `msub`; `fraction` an `mfrac` or a linear
+    `mrow`; `root` an `msqrt`/`mroot`).
+  - After an accepted answer, the deterministic annotator fills the parts the
+    LLM left unannotated, without touching the LLM's annotations; the filled
+    result is used only if it still validates.
+
+  The normaliser also fixes a `latex2mathml` quirk: in `(1+r)^{t}` the
+  exponent is attached to the closing parenthesis only, so the whole
+  parenthesised group is moved into the base.
 - `direct`: the LLM converts LaTeX directly into annotated MathML. With
   `--direct-vision`, the Ollama vision agent reads the image directly instead
   and keeps the direct flow's deterministic fallback.
@@ -137,7 +168,10 @@ OCR-specific environment variables:
 - `IMAGE_TO_MATHML_PADDLEOCR_MODEL`: default `PP-FormulaNet_plus-M`.
 - `OLLAMA_STREAM`: enable Ollama streaming (`true`/`false`, default `false`).
 - `IMAGE_TO_MATHML_OLLAMA_VISION_MODEL`: default `qwen3-vl:4b-instruct`; use
-  `qwen3-vl:2b` on very low-RAM machines.
+  `qwen3-vl:2b-instruct` on very low-RAM machines. Always choose an
+  `-instruct` tag: the plain `qwen3-vl:2b` tag is a thinking model that spends
+  the output budget reasoning and often returns an empty answer (it keeps
+  reasoning even with `OLLAMA_THINK=false`).
 - `IMAGE_TO_MATHML_OLLAMA_VISION_BASE_URL`: default `OLLAMA_BASE_URL` or
   `http://localhost:11434`. Used by both the vision agent and the
   `ollama_vision` OCR backend.
@@ -485,9 +519,10 @@ Direct flow using the vision agent with deterministic fallback:
 image-to-mathml convert --image equation.png --flow direct --direct-vision
 ```
 
-For very low RAM, pull `qwen3-vl:2b` and use
-`--vision-model qwen3-vl:2b` or
-`IMAGE_TO_MATHML_OLLAMA_VISION_MODEL=qwen3-vl:2b`. The same vision agent can be
+For very low RAM, pull `qwen3-vl:2b-instruct` and use
+`--vision-model qwen3-vl:2b-instruct` or
+`IMAGE_TO_MATHML_OLLAMA_VISION_MODEL=qwen3-vl:2b-instruct` (not the thinking
+`qwen3-vl:2b` tag). The same vision agent can be
 selected in the direct flow with `IMAGE_TO_MATHML_DIRECT_VISION=1`.
 
 Offline deterministic conversion:

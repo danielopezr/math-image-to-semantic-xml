@@ -273,3 +273,24 @@ def test_removing_an_empty_mrow_keeps_the_following_text():
 def test_strips_reasoning_blocks_before_extracting_mathml():
     answer = "<think>maybe <math><mi>wrong</mi></math></think><math><mi>x</mi></math>"
     assert "wrong" not in normalize_mathml(answer)
+
+
+def test_serialization_reindents_inserted_elements_and_keeps_token_text():
+    from image_to_mathml.mathml.dom import new_element
+    from image_to_mathml.mathml.normalizer import parse_and_normalize
+
+    root = parse_and_normalize(
+        normalize_mathml(
+            "<math><mrow><mi>f</mi><mo>=</mo><mtext> si y solo si </mtext></mrow></math>"
+        )
+    )
+    mrow = next(iter(root))
+    wrapper = new_element("mrow")
+    wrapper.set("intent", "x")
+    mrow.insert(0, wrapper)
+    wrapper.append(list(mrow)[1])
+
+    result = serialize_mathml(root)
+
+    assert '<mrow intent="x">\n' in result
+    assert "<mtext> si y solo si </mtext>" in result

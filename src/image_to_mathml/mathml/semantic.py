@@ -15,9 +15,11 @@ from typing import Any
 
 from lxml import etree
 
+from .annotator import FUNCTION_CONCEPTS
 from .concepts import ConceptRegistry, get_registry
 from .dom import (
     element_children,
+    element_text,
     has_positional_children,
     is_element,
     localname,
@@ -493,6 +495,46 @@ def _set_arg(element: etree._Element, name: str) -> None:
     element.set("arg", name)
 
 
+# Concepts whose Presentation MathML form is a specific element.  Putting them
+# on another element produces a wrong reading, e.g. "power" on the mfrac of
+# d/dx reads "d to the power dx".
+_STRUCTURAL_TARGETS: dict[str, frozenset[str]] = {
+    # An msubsup also has a subscript: annotating it as power($base,$exp)
+    # would drop the index (v_1^2 read as "v squared").
+    "power": frozenset({"msup"}),
+    "indexed-by": frozenset({"msub", "msubsup"}),
+    "fraction": frozenset({"mfrac", "mrow"}),
+    "root": frozenset({"msqrt", "mroot"}),
+}
+
+
+def _check_target_kind(concept: str, target: etree._Element) -> None:
+    allowed = _STRUCTURAL_TARGETS.get(concept)
+    if allowed is None:
+        return
+    tag = localname(target.tag)
+    if tag not in allowed:
+        expected = " or ".join(f"<{name}>" for name in sorted(allowed))
+        raise SemanticError(f"Concept {concept!r} must target {expected}, not <{tag}>")
+
+
+def _snapshot(root: etree._Element) -> list[tuple[etree._Element, dict, list]]:
+    return [
+        (element, dict(element.attrib), list(element))
+        for element in root.iter()
+        if is_element(element)
+    ]
+
+
+def _restore(snapshot: list[tuple[etree._Element, dict, list]]) -> None:
+    """Undo every change made after ``snapshot`` (attributes and wrappers)."""
+
+    for element, attributes, children in snapshot:
+        element.attrib.clear()
+        element.attrib.update(attributes)
+        element[:] = children
+
+
 def _literal_is_valid(value: str) -> bool:
     return bool(_NUMBER_RE.match(value) or _NCNAME_RE.match(value))
 
@@ -514,6 +556,7 @@ def _apply_annotation(
     _check_concept(concept, registry, allow_open_concepts, allowed_open_concepts)
 
     target = _resolve_target(annotation, id_map, seen_targets)
+    _check_target_kind(concept, target)
     slots = _collect_slots(annotation, concept)
     arity = len(slots)
 
@@ -525,6 +568,14 @@ def _apply_annotation(
 
     if set(slots) != set(range(arity)):
         raise SemanticError("Argument slots must be contiguous starting at a1")
+
+    if concept == "power" and slots.get(0, ("", None))[0] == "ref":
+        base = id_map.get(str(slots[0][1]))
+        if base is not None and element_text(base) in FUNCTION_CONCEPTS:
+            raise SemanticError(
+                f"{element_text(base)}^n is not a power of the symbol "
+                f"{element_text(base)!r}; leave it unannotated"
+            )
 
     role_names = _concept_roles(concept, arity)
     intent_arguments: list[str] = []
@@ -596,35 +647,65 @@ def semantic_json_schema(concept_names: list[str] | None = None) -> dict[str, An
 
     Local servers such as Ollama use it to force a syntactically valid answer.
     When ``concept_names`` is given, ``concept`` is restricted to those names.
+
+    The schema enforces the parts of the contract that small models most often
+    get wrong:
+
+    * every annotation names its element, with ``target`` (an existing id) or
+      ``wrap`` (sibling ids to group), never both and never neither;
+    * an argument that spans several siblings is written as a list inside
+      ``args`` (``"a2": ["n6", "n7"]``) instead of a separate ``groups``
+      object, so the same slot cannot be defined twice;
+    * no other keys are allowed.
+
+    The parser still accepts ``groups`` for answers produced without the
+    schema.
     """
 
     concept: dict[str, Any] = {"type": "string"}
     if concept_names:
         concept["enum"] = sorted(set(concept_names) | {"generic-application"})
-    id_list = {"type": "array", "items": {"type": "string"}, "minItems": 1}
-    annotation = {
+    node_id = {"type": "string"}
+    id_list = {"type": "array", "items": node_id, "minItems": 1}
+    args = {
+        "type": "object",
+        "additionalProperties": {"anyOf": [node_id, id_list]},
+    }
+    literals = {"type": "object", "additionalProperties": {"type": "string"}}
+    by_target = {
         "type": "object",
         "properties": {
-            "target": {"type": "string"},
-            "wrap": id_list,
-            "new_id": {"type": "string"},
+            "target": node_id,
             "concept": concept,
-            "args": {"type": "object", "additionalProperties": {"type": "string"}},
-            "groups": {"type": "object", "additionalProperties": id_list},
-            "literals": {
-                "type": "object",
-                "additionalProperties": {"type": "string"},
-            },
+            "args": args,
+            "literals": literals,
         },
-        "required": ["concept"],
+        "required": ["target", "concept"],
+        "additionalProperties": False,
+    }
+    by_wrap = {
+        "type": "object",
+        "properties": {
+            "wrap": {**id_list, "minItems": 2},
+            "new_id": node_id,
+            "concept": concept,
+            "args": args,
+            "literals": literals,
+        },
+        "required": ["wrap", "concept"],
+        "additionalProperties": False,
     }
     return {
         "type": "object",
         "properties": {
             "version": {"type": "integer"},
-            "annotations": {"type": "array", "items": annotation},
+            "annotations": {
+                "type": "array",
+                "items": {"anyOf": [by_target, by_wrap]},
+            },
         },
         "required": ["annotations"],
+        "additionalProperties": False,
     }
 
 
@@ -665,6 +746,11 @@ def apply_semantic_payload(
                 "annotations; left unannotated"
             )
             continue
+        # Each annotation is applied as a transaction: a failing annotation
+        # is rolled back completely, so the valid ones can still be used.
+        snapshot = _snapshot(root)
+        saved_ids = dict(id_map)
+        saved_targets = set(seen_targets)
         try:
             _apply_annotation(
                 annotation,
@@ -676,6 +762,11 @@ def apply_semantic_payload(
             )
             result.applied += 1
         except SemanticError as exc:
+            _restore(snapshot)
+            id_map.clear()
+            id_map.update(saved_ids)
+            seen_targets.clear()
+            seen_targets.update(saved_targets)
             result.errors.append(f"annotation {index}: {exc}")
 
     return result
