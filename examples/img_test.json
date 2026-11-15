@@ -1,7 +1,7 @@
 [
   {
-    "id": "alg002",
-    "image": "images/alg002.jpeg",
+    "id": "alg001",
+    "image": "/home/andres/Documents/Fundamentos de investigacion/dataset/chopped/algebra-lineal/alg001.jpeg",
     "reference_mathml": "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><mrow><mrow intent=\"inner-product($f,$g)\"><mo>(</mo><msub arg=\"f\"><mi>x</mi><mn>2</mn></msub><mo>,</mo><msub arg=\"g\"><mi>y</mi><mn>1</mn></msub><mo>)</mo></mrow><mo>=</mo><mrow><msubsup><mo>&#x222B;</mo><mn>-1</mn><mn>1</mn></msubsup><msup intent=\"power($base,$exp)\"><mi arg=\"base\">t</mi><mn arg=\"exp\">3</mn></msup><mrow><mi>d</mi><mi>t</mi></mrow></mrow><mo>=</mo><mn>0</mn></mrow></math>",
     "area": "Álgebra lineal",
     "topic": "ortogonalización, bases ortogonales"
