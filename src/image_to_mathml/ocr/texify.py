@@ -29,7 +29,7 @@ def _patch_transformers_config_compat() -> None:
     def _to_diff_dict(self):
         return self.to_dict()
 
-    _to_diff_dict._img2mathml_compat = True
+    _to_diff_dict._img2mathml_compat = True  # type: ignore[attr-defined]
     TexifyConfig.to_diff_dict = _to_diff_dict
     TexifyConfig._img2mathml_compat = True
 

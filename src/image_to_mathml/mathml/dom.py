@@ -39,7 +39,9 @@ def qname(name: str) -> str:
     return f"{{{MATHML_NS}}}{name}"
 
 
-def localname(tag: str) -> str:
+def localname(tag: object) -> str:
+    """Tag or attribute name without its namespace; ``""`` for non-str nodes."""
+
     if not isinstance(tag, str):
         return ""
     if tag.startswith("{"):
@@ -55,8 +57,22 @@ def element_children(element: etree._Element) -> list[etree._Element]:
     return [child for child in element if is_element(child)]
 
 
+def as_text(value: str | bytes) -> str:
+    """lxml types text and attribute values as ``str | bytes``; parsed trees
+    always hold ``str``, so this only narrows the type."""
+
+    return value if isinstance(value, str) else value.decode()
+
+
+def drop_attribute(element: etree._Element, name: str) -> None:
+    """Remove ``name`` from ``element`` when present."""
+
+    if name in element.attrib:
+        del element.attrib[name]
+
+
 def element_text(element: etree._Element) -> str:
-    return "".join(element.itertext()).strip()
+    return "".join(as_text(text) for text in element.itertext()).strip()
 
 
 def new_element(name: str) -> etree._Element:

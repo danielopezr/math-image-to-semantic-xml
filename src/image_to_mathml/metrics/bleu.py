@@ -41,7 +41,7 @@ from typing import Any
 from lxml import etree
 
 from ..mathml.concepts import ASSOCIATIVE_CONCEPTS
-from ..mathml.dom import is_element, localname
+from ..mathml.dom import as_text, drop_attribute, is_element, localname
 from ..mathml.intent_parser import (
     IntentNode,
     IntentSyntaxError,
@@ -482,10 +482,13 @@ def _flatten_associative(root: etree._Element) -> None:
     while changed:
         changed = False
         for element in list(root.iter()):
-            if not is_element(element) or element.get("intent") is None:
+            if not is_element(element):
+                continue
+            intent = element.get("intent")
+            if intent is None:
                 continue
             try:
-                ast = _flatten_node(parse_intent(element.get("intent")))
+                ast = _flatten_node(parse_intent(intent))
             except IntentSyntaxError:
                 continue
             if not _is_associative_application(ast):
@@ -501,13 +504,16 @@ def _flatten_associative(root: etree._Element) -> None:
                 )
                 child = candidates[0] if len(candidates) == 1 else None
                 child_ast = None
-                if child is not None and child.get("intent"):
+                child_intent = child.get("intent") if child is not None else None
+                if child_intent:
                     try:
-                        child_ast = _flatten_node(parse_intent(child.get("intent")))
+                        child_ast = _flatten_node(parse_intent(child_intent))
                     except IntentSyntaxError:
                         child_ast = None
-                if child_ast is None or not _is_associative_application(
-                    child_ast, head
+                if (
+                    child is None
+                    or child_ast is None
+                    or not _is_associative_application(child_ast, head)
                 ):
                     new_arguments.append(argument)
                     continue
@@ -523,11 +529,15 @@ def _flatten_associative(root: etree._Element) -> None:
                         target.set("arg", fresh)
                     new_arguments.append(IntentNode(kind="reference", value=fresh))
                 del child.attrib["intent"]
-                child.attrib.pop("arg", None)
-                if localname(child.tag) == "mrow" and not child.attrib:
+                drop_attribute(child, "arg")
+                parent = child.getparent()
+                if (
+                    localname(child.tag) == "mrow"
+                    and not child.attrib
+                    and parent is not None
+                ):
                     # The row only grouped the inner product; grouping is
                     # meaningless for an associative operator.
-                    parent = child.getparent()
                     position = parent.index(child)
                     for offset, node in enumerate(list(child)):
                         parent.insert(position + offset, node)
@@ -583,7 +593,7 @@ def _canonicalise_intents(root: etree._Element) -> None:
         if not is_element(element):
             continue
         if element.get("arg") is not None and element not in covered_args:
-            element.attrib.pop("arg", None)
+            drop_attribute(element, "arg")
 
 
 def normalize_mathml_tree(
@@ -604,8 +614,8 @@ def normalize_mathml_tree(
         for element in root.iter():
             if not is_element(element):
                 continue
-            element.attrib.pop("intent", None)
-            element.attrib.pop("arg", None)
+            drop_attribute(element, "intent")
+            drop_attribute(element, "arg")
     return root
 
 
@@ -623,7 +633,7 @@ def _attribute_tokens(element: etree._Element, include_intent: bool) -> list[str
             continue
         if _ignored_attribute(name):
             continue
-        attributes.append(f'{name}="{_normalise_attribute(value)}"')
+        attributes.append(f'{name}="{_normalise_attribute(as_text(value))}"')
     return attributes
 
 

@@ -57,7 +57,7 @@ class Concept:
 
 
 def _read_registry(filename: str) -> dict[str, Concept]:
-    path = files("image_to_mathml").joinpath("data", filename)
+    path = files("image_to_mathml") / "data" / filename
     payload = json.loads(path.read_text(encoding="utf-8"))
     concepts: dict[str, Concept] = {}
     for name, entry in payload.get("concepts", {}).items():

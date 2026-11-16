@@ -526,9 +526,10 @@ class ConceptRAG:
         seen = {card.name for card in selected}
 
         for name in sorted(features.anchors):
-            card = self.by_name.get(name)
-            if card is None or name in seen:
+            anchor_card = self.by_name.get(name)
+            if anchor_card is None or name in seen:
                 continue
+            card = anchor_card
             if not self._allowed(card, allow_open, allowed_open_concepts):
                 continue
             selected.append(card)

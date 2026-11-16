@@ -20,6 +20,7 @@ import unicodedata
 from dataclasses import dataclass, replace
 from functools import lru_cache
 from importlib.resources import files
+from typing import Any
 
 from lxml import etree
 
@@ -128,12 +129,12 @@ def _as_tuple(value: object) -> tuple[str, ...]:
 
 
 def _read_hints() -> dict[str, object]:
-    path = files("image_to_mathml").joinpath("data", "open_concept_hints.json")
+    path = files("image_to_mathml") / "data" / "open_concept_hints.json"
     return json.loads(path.read_text(encoding="utf-8"))
 
 
 def _merge_card(card: ConceptCard, hint: dict[str, object]) -> ConceptCard:
-    changes: dict[str, object] = {}
+    changes: dict[str, Any] = {}
     for field in _TUPLE_FIELDS:
         extra = _as_tuple(hint.get(field))
         if extra:
@@ -143,7 +144,7 @@ def _merge_card(card: ConceptCard, hint: dict[str, object]) -> ConceptCard:
         if field in hint:
             value = hint[field]
             if field == "priority":
-                changes[field] = int(value)  # type: ignore[arg-type]
+                changes[field] = int(value)  # type: ignore[call-overload]
             else:
                 changes[field] = _as_tuple(value)
     return replace(card, **changes) if changes else card
@@ -222,7 +223,7 @@ class OpenConceptRAG:
         if entries is None:
             open_names = set(self.registry.open) - set(self.registry.core)
             cards = {card.name: card for card in build_concept_cards(self.registry)}
-            entries = []
+            built: list[OpenConceptEntry] = []
             for name in sorted(open_names):
                 card = cards.get(name)
                 if card is None:
@@ -230,8 +231,8 @@ class OpenConceptRAG:
                 hint = raw_cues.get(name, {})
                 if not isinstance(hint, dict):
                     hint = {}
-                entries.append(OpenConceptEntry(card=_merge_card(card, hint)))
-            entries = tuple(entries)
+                built.append(OpenConceptEntry(card=_merge_card(card, hint)))
+            entries = tuple(built)
 
         self.entries = entries
         self.by_name = {entry.card.name: entry for entry in entries}

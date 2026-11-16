@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, fields
+from typing import Any
 
 from .base import OCRError, open_rgb
 
@@ -113,7 +114,7 @@ class PreprocessConfig:
             .strip()
             .lower()
         )
-        values = {field.name: field.default for field in fields(cls)}
+        values: dict[str, Any] = {field.name: field.default for field in fields(cls)}
         values.update(_PROFILES.get(profile_name, _PROFILES["safe"]))
 
         parsers = {
@@ -241,7 +242,7 @@ def _deskew(image, max_angle: float):
         ratio = 900 / max(gray.size)
         gray = gray.resize(
             (max(1, int(gray.width * ratio)), max(1, int(gray.height * ratio))),
-            Image.BILINEAR,
+            Image.Resampling.BILINEAR,
         )
     array = np.asarray(gray)
     threshold = _otsu_threshold(array)
@@ -254,12 +255,12 @@ def _deskew(image, max_angle: float):
     scores: dict[float, float] = {}
     for angle in angles:
         rotated = Image.fromarray((mask * 255).astype(np.uint8)).rotate(
-            float(angle), resample=Image.BILINEAR, fillcolor=0
+            float(angle), resample=Image.Resampling.BILINEAR, fillcolor=0
         )
         projection = np.asarray(rotated, dtype=np.float32).sum(axis=1)
         scores[float(angle)] = float(np.sum(np.diff(projection) ** 2))
 
-    best_angle = max(scores, key=scores.get)
+    best_angle = max(scores, key=scores.__getitem__)
     baseline = scores.get(0.0, 0.0)
     if abs(best_angle) < 0.5:
         return image
@@ -268,7 +269,7 @@ def _deskew(image, max_angle: float):
 
     return image.rotate(
         best_angle,
-        resample=Image.BICUBIC,
+        resample=Image.Resampling.BICUBIC,
         expand=True,
         fillcolor=(255, 255, 255),
     )
@@ -339,7 +340,7 @@ def _upscale_small(image, min_short_side: int):
         return image
     factor = min(8.0, min_short_side / short_side)
     size = (max(1, round(image.width * factor)), max(1, round(image.height * factor)))
-    return image.resize(size, Image.LANCZOS)
+    return image.resize(size, Image.Resampling.LANCZOS)
 
 
 def _binarize(image):

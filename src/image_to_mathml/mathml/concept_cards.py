@@ -661,7 +661,7 @@ def _merge(data: dict[str, object], override: dict[str, object]) -> None:
             data[key] = value
             continue
         if key in _TUPLE_FIELDS:
-            current = tuple(data.get(key, ()))  # type: ignore[arg-type]
+            current: tuple[object, ...] = tuple(data.get(key, ()))  # type: ignore[arg-type]
             data[key] = tuple(dict.fromkeys((*current, *tuple(value))))  # type: ignore[arg-type]
             continue
         data[key] = value
@@ -694,6 +694,7 @@ def _roles_for(name: str, signatures: tuple[CardSignature, ...]) -> tuple[str, .
 def _targets_for(signatures: tuple[CardSignature, ...]) -> tuple[str, ...]:
     targets: list[str] = []
     for signature in signatures:
+        candidates: tuple[str, ...]
         if signature.fixity == "infix":
             candidates = _INFIX_TARGETS
         elif signature.fixity == "prefix":

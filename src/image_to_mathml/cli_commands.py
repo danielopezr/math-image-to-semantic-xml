@@ -7,8 +7,10 @@ import importlib.util
 import json
 import os
 import sys
+from collections.abc import Mapping
 from dataclasses import replace
 from pathlib import Path
+from typing import Any
 
 from .config import Settings
 from .evaluation import (
@@ -21,12 +23,12 @@ from .evaluation import (
 from .llm.base import LLMError
 from .llm.factory import build_llm
 from .mathml.validator import validate_mathml
-from .models import EquationRequest, Flow, MathContext
+from .models import EquationRequest, Flow, MathContext, PipelineResult
 from .pipeline import EquationPipeline, compare_flows
 
 
 def _settings_from_args(args: argparse.Namespace) -> Settings:
-    changes: dict[str, object] = {}
+    changes: dict[str, Any] = {}
     if getattr(args, "model", None):
         changes["ollama_model"] = args.model
     if getattr(args, "vision_model", None):
@@ -179,7 +181,7 @@ def _format_timings(result) -> list[str]:
     attempts = [timing for timing in timings if timing.phase == "attempt"]
     if attempts:
         lines.append("Attempts:")
-        per_attempt: dict[tuple[str, int], list[object]] = {}
+        per_attempt: dict[tuple[str, int], list[Any]] = {}
         for timing in timings:
             if timing.attempt is not None and timing.phase != "attempt":
                 key = (getattr(timing, "group", ""), timing.attempt)
@@ -259,8 +261,8 @@ _IMAGE_DATASET_DEFAULTS = (
 )
 
 
-def _image_dataset_defaults(args: argparse.Namespace) -> dict[str, object]:
-    defaults: dict[str, object] = {}
+def _image_dataset_defaults(args: argparse.Namespace) -> dict[str, Any]:
+    defaults: dict[str, Any] = {}
     for flag, env_name, field_name, value in _IMAGE_DATASET_DEFAULTS:
         if getattr(args, flag, None):
             continue
@@ -334,7 +336,7 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
     return 0 if not report.failed_samples else 2
 
 
-def _comparison_markdown(results: dict[str, object]) -> str:
+def _comparison_markdown(results: Mapping[str, PipelineResult]) -> str:
     lines = ["# Comparación de flujos", ""]
     latex_ocr = next(
         (result.latex for result in results.values() if result.ocr_backend != "none"),
@@ -493,7 +495,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
             models = []
     has_model = client.has_model() if available else False
 
-    payload = {
+    payload: dict[str, Any] = {
         "python": sys.version.split()[0],
         "modules": modules,
         "ocr": {

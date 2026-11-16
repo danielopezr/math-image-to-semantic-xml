@@ -9,6 +9,7 @@ from collections import OrderedDict
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import replace
+from typing import Any
 
 from lxml import etree
 
@@ -1180,7 +1181,7 @@ class EquationPipeline:
             return report.acceptable
         return report.ok
 
-    def _annotator_options(self) -> dict[str, object]:
+    def _annotator_options(self) -> dict[str, Any]:
         """Annotator options from the settings and the current run context."""
 
         context = getattr(self, "_run_context", None) or MathContext()

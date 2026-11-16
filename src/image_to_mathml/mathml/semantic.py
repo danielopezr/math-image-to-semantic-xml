@@ -18,6 +18,7 @@ from lxml import etree
 from .annotator import FUNCTION_CONCEPTS
 from .concepts import ConceptRegistry, get_registry
 from .dom import (
+    drop_attribute,
     element_children,
     element_text,
     has_positional_children,
@@ -149,7 +150,7 @@ def strip_semantic_attributes(root: etree._Element) -> None:
         if not is_element(element):
             continue
         for name in ("intent", "arg", ID_ATTR):
-            element.attrib.pop(name, None)
+            drop_attribute(element, name)
 
 
 def assign_node_ids(root: etree._Element) -> dict[str, etree._Element]:
@@ -170,7 +171,7 @@ def assign_node_ids(root: etree._Element) -> dict[str, etree._Element]:
 def strip_node_ids(root: etree._Element) -> None:
     for element in root.iter():
         if is_element(element):
-            element.attrib.pop(ID_ATTR, None)
+            drop_attribute(element, ID_ATTR)
 
 
 def semantic_tree_markup(root: etree._Element) -> str:

@@ -14,12 +14,14 @@ from __future__ import annotations
 
 import html.entities
 import re
+from typing import Any
 
 from lxml import etree
 
 from .corrections import attach_parenthesized_bases, split_matrix_subscripts
 from .dom import (
     MATHML_NS,
+    as_text,
     element_children,
     has_positional_children,
     is_element,
@@ -84,6 +86,10 @@ def extract_math_markup(text: str) -> str:
     raise NormalizationError("The response does not contain a MathML element")
 
 
+# lxml accepts ``None`` as the default-namespace prefix; lxml-stubs do not.
+_DEFAULT_NSMAP: dict[Any, str] = {None: MATHML_NS}
+
+
 def _copy_attributes(source: etree._Element, target: etree._Element) -> None:
     for key, value in source.attrib.items():
         name = localname(key)
@@ -93,13 +99,13 @@ def _copy_attributes(source: etree._Element, target: etree._Element) -> None:
             and localname(source.tag) == "math"
         ):
             continue
-        target.set(name, value)
+        target.set(name, as_text(value))
 
 
 def _clone_with_namespace(source: etree._Element, parent: etree._Element | None = None):
     tag = localname(source.tag)
     if parent is None:
-        target = etree.Element(qname(tag), nsmap={None: MATHML_NS})
+        target = etree.Element(qname(tag), nsmap=_DEFAULT_NSMAP)
     else:
         target = etree.SubElement(parent, qname(tag))
     _copy_attributes(source, target)
@@ -114,7 +120,7 @@ def _clone_with_namespace(source: etree._Element, parent: etree._Element | None 
 def _ensure_math_root(root: etree._Element) -> etree._Element:
     if localname(root.tag) == "math":
         return root
-    math = etree.Element(qname("math"), nsmap={None: MATHML_NS})
+    math = etree.Element(qname("math"), nsmap=_DEFAULT_NSMAP)
     mrow = etree.SubElement(math, qname("mrow"))
     mrow.append(root)
     return math
