@@ -15,6 +15,7 @@ from .evaluation import (
     evaluate_samples,
     load_evaluation_config,
     load_evaluation_samples,
+    report_csv,
     report_markdown,
 )
 from .llm.base import LLMError
@@ -311,6 +312,9 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
             json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",
         )
+    csv_output = getattr(args, "csv", None)
+    if csv_output:
+        Path(csv_output).write_text(report_csv(report), encoding="utf-8")
 
     if getattr(args, "json", False):
         print(json.dumps(payload, ensure_ascii=False, indent=2))
@@ -318,6 +322,8 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
         print(report_markdown(report))
         if output:
             print(f"\nResultados escritos en {output}", file=sys.stderr)
+        if csv_output:
+            print(f"Resultados CSV escritos en {csv_output}", file=sys.stderr)
         if not getattr(args, "quiet", False):
             for sample in report.failed_samples:
                 print(

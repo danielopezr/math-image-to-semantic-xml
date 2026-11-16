@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import csv
+import io
 import json
 import os
 import re
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -104,12 +106,22 @@ class SampleEvaluation:
     intent_f1: IntentF1 | None = None
     exact_structure: bool | None = None
     exact_intent: bool | None = None
+    elapsed_seconds: float = 0.0
+    # Attempts counted for the per-attempt time: every pipeline run (including
+    # the timeout retries) and its internal repair attempts.
+    attempts_total: int = 0
 
     @property
     def ok(self) -> bool:
         """The pipeline produced an output that could be scored."""
 
         return not self.error and self.structure is not None and self.intent is not None
+
+    @property
+    def seconds_per_attempt(self) -> float:
+        """Total execution time split across the attempts that were made."""
+
+        return self.elapsed_seconds / max(1, self.attempts_total)
 
     @property
     def scored_with_llm(self) -> bool:
@@ -132,6 +144,9 @@ class SampleEvaluation:
             "fallback": self.fallback,
             "structure_source": self.structure_source,
             "attempts": self.attempts,
+            "attempts_total": self.attempts_total,
+            "elapsed_seconds": round(self.elapsed_seconds, 3),
+            "seconds_per_attempt": round(self.seconds_per_attempt, 3),
             "warnings": self.warnings,
             "exact_structure": self.exact_structure,
             "exact_intent": self.exact_intent,
@@ -758,12 +773,16 @@ def evaluate_samples(
             reference_source=sample.reference_source,
         )
         evaluations.append(evaluation)
+        sample_started = time.perf_counter()
+        attempts_total = 0
 
         try:
             canonical_mathml_tokens(sample.reference_mathml, include_intent=True)
         except MathMLNormalizationError as exc:
             # Without a valid reference the sample cannot be scored at all.
             evaluation.error = f"Invalid reference MathML: {exc}"
+            evaluation.elapsed_seconds = time.perf_counter() - sample_started
+            evaluation.attempts_total = attempts_total
             continue
 
         current_timeout = sample.timeout
@@ -775,6 +794,7 @@ def evaluate_samples(
                     sample.to_request(default_flow, timeout=current_timeout)
                 )
             except (ValueError, RuntimeError, OSError) as exc:
+                attempts_total += 1
                 message = str(exc)
                 timed_out = _is_timeout_text(message)
                 if timed_out and retries < retry_limit:
@@ -789,6 +809,7 @@ def evaluate_samples(
                 result = None
                 break
 
+            attempts_total += max(1, int(getattr(result, "attempts", 0) or 0))
             timed_out = _result_timed_out(result)
             if timed_out and retries < retry_limit:
                 current_timeout = (
@@ -804,6 +825,8 @@ def evaluate_samples(
             evaluation.timed_out = timed_out
             break
 
+        evaluation.elapsed_seconds = time.perf_counter() - sample_started
+        evaluation.attempts_total = attempts_total
         evaluation.timeout = current_timeout
         evaluation.timeout_retries = retries
         candidate = ""
@@ -939,6 +962,61 @@ def _timeout_cell(sample: SampleEvaluation) -> str:
     if sample.timeout_retries:
         return f"{sample.timeout_retries} reintentos"
     return ""
+
+
+_CSV_HEADERS = (
+    "muestra",
+    "complejidad",
+    "bleu_estructura",
+    "bleu_intent",
+    "f1_intent",
+    "llm",
+    "validacion",
+    "timeout",
+    "error",
+    "tiempo_total_s",
+    "tiempo_por_intento_s",
+)
+
+
+def report_csv(report: EvaluationReport) -> str:
+    """Return the per-sample report table as CSV.
+
+    It mirrors the table printed by :func:`report_markdown` and adds the total
+    execution time of each equation and the time per attempt (total time
+    divided by the attempts made, including timeout retries).
+    """
+
+    buffer = io.StringIO()
+    writer = csv.writer(buffer, lineterminator="\n")
+    writer.writerow(_CSV_HEADERS)
+    for sample in report.samples:
+        structure = (
+            f"{sample.structure.score:.6f}" if sample.structure is not None else ""
+        )
+        intent = f"{sample.intent.score:.6f}" if sample.intent is not None else ""
+        f1 = f"{sample.intent_f1.f1:.6f}" if sample.intent_f1 is not None else ""
+        validation = (
+            ""
+            if sample.validation_ok is None
+            else ("sí" if sample.validation_ok else "no")
+        )
+        writer.writerow(
+            [
+                sample.sample_id,
+                sample.eqn_complexity,
+                structure,
+                intent,
+                f1,
+                _llm_cell(sample),
+                validation,
+                _timeout_cell(sample),
+                " ".join(sample.error.split()),
+                f"{sample.elapsed_seconds:.3f}",
+                f"{sample.seconds_per_attempt:.3f}",
+            ]
+        )
+    return buffer.getvalue()
 
 
 def report_markdown(report: EvaluationReport) -> str:

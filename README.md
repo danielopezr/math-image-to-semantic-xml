@@ -540,13 +540,19 @@ image-to-mathml evaluate --dataset eval/dataset.csv --flow hybrid \
   --ocr ollama_vision --model qwen3:4b-instruct \
   --vision-model qwen3-vl:4b-instruct \
   --timeout-increment 60 --max-timeout-retries 3 \
-  --json --output results/bleu.csv.json
+  --json --output results/bleu.csv.json \
+  --csv results/bleu.csv
 image-to-mathml evaluate --dataset examples/evaluation.jsonl --flow offline \
   --n-gram 4 --json --output results/bleu.json
 ```
 
 The command prints the corpus scores and a per-sample table. JSON output
-contains the same corpus and sample data. The Python API is available through
+contains the same corpus and sample data. `--csv` writes the per-sample table
+(including failed samples) to a CSV file and adds two timing columns:
+`tiempo_total_s` (wall-clock seconds for that equation, including timeout
+retries) and `tiempo_por_intento_s` (total time divided by the attempts made,
+including timeout retries and the pipeline's internal repair attempts). The
+Python API is available through
 `image_to_mathml.metrics.mathml_bleu` / `mathml_corpus_bleu` and
 `image_to_mathml.evaluation.evaluate_samples`.
 

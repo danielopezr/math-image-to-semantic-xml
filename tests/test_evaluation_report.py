@@ -1,6 +1,8 @@
 """Tests for the evaluation report: fallbacks, timeouts, weighting and metrics."""
 
 import argparse
+import csv
+import io
 import json
 
 import pytest
@@ -8,9 +10,11 @@ import pytest
 from image_to_mathml.cli_commands import _image_dataset_defaults
 from image_to_mathml.config import Settings
 from image_to_mathml.evaluation import (
+    SampleEvaluation,
     evaluate_samples,
     load_evaluation_config,
     load_evaluation_samples,
+    report_csv,
     report_markdown,
 )
 from image_to_mathml.models import Flow, PipelineResult, ValidationReport
@@ -294,3 +298,65 @@ def test_image_dataset_defaults_respect_environment(monkeypatch):
     assert "ollama_model" not in defaults
     assert defaults["ocr_backend"] == "ollama_vision"
     assert defaults["ollama_vision_model"] == "qwen3-vl:4b-instruct"
+
+
+def test_report_csv_mirrors_the_sample_table_and_adds_timings(tmp_path):
+    report = evaluate_samples(
+        _power(tmp_path, eqn_complexity="simple"),
+        FakeRunPipeline([_result(_REFERENCE)]),
+    )
+    sample = report.samples[0]
+    sample.elapsed_seconds = 2.5
+    sample.attempts_total = 2
+
+    rows = list(csv.reader(io.StringIO(report_csv(report))))
+
+    assert rows[0] == [
+        "muestra",
+        "complejidad",
+        "bleu_estructura",
+        "bleu_intent",
+        "f1_intent",
+        "llm",
+        "validacion",
+        "timeout",
+        "error",
+        "tiempo_total_s",
+        "tiempo_por_intento_s",
+    ]
+    assert rows[1][0] == "power"
+    assert rows[1][1] == "simple"
+    assert rows[1][2] == "1.000000"
+    assert rows[1][-2:] == ["2.500", "1.250"]
+
+
+def test_seconds_per_attempt_divides_the_total_by_the_attempts_made():
+    sample = SampleEvaluation(sample_id="x", input="")
+    sample.elapsed_seconds = 3.0
+    sample.attempts_total = 3
+
+    assert sample.seconds_per_attempt == 1.0
+    assert sample.as_dict()["elapsed_seconds"] == 3.0
+    assert sample.as_dict()["seconds_per_attempt"] == 1.0
+
+
+def test_timeout_retries_are_counted_as_timing_attempts(tmp_path):
+    timeout = ["The local LLM failed: Read timed out"]
+    pipeline = FakeRunPipeline(
+        [
+            _result(_REFERENCE, warnings=timeout),
+            _result(_REFERENCE, warnings=timeout),
+            _result(_REFERENCE),
+        ]
+    )
+
+    report = evaluate_samples(
+        _power(tmp_path, timeout=300),
+        pipeline,
+        timeout_increment=60,
+        max_timeout_retries=2,
+    )
+
+    assert report.samples[0].timeout_retries == 2
+    assert report.samples[0].attempts_total == 3
+    assert report.samples[0].elapsed_seconds >= 0.0

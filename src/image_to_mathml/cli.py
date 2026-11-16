@@ -217,6 +217,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Evaluate only the first N samples",
     )
+    evaluate.add_argument(
+        "--csv",
+        default=None,
+        help="Write the per-sample report table to this CSV file, including "
+        "the total time and the time per attempt",
+    )
     evaluate.set_defaults(func=cmd_evaluate)
 
     check = subparsers.add_parser("check", help="Validate a MathML + intent document")
