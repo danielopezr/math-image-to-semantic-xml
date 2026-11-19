@@ -327,12 +327,20 @@ def test_report_csv_mirrors_the_sample_table_and_adds_timings(tmp_path):
         "error",
         "tiempo_total_s",
         "tiempo_por_intento_s",
+        "tiempo_vision_s",
+        "tiempo_llm_s",
+        "tiempo_otros_s",
+        "carga_modelo_s",
+        "lectura_prompt_s",
+        "generacion_s",
+        "tokens_generados",
+        "llamadas_cortadas",
     ]
     assert rows[1][0] == "power"
     assert rows[1][1] == "simple"
     assert rows[1][2] == "1.000000"
     assert rows[1][5:9] == ["sí", "sí", "sí", "sí"]
-    assert rows[1][-2:] == ["2.500", "1.250"]
+    assert rows[1][13:15] == ["2.500", "1.250"]
 
 
 def test_lenient_exact_match_is_reported_in_samples_rates_and_csv(tmp_path):
@@ -429,6 +437,7 @@ def test_completed_samples_are_rescored_without_running_the_pipeline(tmp_path):
         "timeout_retries": 1,
         "timed_out": False,
         "elapsed_seconds": 12.5,
+        "stage_times": {"vision_seconds": 4.0, "llm_seconds": 7.5, "calls": 2},
         "warnings": ["w"],
         "error": "Invalid output MathML: stale",
     }
@@ -442,6 +451,8 @@ def test_completed_samples_are_rescored_without_running_the_pipeline(tmp_path):
     assert sample.ok and sample.error == ""
     assert sample.exact_structure
     assert (sample.elapsed_seconds, sample.timeout_retries) == (12.5, 1)
+    assert (sample.stages.vision_seconds, sample.stages.llm_seconds) == (4.0, 7.5)
+    assert sample.stages.calls == 2
     assert report.as_dict()["samples"][0]["structure_bleu"]["score"] == 1.0
 
 
@@ -488,3 +499,123 @@ def test_cli_evaluation_saves_partial_results_and_resumes(tmp_path, monkeypatch)
     report = json.loads(output.read_text(encoding="utf-8"))
     assert [sample["sample_id"] for sample in report["samples"]] == ["a", "b"]
     assert not partial.exists()
+
+
+class StagedPipeline(FakeRunPipeline):
+    """Make one vision and one LLM call per run, the first run timing out."""
+
+    def run(self, request):
+        from image_to_mathml.llm.base import apply_ollama_stats, track_model_call
+
+        with track_model_call("vision", "vl") as call:
+            apply_ollama_stats(
+                call,
+                {
+                    "load_duration": 2_000_000_000,
+                    "prompt_eval_duration": 1_000_000_000,
+                    "eval_duration": 4_000_000_000,
+                    "eval_count": 20,
+                },
+            )
+        with track_model_call("llm", "text"):
+            return super().run(request)
+
+
+def test_time_per_stage_adds_every_model_call_including_timeouts(tmp_path):
+    pipeline = StagedPipeline(
+        [RuntimeError("Read timed out. (read timeout=600)"), _result(_REFERENCE)]
+    )
+
+    report = evaluate_samples(_power(tmp_path), pipeline, max_timeout_retries=1)
+
+    stages = report.samples[0].stages
+    assert stages.calls == 4
+    assert stages.cut_calls == 2  # the two LLM calls carried no Ollama stats
+    assert stages.load_seconds == pytest.approx(4.0)
+    assert stages.generate_seconds == pytest.approx(8.0)
+    assert stages.output_tokens == 40
+    assert stages.tokens_per_second == pytest.approx(5.0)
+    total = stages.vision_seconds + stages.llm_seconds + stages.other_seconds
+    assert total == pytest.approx(report.samples[0].elapsed_seconds)
+
+    saved = report.as_dict()
+    assert saved["samples"][0]["stage_times"]["output_tokens"] == 40
+    assert saved["stage_times"]["calls"] == 4
+    markdown = report_markdown(report)
+    assert "## Tiempo por etapa" in markdown
+    assert "carga del modelo en memoria" in markdown
+    assert "2 llamadas cortadas por timeout" in markdown
+
+
+class CutLLMPipeline(FakeRunPipeline):
+    """The first run's LLM call is cut after writing part of its answer."""
+
+    def run(self, request):
+        from image_to_mathml.llm.base import track_model_call
+
+        with track_model_call("llm", "text") as call:
+            if not self.timeouts:
+                call.partial_output = "times(times(times("
+            return super().run(request)
+
+
+def test_cut_answers_and_lowest_free_memory_are_kept_per_sample(tmp_path, monkeypatch):
+    readings = iter([900.0, 640.0])
+    monkeypatch.setattr(
+        "image_to_mathml.llm.base.free_memory_mb", lambda: next(readings)
+    )
+    pipeline = CutLLMPipeline(
+        [RuntimeError("Read timed out. (read timeout=600)"), _result(_REFERENCE)]
+    )
+
+    report = evaluate_samples(_power(tmp_path), pipeline, max_timeout_retries=1)
+
+    sample = report.samples[0]
+    assert sample.cut_outputs == ["llm: times(times(times("]
+    assert sample.stages.min_free_memory_mb == 640.0
+    saved = sample.as_dict()
+    assert saved["cut_outputs"] == ["llm: times(times(times("]
+    assert saved["stage_times"]["min_free_memory_mb"] == 640
+    assert report.stage_totals.min_free_memory_mb == 640.0
+    assert "RAM libre mínima al terminar una llamada: 640 MB" in report_markdown(report)
+
+
+def test_a_sample_without_cut_calls_saves_no_cut_outputs(tmp_path):
+    report = evaluate_samples(_power(tmp_path), FakeRunPipeline([_result(_REFERENCE)]))
+
+    assert "cut_outputs" not in report.samples[0].as_dict()
+
+
+def test_ocr_latex_and_raw_llm_answers_are_saved_and_restored(tmp_path):
+    from image_to_mathml.evaluation import _restore_sample
+    from image_to_mathml.models import LLMOutput
+
+    result = _result(_REFERENCE, llm_used=True)
+    result.latex = "x^{2}"
+    result.llm_outputs = [
+        LLMOutput(
+            flow=Flow.HYBRID,
+            attempt=1,
+            mathml='{"annotations": []}',
+            accepted=True,
+            input_mathml="<math/>",
+        )
+    ]
+
+    report = evaluate_samples(_power(tmp_path), FakeRunPipeline([result]))
+
+    saved = report.samples[0].as_dict()
+    assert saved["output_latex"] == "x^{2}"
+    assert saved["llm_outputs"] == [
+        {
+            "flow": "hybrid",
+            "attempt": 1,
+            "accepted": True,
+            "input_mathml": "<math/>",
+            "mathml": '{"annotations": []}',
+        }
+    ]
+    restored = SampleEvaluation(sample_id="a", input="")
+    _restore_sample(restored, saved)
+    assert restored.output_latex == "x^{2}"
+    assert restored.llm_outputs == saved["llm_outputs"]

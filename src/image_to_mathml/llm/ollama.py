@@ -3,13 +3,22 @@
 from __future__ import annotations
 
 import json
+import time
 from collections.abc import Sequence
 from typing import Any
 
 import requests
 
 from ..config import Settings
-from .base import LLMError, effective_timeout, model_matches, post_with_retries
+from .base import (
+    LLMError,
+    ModelCall,
+    apply_ollama_stats,
+    effective_timeout,
+    model_matches,
+    post_with_retries,
+    track_model_call,
+)
 from .ollama_stream import collect_stream_content
 
 
@@ -84,7 +93,15 @@ class OllamaClient:
     ) -> str:
         stream = self.settings.ollama_stream
         payload = self._payload(messages, temperature, num_predict, json_schema)
+        with track_model_call("llm", self.model) as call:
+            content = self._send(payload, stream, call)
+        if not content.strip():
+            raise LLMError("Ollama returned an empty response")
+        return content
+
+    def _send(self, payload: dict[str, Any], stream: bool, call: ModelCall) -> str:
         timeout = effective_timeout(self.settings.ollama_timeout)
+        deadline = time.monotonic() + timeout
         try:
             response = post_with_retries(
                 lambda: requests.post(
@@ -104,19 +121,24 @@ class OllamaClient:
             raise LLMError(f"Ollama returned HTTP {response.status_code}: {detail}")
 
         if stream:
+            final: dict[str, Any] = {}
             with response:
                 content = collect_stream_content(
-                    response, source=f"Ollama at {self.base_url}"
+                    response,
+                    source=f"Ollama at {self.base_url}",
+                    final=final,
+                    deadline=deadline,
+                    timeout=timeout,
+                    call=call,
                 )
+            apply_ollama_stats(call, final or None)
         else:
             try:
                 data = response.json()
             except ValueError as exc:
                 raise LLMError("Ollama returned a non-JSON response") from exc
 
+            apply_ollama_stats(call, data)
             message = data.get("message") or {}
             content = message.get("content") or data.get("response") or ""
-
-        if not content.strip():
-            raise LLMError("Ollama returned an empty response")
-        return content
+        return str(content)

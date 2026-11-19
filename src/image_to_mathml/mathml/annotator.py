@@ -968,6 +968,73 @@ def _annotate_implicit_times(root: etree._Element, nary: bool) -> None:
         queue.extend(_annotate_implicit_times_in(mrow, nary))
 
 
+_TENDS_TO_ARROWS = frozenset({"→", "⟶"})
+_SIGNS = frozenset({"+", "-", "−"})
+
+
+def _is_limit_variable(element: etree._Element) -> bool:
+    text = element_text(element)
+    return _is_mi(element) and len(text) == 1 and text.isalpha() and text.islower()
+
+
+def _is_limit_value(element: etree._Element) -> bool:
+    """A number, infinity or a single lowercase letter (x → a)."""
+
+    tag = localname(element.tag)
+    if tag == "mn":
+        return True
+    return tag == "mi" and (element_text(element) == "∞" or _is_limit_variable(element))
+
+
+def _signed_value(children: list[etree._Element]) -> bool:
+    return (
+        len(children) == 2
+        and _is_mo(children[0])
+        and element_text(children[0]) in _SIGNS
+        and _is_limit_value(children[1])
+    )
+
+
+def _annotate_tends_to(root: etree._Element) -> None:
+    """Read ``x → a``, ``x → 0`` and ``x → +∞`` as ``tends-to($var, $value)``.
+
+    Only a whole row of the form *letter, arrow, value* is annotated; maps
+    such as ``ℝ² → ℝ²`` or ``f: A → B`` (capital letters) keep their reading.
+    """
+
+    for mrow in list(root.iter()):
+        if not is_element(mrow) or localname(mrow.tag) != "mrow":
+            continue
+        if mrow.get("intent") is not None:
+            continue
+        children = element_children(mrow)
+        if len(children) < 3:
+            continue
+        variable, arrow, *value = children
+        if not _is_mo(arrow) or element_text(arrow) not in _TENDS_TO_ARROWS:
+            continue
+        if not _is_limit_variable(variable) or variable.get("arg") is not None:
+            continue
+        if any(child.get("arg") is not None for child in value):
+            continue
+        if len(value) == 1 and localname(value[0].tag) == "mrow":
+            if not _signed_value(element_children(value[0])):
+                continue
+            target = value[0]
+        elif len(value) == 1 and _is_limit_value(value[0]):
+            target = value[0]
+        elif _signed_value(value):
+            target = new_element("mrow")
+            value[0].addprevious(target)
+            for child in value:
+                target.append(child)
+        else:
+            continue
+        variable.set("arg", "var")
+        target.set("arg", "value")
+        mrow.set("intent", "tends-to($var,$value)")
+
+
 def annotate_tree(
     root: etree._Element,
     *,
@@ -995,6 +1062,7 @@ def annotate_tree(
     _annotate_function_applications(root)
     _annotate_bare_functions(root)
     _annotate_inner_products(root, inner_product_pairs)
+    _annotate_tends_to(root)
     if implicit_times:
         _annotate_implicit_times(root, nary_associative)
     _annotate_linear_fractions(root)

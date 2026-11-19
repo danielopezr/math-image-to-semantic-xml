@@ -18,7 +18,11 @@ from typing import Any
 
 from lxml import etree
 
-from .corrections import attach_parenthesized_bases, split_matrix_subscripts
+from .corrections import (
+    attach_parenthesized_bases,
+    fix_identifier_tokens,
+    split_matrix_subscripts,
+)
 from .dom import (
     MATHML_NS,
     as_text,
@@ -213,6 +217,7 @@ def parse_and_normalize(markup: str) -> etree._Element:
     _simplify(mrow, is_root_mrow=True)
     attach_parenthesized_bases(root)
     split_matrix_subscripts(root)
+    fix_identifier_tokens(root)
 
     children = element_children(root)
     if len(children) != 1 or localname(children[0].tag) != "mrow":

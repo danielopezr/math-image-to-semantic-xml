@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from .llm.base import ModelCall, record_model_calls
 from .mathml.converter import LatexToMathML
 from .mathml.normalizer import normalize_mathml
 from .metrics.bleu import (
@@ -27,7 +28,7 @@ from .metrics.bleu import (
     mathml_bleu,
     mathml_corpus_bleu,
 )
-from .models import EquationRequest, Flow, MathContext
+from .models import EquationRequest, Flow, MathContext, PipelineResult
 from .pipeline import EquationPipeline
 
 # Flows whose result is supposed to come from a language model.  When such a
@@ -86,6 +87,105 @@ class EvaluationConfig:
 
 
 @dataclass
+class StageTimes:
+    """Where the time of one sample went, timeout retries included.
+
+    ``vision`` and ``llm`` are the wall time of the requests to each model;
+    ``other`` is the rest (local OCR, conversion, validation, scoring setup).
+    ``load``, ``prompt`` and ``generate`` split the model requests as Ollama
+    reports them: loading the model into memory, reading the prompt (and
+    image) and writing the answer. A request cut by a timeout has no such
+    split and is counted in ``cut_calls``. ``min_free_memory_mb`` is the
+    lowest free RAM seen at the end of a model call (None if unknown).
+    """
+
+    vision_seconds: float = 0.0
+    llm_seconds: float = 0.0
+    other_seconds: float = 0.0
+    load_seconds: float = 0.0
+    prompt_seconds: float = 0.0
+    generate_seconds: float = 0.0
+    output_tokens: int = 0
+    calls: int = 0
+    cut_calls: int = 0
+    min_free_memory_mb: float | None = None
+
+    _FIELDS = (
+        "vision_seconds",
+        "llm_seconds",
+        "other_seconds",
+        "load_seconds",
+        "prompt_seconds",
+        "generate_seconds",
+        "output_tokens",
+        "calls",
+        "cut_calls",
+    )
+
+    @classmethod
+    def from_calls(cls, calls: list[ModelCall], elapsed: float) -> StageTimes:
+        times = cls()
+        for call in calls:
+            if call.stage == "vision":
+                times.vision_seconds += call.seconds
+            else:
+                times.llm_seconds += call.seconds
+            times.load_seconds += call.load_seconds
+            times.prompt_seconds += call.prompt_seconds
+            times.generate_seconds += call.generate_seconds
+            times.output_tokens += call.output_tokens
+            times.calls += 1
+            if not call.completed:
+                times.cut_calls += 1
+            times._see_memory(call.free_memory_mb)
+        times.other_seconds = max(
+            0.0, elapsed - times.vision_seconds - times.llm_seconds
+        )
+        return times
+
+    @classmethod
+    def from_dict(cls, data: object) -> StageTimes:
+        times = cls()
+        if isinstance(data, dict):
+            for name in cls._FIELDS:
+                value = data.get(name)
+                if isinstance(value, int | float):
+                    current = getattr(times, name)
+                    setattr(times, name, type(current)(value))
+            memory = data.get("min_free_memory_mb")
+            if isinstance(memory, int | float):
+                times.min_free_memory_mb = float(memory)
+        return times
+
+    def _see_memory(self, value: float | None) -> None:
+        if value is not None and (
+            self.min_free_memory_mb is None or value < self.min_free_memory_mb
+        ):
+            self.min_free_memory_mb = value
+
+    def add(self, other: StageTimes) -> None:
+        for name in self._FIELDS:
+            setattr(self, name, getattr(self, name) + getattr(other, name))
+        self._see_memory(other.min_free_memory_mb)
+
+    @property
+    def tokens_per_second(self) -> float:
+        if self.generate_seconds <= 0:
+            return 0.0
+        return self.output_tokens / self.generate_seconds
+
+    def as_dict(self) -> dict[str, Any]:
+        payload: dict[str, Any] = {}
+        for name in self._FIELDS:
+            value = getattr(self, name)
+            payload[name] = round(value, 3) if isinstance(value, float) else value
+        payload["tokens_per_second"] = round(self.tokens_per_second, 3)
+        if self.min_free_memory_mb is not None:
+            payload["min_free_memory_mb"] = round(self.min_free_memory_mb)
+        return payload
+
+
+@dataclass
 class SampleEvaluation:
     sample_id: str
     input: str
@@ -115,6 +215,16 @@ class SampleEvaluation:
     # Attempts counted for the per-attempt time: every pipeline run (including
     # the timeout retries) and its internal repair attempts.
     attempts_total: int = 0
+    stages: StageTimes = field(default_factory=StageTimes)
+    # What each streamed model call cut by a timeout had written (to tell a
+    # model stuck in a loop from one that is only slow).
+    cut_outputs: list[str] = field(default_factory=list)
+    # The LaTeX the structure was built from (the OCR reading for an image),
+    # so the semantic stage can be evaluated again from it without the OCR.
+    output_latex: str = ""
+    # Every raw answer of the LLM (LLMOutput.as_dict): what it was given, what
+    # it wrote and whether it was accepted.
+    llm_outputs: list[dict[str, Any]] = field(default_factory=list)
     # Restored from a partial results file instead of being run again.
     resumed: bool = False
 
@@ -141,6 +251,7 @@ class SampleEvaluation:
             "reference_mathml": self.reference_mathml,
             "reference_source": self.reference_source,
             "output_mathml": self.output_mathml,
+            "output_latex": self.output_latex,
             "validation_ok": self.validation_ok,
             "error": self.error,
             "timeout": self.timeout,
@@ -154,12 +265,17 @@ class SampleEvaluation:
             "attempts_total": self.attempts_total,
             "elapsed_seconds": round(self.elapsed_seconds, 3),
             "seconds_per_attempt": round(self.seconds_per_attempt, 3),
+            "stage_times": self.stages.as_dict(),
             "warnings": self.warnings,
             "exact_structure": self.exact_structure,
             "exact_intent": self.exact_intent,
             "lenient_exact_structure": self.lenient_exact_structure,
             "lenient_exact_intent": self.lenient_exact_intent,
         }
+        if self.cut_outputs:
+            payload["cut_outputs"] = self.cut_outputs
+        if self.llm_outputs:
+            payload["llm_outputs"] = self.llm_outputs
         if self.structure is not None:
             payload["structure_bleu"] = self.structure.as_dict()
         if self.intent is not None:
@@ -251,6 +367,15 @@ class EvaluationReport:
         return self._rate(lambda sample: bool(sample.lenient_exact_intent))
 
     @property
+    def stage_totals(self) -> StageTimes:
+        """Time per stage added over every sample (resumed ones included)."""
+
+        totals = StageTimes()
+        for sample in self.samples:
+            totals.add(sample.stages)
+        return totals
+
+    @property
     def mean_intent_f1(self) -> float:
         if not self.samples:
             return 0.0
@@ -299,6 +424,7 @@ class EvaluationReport:
             "by_complexity": {
                 name: metrics.as_dict() for name, metrics in self.by_complexity.items()
             },
+            "stage_times": self.stage_totals.as_dict(),
             "notes": self.notes,
             "samples": [sample.as_dict() for sample in self.samples],
         }
@@ -744,6 +870,10 @@ def _weighted(
     )
 
 
+# Tail of a cut answer kept per call: enough to see a loop, small in the JSON.
+_CUT_OUTPUT_CHARS = 2000
+
+
 def _run_sample(
     evaluation: SampleEvaluation,
     sample: EvaluationSample,
@@ -761,6 +891,51 @@ def _run_sample(
 
     flow = sample.flow or default_flow
     sample_started = time.perf_counter()
+    with record_model_calls() as calls:
+        result = _run_with_retries(
+            evaluation,
+            sample,
+            pipeline,
+            default_flow=default_flow,
+            retry_limit=retry_limit,
+            increment=increment,
+            default_timeout=default_timeout,
+        )
+    evaluation.elapsed_seconds = time.perf_counter() - sample_started
+    evaluation.stages = StageTimes.from_calls(calls, evaluation.elapsed_seconds)
+    evaluation.cut_outputs = [
+        f"{call.stage}: {call.partial_output[-_CUT_OUTPUT_CHARS:]}"
+        for call in calls
+        if not call.completed and call.partial_output
+    ]
+    if result is None:
+        return None
+    evaluation.output_mathml = result.mathml
+    evaluation.output_latex = str(getattr(result, "latex", "") or "")
+    evaluation.llm_outputs = [
+        output.as_dict() for output in getattr(result, "llm_outputs", None) or []
+    ]
+    evaluation.validation_ok = result.validation.ok
+    evaluation.llm_used = bool(result.llm_used)
+    evaluation.structure_source = result.structure_source
+    evaluation.attempts = result.attempts
+    evaluation.warnings = list(result.warnings)
+    evaluation.fallback = flow in _LLM_FLOWS and not result.llm_used
+    return result.mathml
+
+
+def _run_with_retries(
+    evaluation: SampleEvaluation,
+    sample: EvaluationSample,
+    pipeline: EquationPipeline,
+    *,
+    default_flow: Flow,
+    retry_limit: int,
+    increment: float,
+    default_timeout: float,
+) -> PipelineResult | None:
+    """Run the pipeline, retrying timeouts with a longer timeout each time."""
+
     attempts_total = 0
     current_timeout = sample.timeout
     retries = 0
@@ -802,20 +977,10 @@ def _run_sample(
         evaluation.timed_out = timed_out
         break
 
-    evaluation.elapsed_seconds = time.perf_counter() - sample_started
     evaluation.attempts_total = attempts_total
     evaluation.timeout = current_timeout
     evaluation.timeout_retries = retries
-    if result is None:
-        return None
-    evaluation.output_mathml = result.mathml
-    evaluation.validation_ok = result.validation.ok
-    evaluation.llm_used = bool(result.llm_used)
-    evaluation.structure_source = result.structure_source
-    evaluation.attempts = result.attempts
-    evaluation.warnings = list(result.warnings)
-    evaluation.fallback = flow in _LLM_FLOWS and not result.llm_used
-    return result.mathml
+    return result
 
 
 def _restore_sample(evaluation: SampleEvaluation, data: dict[str, Any]) -> str | None:
@@ -838,6 +1003,12 @@ def _restore_sample(evaluation: SampleEvaluation, data: dict[str, Any]) -> str |
     evaluation.timeout_retries = int(data.get("timeout_retries") or 0)
     evaluation.timed_out = bool(data.get("timed_out", False))
     evaluation.elapsed_seconds = float(data.get("elapsed_seconds") or 0.0)
+    evaluation.stages = StageTimes.from_dict(data.get("stage_times"))
+    evaluation.cut_outputs = [str(item) for item in data.get("cut_outputs") or []]
+    evaluation.output_latex = str(data.get("output_latex") or "")
+    evaluation.llm_outputs = [
+        item for item in data.get("llm_outputs") or [] if isinstance(item, dict)
+    ]
     evaluation.resumed = True
     # A pipeline error is kept; a scoring error is recomputed when scoring.
     evaluation.error = "" if produced else str(data.get("error") or "")
@@ -1088,6 +1259,14 @@ _CSV_HEADERS = (
     "error",
     "tiempo_total_s",
     "tiempo_por_intento_s",
+    "tiempo_vision_s",
+    "tiempo_llm_s",
+    "tiempo_otros_s",
+    "carga_modelo_s",
+    "lectura_prompt_s",
+    "generacion_s",
+    "tokens_generados",
+    "llamadas_cortadas",
 )
 
 
@@ -1101,9 +1280,9 @@ def report_csv(report: EvaluationReport) -> str:
     """Return the per-sample report table as CSV.
 
     It mirrors the table printed by :func:`report_markdown` and adds the exact
-    and lenient exact matches, the total execution time of each equation and
+    and lenient exact matches, the total execution time of each equation,
     the time per attempt (total time divided by the attempts made, including
-    timeout retries).
+    timeout retries) and the time per stage (see :class:`StageTimes`).
     """
 
     buffer = io.StringIO()
@@ -1132,9 +1311,84 @@ def report_csv(report: EvaluationReport) -> str:
                 " ".join(sample.error.split()),
                 f"{sample.elapsed_seconds:.3f}",
                 f"{sample.seconds_per_attempt:.3f}",
+                f"{sample.stages.vision_seconds:.3f}",
+                f"{sample.stages.llm_seconds:.3f}",
+                f"{sample.stages.other_seconds:.3f}",
+                f"{sample.stages.load_seconds:.3f}",
+                f"{sample.stages.prompt_seconds:.3f}",
+                f"{sample.stages.generate_seconds:.3f}",
+                sample.stages.output_tokens,
+                sample.stages.cut_calls,
             ]
         )
     return buffer.getvalue()
+
+
+def _share(part: float, total: float) -> str:
+    return f"{part / total:.0%}" if total > 0 else "-"
+
+
+def _stage_lines(report: EvaluationReport) -> list[str]:
+    totals = report.stage_totals
+    elapsed = sum(sample.elapsed_seconds for sample in report.samples)
+    if not report.samples or elapsed <= 0:
+        return []
+    count = len(report.samples)
+    model_seconds = totals.vision_seconds + totals.llm_seconds
+    rows = [
+        ("visión (OCR con el modelo multimodal)", totals.vision_seconds, elapsed),
+        ("LLM de texto", totals.llm_seconds, elapsed),
+        ("resto (OCR local, conversión, validación)", totals.other_seconds, elapsed),
+    ]
+    lines = [
+        "",
+        "## Tiempo por etapa",
+        "",
+        "| etapa | total | media por muestra | parte del total |",
+        "|---|---|---|---|",
+    ]
+    for name, seconds, whole in rows:
+        lines.append(
+            f"| {name} | {seconds:.0f} s | {seconds / count:.1f} s | "
+            f"{_share(seconds, whole)} |"
+        )
+    lines.extend(
+        [
+            "",
+            "Dentro de las llamadas a los modelos (según Ollama):",
+            "",
+            "| parte | total | parte de las llamadas |",
+            "|---|---|---|",
+            (
+                f"| carga del modelo en memoria | {totals.load_seconds:.0f} s | "
+                f"{_share(totals.load_seconds, model_seconds)} |"
+            ),
+            (
+                f"| lectura del prompt e imagen | {totals.prompt_seconds:.0f} s | "
+                f"{_share(totals.prompt_seconds, model_seconds)} |"
+            ),
+            (
+                f"| generación de la respuesta | {totals.generate_seconds:.0f} s | "
+                f"{_share(totals.generate_seconds, model_seconds)} |"
+            ),
+            "",
+            (
+                f"- {totals.calls} llamadas a modelos, {totals.output_tokens} tokens "
+                f"generados ({totals.tokens_per_second:.1f} tokens/s)"
+            ),
+        ]
+    )
+    if totals.cut_calls:
+        lines.append(
+            f"- {totals.cut_calls} llamadas cortadas por timeout: su tiempo cuenta "
+            "en la etapa pero no en el reparto de carga, lectura y generación"
+        )
+    if totals.min_free_memory_mb is not None:
+        lines.append(
+            f"- RAM libre mínima al terminar una llamada: "
+            f"{totals.min_free_memory_mb:.0f} MB"
+        )
+    return lines
 
 
 def report_markdown(report: EvaluationReport) -> str:
@@ -1248,6 +1502,7 @@ def report_markdown(report: EvaluationReport) -> str:
                 ),
             ]
         )
+    lines.extend(_stage_lines(report))
     if report.notes:
         lines.extend(["", "## Notas", ""])
         lines.extend(f"- {note}" for note in report.notes)

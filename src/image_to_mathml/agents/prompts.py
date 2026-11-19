@@ -256,19 +256,28 @@ names. Core names are:
 {policy}"""
 
 
+_STATIC_POLICY = (
+    "Use the candidate concepts listed at the end of this message, under "
+    '"Concepts for this expression".'
+)
+
+
 def _semantic_system(
     allow_open_concepts: bool,
     allow_all_open_concepts: bool = False,
     concept_cards: Sequence[ConceptCard] | None = None,
     allowed_open_concepts: Sequence[str] | None = None,
+    *,
+    static: bool = False,
 ) -> str:
-    policy = _semantic_concept_policy(
+    concepts = _semantic_concept_policy(
         allow_open_concepts,
         allow_all_open_concepts,
         concept_cards,
         allowed_open_concepts,
     )
-    return f"""You are a W3C MathML 4 semantic annotator. You receive a clean
+    policy = _STATIC_POLICY if static else concepts
+    text = f"""You are a W3C MathML 4 semantic annotator. You receive a clean
 Presentation MathML tree with temporary id attributes and the LaTeX it came
 from. Decide which concepts and argument positions carry a non-default
 meaning. Do not rewrite MathML.
@@ -372,6 +381,11 @@ Generic function inside a larger expression (use wrap when no container exists):
 Square root:
 {{"version": 1, "annotations": [{{"target": "n2", "concept": "root", "args": {{"a1": "n3"}}, "literals": {{"a2": "2"}}}}]}}
 """
+    if static:
+        # Everything above is the same for every expression; only this block
+        # changes, so the server's prompt cache covers the rest.
+        text += f"\nConcepts for this expression:\n{concepts}\n"
+    return text
 
 
 def _semantic_feedback_block(feedback: list[str] | None) -> str:
@@ -491,7 +505,15 @@ def semantic_messages(
     allow_all_open_concepts: bool = False,
     concept_cards: Sequence[ConceptCard] | None = None,
     allowed_open_concepts: Sequence[str] | None = None,
+    static_system: bool = False,
 ) -> list[dict[str, str]]:
+    """Build the semantic annotation messages.
+
+    ``static_system`` keeps the system message identical for every expression
+    except its last block (the concept list), so the server can reuse the part
+    of the system prompt it already read instead of reading it again.
+    """
+
     user = (
         "Choose the W3C intent semantics for this expression and return the "
         "JSON contract described in the system message.\n\n"
@@ -508,6 +530,7 @@ def semantic_messages(
                 allow_all_open_concepts,
                 concept_cards,
                 allowed_open_concepts,
+                static=static_system,
             ),
         },
         {"role": "user", "content": user},

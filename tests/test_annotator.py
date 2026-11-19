@@ -185,3 +185,18 @@ def test_annotator_splits_matrix_subscripts_before_annotating():
     assert localname(subscript.tag) == "mrow"
     assert [localname(child.tag) for child in subscript] == ["mn", "mn"]
     assert [child.text for child in subscript] == ["1", "1"]
+
+
+def test_annotates_a_variable_tending_to_a_value():
+    result = " ".join(_annotated(r"x \to +\infty").split())
+    assert '<mrow intent="tends-to($var,$value)"> <mi arg="var">x</mi> <mo>→</mo>' in (
+        result
+    )
+    assert '<mrow arg="value"> <mo>+</mo> <mi>∞</mi> </mrow>' in result
+    assert 'intent="tends-to($var,$value)"' in _annotated(r"x \to 0")
+    assert 'intent="tends-to($var,$value)"' in _annotated(r"\lim_{n \to \infty} a_n")
+
+
+def test_maps_between_sets_are_not_read_as_tends_to():
+    assert "tends-to" not in _annotated(r"T: \mathbb{R}^2 \to \mathbb{R}^2")
+    assert "tends-to" not in _annotated(r"f: A \to B")

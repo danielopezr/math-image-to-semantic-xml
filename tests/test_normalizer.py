@@ -294,3 +294,9 @@ def test_serialization_reindents_inserted_elements_and_keeps_token_text():
 
     assert '<mrow intent="x">\n' in result
     assert "<mtext> si y solo si </mtext>" in result
+
+
+def test_infinity_is_an_identifier_not_an_operator():
+    result = normalize_mathml('<math><mo stretchy="false" arg="b">∞</mo></math>')
+    assert '<mi arg="b">∞</mi>' in result
+    assert "<mo" not in result

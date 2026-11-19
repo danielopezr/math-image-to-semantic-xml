@@ -46,6 +46,7 @@ class HybridIntentAgent:
                 allow_all_open_concepts=allow_all_open_concepts,
                 concept_cards=concept_cards,
                 allowed_open_concepts=self.settings.allowed_open_concepts,
+                static_system=self.settings.static_system_prompt,
             ),
             temperature=self.settings.temperature,
             num_predict=self.settings.num_predict,

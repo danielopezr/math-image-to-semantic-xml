@@ -68,6 +68,10 @@ class Settings:
     # Constrain the semantic JSON answer with a JSON Schema when the server
     # supports it (Ollama "format", OpenAI "response_format").
     structured_output: bool = True
+    # Keep the semantic system prompt identical for every expression and send
+    # the per-expression concept list in the user message, so Ollama can reuse
+    # the prompt it already read (its prefix cache) instead of reading it again.
+    static_system_prompt: bool = False
     # Extra attempts for connection errors and 502/503/504 answers.  Read
     # timeouts are not retried here: the evaluation decides about those.
     llm_retries: int = 1
@@ -145,6 +149,9 @@ class Settings:
             ollama_think=_env_optional_bool("OLLAMA_THINK"),
             structured_output=_env_bool(
                 "IMAGE_TO_MATHML_STRUCTURED_OUTPUT", cls.structured_output
+            ),
+            static_system_prompt=_env_bool(
+                "IMAGE_TO_MATHML_STATIC_SYSTEM_PROMPT", cls.static_system_prompt
             ),
             llm_retries=max(
                 0, _env_int("IMAGE_TO_MATHML_LLM_RETRIES", cls.llm_retries)

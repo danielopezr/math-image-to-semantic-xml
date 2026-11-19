@@ -199,6 +199,11 @@ LLM client environment variables:
   contract to the server (`format` in Ollama, `response_format` in
   OpenAI-compatible servers), restricted to the retrieved candidate concepts.
   Default `true`. Servers that reject `response_format` are retried without it.
+- `IMAGE_TO_MATHML_STATIC_SYSTEM_PROMPT`: keep the semantic system prompt the
+  same for every expression and move the per-expression concept list to its
+  last block, so Ollama reuses the part it already read (its prompt cache).
+  This roughly halves the prompt reading time of the text model when it stays
+  loaded between samples. Default `false`.
 - `IMAGE_TO_MATHML_LLM_RETRIES`: extra attempts after a connection error or an
   HTTP 502/503/504 answer, default `1`. Read timeouts are not retried by the
   client.
@@ -562,7 +567,18 @@ contains the same corpus and sample data. `--csv` writes the per-sample table
 (including failed samples) to a CSV file and adds two timing columns:
 `tiempo_total_s` (wall-clock seconds for that equation, including timeout
 retries) and `tiempo_por_intento_s` (total time divided by the attempts made,
-including timeout retries and the pipeline's internal repair attempts). The
+including timeout retries and the pipeline's internal repair attempts).
+
+It also reports the time per stage, timeout retries included. `tiempo_vision_s`
+and `tiempo_llm_s` are the wall time of the requests to the vision and text
+models, and `tiempo_otros_s` is the rest. `carga_modelo_s`, `lectura_prompt_s`
+and `generacion_s` split the model requests as Ollama reports them: loading the
+model into memory, reading the prompt and image, and writing the answer.
+`tokens_generados` and `llamadas_cortadas` give the tokens written and the
+requests cut by a timeout, which carry no such split. The JSON keeps the same
+values under `stage_times`, per sample and in total. The markdown report adds a
+"Tiempo por etapa" section, and the progress line shows the stage times of each
+sample. The
 Python API is available through
 `image_to_mathml.metrics.mathml_bleu` / `mathml_corpus_bleu` and
 `image_to_mathml.evaluation.evaluate_samples`.

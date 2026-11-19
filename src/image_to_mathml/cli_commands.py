@@ -335,6 +335,16 @@ class _EvaluationProgress:
             self.run_seconds += sample.elapsed_seconds
             self.run_count += 1
             parts.append(f"{sample.elapsed_seconds:.0f} s")
+            stages = sample.stages
+            if stages.calls:
+                parts.append(
+                    f"visión {stages.vision_seconds:.0f} s, "
+                    f"LLM {stages.llm_seconds:.0f} s, "
+                    f"carga {stages.load_seconds:.0f} s, "
+                    f"{stages.tokens_per_second:.1f} tok/s"
+                )
+            if stages.min_free_memory_mb is not None:
+                parts.append(f"RAM libre {stages.min_free_memory_mb:.0f} MB")
             if sample.timeout_retries:
                 parts.append(f"{sample.timeout_retries} reintento(s) por timeout")
         if sample.fallback:

@@ -111,3 +111,21 @@ def test_vision_prompt_requests_direct_mathml_without_latex():
     assert "do not include any LaTeX" in system
     assert "Never use Content MathML" in system
     assert "Never use <mfenced>" in system
+
+
+def test_static_system_prompt_only_changes_its_last_block():
+    with_cards = semantic_messages(
+        "x", BASE, MathContext(), concept_cards=[], static_system=True
+    )[0]["content"]
+    open_policy = semantic_messages("y", BASE, MathContext(), static_system=True)[0][
+        "content"
+    ]
+
+    marker = "Concepts for this expression:"
+    prefix = with_cards[: with_cards.index(marker)]
+    assert open_policy.startswith(prefix)
+    assert "No candidate concept applies" not in prefix
+    assert "No candidate concept applies" in with_cards[len(prefix) :]
+    default = semantic_messages("x", BASE, MathContext(), concept_cards=[])
+    assert marker not in default[0]["content"]
+    assert "No candidate concept applies" in default[0]["content"]

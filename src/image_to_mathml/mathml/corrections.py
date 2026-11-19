@@ -198,3 +198,29 @@ def split_matrix_subscripts(root: etree._Element) -> None:
         digits = _subscript_digits(children[1])
         if base and digits and (base, digits) in matrix_indexes:
             _split_subscript(element)
+
+
+# Symbols that latex2mathml and the models write as <mo> but that are
+# identifiers: \infty is a quantity, not an operator.
+_IDENTIFIER_SYMBOLS = frozenset({"∞"})
+
+
+def fix_identifier_tokens(root: etree._Element) -> int:
+    """Turn ``<mo>∞</mo>`` into ``<mi>∞</mi>``; return how many changed.
+
+    Operator attributes (``stretchy``, ``form``...) do not apply to ``<mi>``
+    and are dropped; semantic attributes (``intent``, ``arg``) are kept.
+    """
+
+    fixed = 0
+    for element in list(root.iter()):
+        if localname(element.tag) != "mo":
+            continue
+        if element_text(element).strip() not in _IDENTIFIER_SYMBOLS:
+            continue
+        element.tag = qname("mi")
+        for name in list(element.attrib):
+            if name not in {"intent", "arg", "id"}:
+                del element.attrib[name]
+        fixed += 1
+    return fixed

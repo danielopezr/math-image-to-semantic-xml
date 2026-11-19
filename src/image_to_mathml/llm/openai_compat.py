@@ -13,7 +13,27 @@ from typing import Any
 import requests
 
 from ..config import Settings
-from .base import LLMError, effective_timeout, model_matches, post_with_retries
+from .base import (
+    LLMError,
+    ModelCall,
+    effective_timeout,
+    model_matches,
+    post_with_retries,
+    track_model_call,
+)
+
+
+def _apply_usage(call: ModelCall, response: requests.Response) -> None:
+    """Token counts of an OpenAI-style answer (no per-stage durations)."""
+
+    if response.status_code != 200:
+        return
+    try:
+        usage = response.json().get("usage") or {}
+    except (ValueError, AttributeError):
+        return
+    call.prompt_tokens = int(usage.get("prompt_tokens") or 0)
+    call.output_tokens = int(usage.get("completion_tokens") or 0)
 
 
 class OpenAICompatibleClient:
@@ -105,15 +125,17 @@ class OpenAICompatibleClient:
                 "type": "json_schema",
                 "json_schema": {"name": "semantic_annotations", "schema": json_schema},
             }
-        try:
-            response = self._post(payload)
-            if structured and response.status_code in {400, 422}:
-                # Older servers do not know response_format: retry without it.
-                self._structured_output_supported = False
-                payload.pop("response_format", None)
+        with track_model_call("llm", self.model) as call:
+            try:
                 response = self._post(payload)
-        except requests.RequestException as exc:
-            raise LLMError(f"Could not reach {self.base_url}: {exc}") from exc
+                if structured and response.status_code in {400, 422}:
+                    # Older servers do not know response_format: retry without it.
+                    self._structured_output_supported = False
+                    payload.pop("response_format", None)
+                    response = self._post(payload)
+            except requests.RequestException as exc:
+                raise LLMError(f"Could not reach {self.base_url}: {exc}") from exc
+            _apply_usage(call, response)
 
         if response.status_code != 200:
             detail = response.text.strip()[:500]

@@ -6,11 +6,20 @@ import base64
 import io
 import json
 import os
+import time
 from collections.abc import Mapping, Sequence
 
 import requests
 
-from .base import LLMError, effective_timeout, model_matches, post_with_retries
+from .base import (
+    LLMError,
+    ModelCall,
+    apply_ollama_stats,
+    effective_timeout,
+    model_matches,
+    post_with_retries,
+    track_model_call,
+)
 from .ollama_stream import collect_stream_content
 
 DEFAULT_MODEL = "qwen3-vl:4b-instruct"
@@ -160,7 +169,17 @@ class OllamaVisionClient:
             temperature,
             self.num_predict if num_predict is None else num_predict,
         )
+        with track_model_call("vision", self.model) as call:
+            content = self._send(payload, call)
+        if not content.strip():
+            raise LLMError(
+                f"Ollama vision model {self.model!r} returned an empty response"
+            )
+        return content
+
+    def _send(self, payload: dict[str, object], call: ModelCall) -> str:
         timeout = effective_timeout(self.timeout)
+        deadline = time.monotonic() + timeout
         try:
             response = post_with_retries(
                 lambda: requests.post(
@@ -182,10 +201,17 @@ class OllamaVisionClient:
             )
 
         if self.stream:
+            final: dict = {}
             with response:
                 content = collect_stream_content(
-                    response, source=f"Ollama vision model {self.model!r}"
+                    response,
+                    source=f"Ollama vision model {self.model!r}",
+                    final=final,
+                    deadline=deadline,
+                    timeout=timeout,
+                    call=call,
                 )
+            apply_ollama_stats(call, final or None)
         else:
             try:
                 data = response.json()
@@ -194,11 +220,7 @@ class OllamaVisionClient:
                 raise LLMError(
                     "Ollama vision returned an invalid JSON response"
                 ) from exc
-
-        if not str(content).strip():
-            raise LLMError(
-                f"Ollama vision model {self.model!r} returned an empty response"
-            )
+            apply_ollama_stats(call, data)
         return str(content)
 
     def is_available(self) -> bool:
