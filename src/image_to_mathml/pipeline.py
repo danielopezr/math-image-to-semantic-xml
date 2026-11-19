@@ -1403,6 +1403,8 @@ class EquationPipeline:
             "inner_product_pairs": decide(
                 self.settings.inner_product_pairs, _INNER_PRODUCT_CUES, topic
             ),
+            # In calculus log x without a base is the natural logarithm.
+            "natural_log": decide("auto", _CALCULUS_CUES, text),
         }
 
     def _combine_with_rules(

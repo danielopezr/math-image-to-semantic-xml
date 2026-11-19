@@ -377,3 +377,12 @@ def test_bare_function_argument_ends_at_punctuation_brackets_and_fractions():
 def test_bare_function_applied_to_an_application():
     markup = _annotated(r"\cos\alpha(t) i")
     assert "cosine($arg)" in markup and "$name($var)" in markup
+
+
+def test_log_without_base_is_natural_in_calculus():
+    root = parse_and_normalize(LatexToMathML().convert(r"J_p(x)\log x + \log_2 y"))
+    annotate_tree(root, natural_log=True)
+    markup = serialize_mathml(root)
+    assert "natural-logarithm($arg)" in markup
+    assert "logarithm($arg,$base)" in markup
+    assert "natural-logarithm" not in _annotated(r"\log x")

@@ -1589,6 +1589,12 @@ def _annotate_factorials(root: etree._Element) -> None:
             target.set("intent", "factorial($var)")
 
 
+def _read_log_as_natural(root: etree._Element) -> None:
+    for element in root.iter():
+        if is_element(element) and element.get("intent") == "logarithm($arg)":
+            element.set("intent", "natural-logarithm($arg)")
+
+
 def annotate_tree(
     root: etree._Element,
     *,
@@ -1597,6 +1603,7 @@ def annotate_tree(
     default_structures: bool = True,
     derivative_variable: str | None = None,
     inner_product_pairs: bool = False,
+    natural_log: bool = False,
 ) -> int:
     """Add deterministic intents to a normalised MathML tree.
 
@@ -1608,6 +1615,8 @@ def annotate_tree(
     unannotated.  ``derivative_variable`` (e.g. ``"x"``) reads primes and
     ``y^{(n)}`` as ``derivative($y, _x, n)``.  ``inner_product_pairs`` also
     reads a round ``(u, v)`` as an inner product (``<u, v>`` always is).
+    ``natural_log`` reads ``log x`` without a base as ``natural-logarithm``, as
+    is usual in calculus.
 
     Returns the number of ``intent`` attributes present after annotation.
     """
@@ -1634,6 +1643,8 @@ def annotate_tree(
         default_structures=default_structures,
         derivative_variable=derivative_variable,
     )
+    if natural_log:
+        _read_log_as_natural(root)
     split_matrix_subscripts(root)
     return sum(
         1
