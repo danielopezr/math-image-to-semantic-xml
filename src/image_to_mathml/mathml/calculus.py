@@ -143,6 +143,23 @@ def _annotate_fenced(root: etree._Element, fence: str, concept: str) -> int:
     return changed
 
 
+def _separates_top_level(nodes: list[etree._Element]) -> bool:
+    """A relation or a comma outside brackets: ``|a| = |b|``, ``|x|, |y|``.
+
+    Inside brackets they belong to the content: ``|J(u, v)|``.
+    """
+
+    depth = 0
+    for node in nodes:
+        if _tok(node, "(", "[", "{"):
+            depth += 1
+        elif _tok(node, ")", "]", "}"):
+            depth = max(0, depth - 1)
+        elif depth == 0 and _tok(node, "=", "<", ">", "≤", "≥", ","):
+            return True
+    return False
+
+
 def _fenced_once(row: etree._Element, fence: str, concept: str) -> bool:
     children = element_children(row)
     for start, opener in enumerate(children):
@@ -156,7 +173,7 @@ def _fenced_once(row: etree._Element, fence: str, concept: str) -> bool:
             if not (_tok(closing, fence) or powered):
                 continue
             inner = children[start + 1 : end]
-            if any(_tok(node, "=", "<", ">", "≤", "≥", ",") for node in inner):
+            if _separates_top_level(inner):
                 return False
             if _contains_table(inner) or not all(_untouched(n) for n in inner):
                 return False

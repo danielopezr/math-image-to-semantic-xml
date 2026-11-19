@@ -40,6 +40,12 @@ _NAMED_OPERATORS = (
 _OPERATOR_NAME = re.compile(
     r"\\(?:mathrm|operatorname|textrm|text)\s*\{\s*(" + _NAMED_OPERATORS + r")\s*\}"
 )
+# Spanish names of the same functions: \sen, \mathrm{sen}, \operatorname{tg}.
+_SPANISH_OPERATORS = {"sen": "sin", "senh": "sinh", "tg": "tan"}
+_SPANISH_OPERATOR_NAME = re.compile(
+    r"\\(?:(?:mathrm|operatorname|textrm|text)\s*\{\s*(senh|sen|tg)\s*\}"
+    r"|(senh|sen|tg)(?![A-Za-z]))"
+)
 # A Spanish word set apart by spacing commands ("x > 0 \, y \, s ≠ 0",
 # "J(x) \quad y \quad J(-x)") is prose, not a variable: it becomes \text{}
 # before the small spaces are dropped.
@@ -139,6 +145,10 @@ def clean_latex(latex: str) -> str:
     for pattern in _NOISE_PATTERNS:
         text = pattern.sub("", text)
     text = _OPERATOR_NAME.sub(r"\\\1 ", text)
+    text = _SPANISH_OPERATOR_NAME.sub(
+        lambda match: "\\" + _SPANISH_OPERATORS[match.group(1) or match.group(2)] + " ",
+        text,
+    )
     text = _SPANISH_WORD.sub(r"\1\\text{ \2 }", text)
     text = _SMALL_SPACES.sub(" ", text)
     text = _flatten_alignments(text)

@@ -86,3 +86,17 @@ def test_clean_latex_leaves_matrices_and_cases_untouched():
         r"\left[ \begin{array}{cc} 1 & 2 \end{array} \right]",
     ):
         assert clean_latex(raw) == raw
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        (r"i \sen 2\theta", r"i \sin 2\theta"),
+        (r"\mathrm{sen} kx", r"\sin kx"),
+        (r"\operatorname{tg}x", r"\tan x"),
+        (r"\senh x", r"\sinh x"),
+        (r"\sentence", r"\sentence"),
+    ],
+)
+def test_clean_latex_writes_spanish_function_names_as_commands(raw, expected):
+    assert clean_latex(raw) == expected

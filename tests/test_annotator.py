@@ -351,3 +351,29 @@ def test_enforce_derivatives_leaves_directional_derivatives_alone():
         "</mrow></math>"
     )
     assert enforce_derivatives(root, "x") == 0
+
+
+def test_inverse_of_a_matrix_or_linear_map():
+    # Guide: A^{-1} is inverse on the msup; numbers and lowercase keep power.
+    assert 'intent="inverse($base)"' in _annotated(r"A^{-1}")
+    assert _annotated(r"(AB)^{-1}=B^{-1}A^{-1}").count("inverse($base)") == 3
+    assert "inverse(indexed-by($base,$sub))" in _annotated(r"E_{1}^{-1}")
+    assert "inverse" not in _annotated(r"x^{-1}+3^{-2}")
+
+
+def test_inverse_map_as_the_name_of_an_application_has_no_intent():
+    markup = _annotated(r"T^{-1}(w_1, w_2)")
+    assert "inverse" not in markup and "power" not in markup
+
+
+def test_bare_function_argument_ends_at_punctuation_brackets_and_fractions():
+    for latex in (r"f=\cos x.", r"(a\cos x+b\sin x)", r"\cos\theta\quad x"):
+        markup = _annotated(latex)
+        assert "cosine($arg)" in markup, latex
+    markup = _annotated(r"r\cos\theta\frac{a}{b}")
+    assert "cosine($arg)" in markup and "times(" not in markup.split("cosine")[1]
+
+
+def test_bare_function_applied_to_an_application():
+    markup = _annotated(r"\cos\alpha(t) i")
+    assert "cosine($arg)" in markup and "$name($var)" in markup

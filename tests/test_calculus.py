@@ -103,3 +103,10 @@ def test_a_jacobian_keeps_its_ellipses_when_the_partial_rule_does_not_apply():
     assert before == 2
     enforce_partial_derivatives(root)
     assert serialize_mathml(root).count('intent="ellipsis"') == 2
+
+
+def test_absolute_value_of_an_application_with_several_arguments():
+    markup = _annotated(r"|J(u, v)| du")
+    assert "absolute-value($a)" in markup and "$name($v1, $v2)" in markup
+    assert _annotated(r"|a| = |b|").count("absolute-value($a)") == 2
+    assert _annotated(r"|x|, |y|").count("absolute-value($a)") == 2

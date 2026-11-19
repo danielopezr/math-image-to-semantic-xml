@@ -371,7 +371,14 @@ _BARE_ARGUMENT_TAGS = {
 }
 
 
+def _is_application(element: etree._Element) -> bool:
+    return (element.get("intent") or "").startswith("$name(")
+
+
 def _is_bare_argument(element: etree._Element) -> bool:
+    if _is_application(element):
+        # cos α(t): the application is the whole argument.
+        return element.get("arg") in (None, "arg")
     if localname(element.tag) not in _BARE_ARGUMENT_TAGS:
         return False
     if element.get("intent") is not None:
@@ -398,6 +405,7 @@ _BARE_ARGUMENT_FOLLOWERS = {
     ",",
     ";",
     ":",
+    ".",
 }
 
 
@@ -411,6 +419,18 @@ def _bare_argument_is_unambiguous(
         children, argument_index + 1
     ):
         # sin θ cos θ, cos x dx: the next function or the differential ends it.
+        return True
+    if (
+        localname(following.tag) in {"mspace", "mtext"}
+        or _is_mo(following)
+        and (element_text(following) in {")", "]", "}", "⟩"})
+    ):
+        # (a cos kx + b sin x), cos θ \quad where: a closing bracket, a space
+        # or prose ends the argument.
+        return True
+    if following.get("intent") is not None or localname(following.tag) == "mfrac":
+        # cos θ ∂f/∂x, cos x f(x): a fraction or an already read structure is
+        # the next factor, not part of the argument.
         return True
     if localname(following.tag) != "mo":
         return False
@@ -471,7 +491,9 @@ def _annotate_bare_functions_in(mrow: etree._Element) -> None:
         if concept is None or not _is_bare_argument(argument):
             index += 1
             continue
-        if not _bare_argument_is_unambiguous(children, index + 1):
+        if not _is_application(argument) and not _bare_argument_is_unambiguous(
+            children, index + 1
+        ):
             # cos kx: the argument is the whole implicit product.
             end = _product_argument_end(children, index + 1)
             if end is None:
@@ -948,6 +970,49 @@ def _is_generic_or_variable(element: etree._Element) -> bool:
     return bool(text) and text not in FUNCTION_CONCEPTS and len(text) == 1
 
 
+def _is_minus_one(exponent: etree._Element) -> bool:
+    return "".join(element_text(exponent).split()) in {"−1", "-1"}
+
+
+def _is_capital_letter(element: etree._Element) -> bool:
+    text = element_text(element)
+    return _is_mi(element) and len(text) == 1 and text.isalpha() and text.isupper()
+
+
+def _names_a_matrix(base: etree._Element) -> bool:
+    """``A``, ``E_1``, ``(AB)`` or ``[T]``: a matrix or a linear map.
+
+    The guide reads ``A^{-1}`` as the inverse of a matrix or a linear map;
+    numbers and lowercase variables keep ``power`` (``3^{-2}``, ``x^{-1}``).
+    """
+
+    tag = localname(base.tag)
+    if tag == "mi":
+        return _is_capital_letter(base)
+    if tag in {"msub", "msubsup"}:
+        children = element_children(base)
+        return bool(children) and _is_capital_letter(children[0])
+    if tag == "mrow":
+        return any(
+            is_element(part) and _is_capital_letter(part) for part in base.iter()
+        )
+    return False
+
+
+def _annotate_inverse(element: etree._Element, base, exponent) -> bool:
+    """Read ``A^{-1}`` as ``inverse($base)``; True when the script is handled."""
+
+    if not (_is_minus_one(exponent) and _names_a_matrix(base)):
+        return False
+    if element.get("arg") == "name":
+        # T^{-1}(w_1, w_2): the inverse map is the name of an application, and
+        # the labels leave it as the plain name.
+        return True
+    if _set_arg(base, "base"):
+        element.set("intent", "inverse($base)")
+    return True
+
+
 def _annotate_msup(
     element: etree._Element,
     base,
@@ -971,6 +1036,8 @@ def _annotate_msup(
         # f', z*, A^T, A^c: not powers.  The plain presentation reads better
         # than a wrong "to the power" reading.
         return
+    if _annotate_inverse(element, base, exponent):
+        return
     if element_text(base) == "e" and _set_arg(exponent, "exp"):
         element.set("intent", "exponential($exp)")
     elif _set_args([base, exponent], ["base", "exp"]):
@@ -985,6 +1052,11 @@ def _annotate_msubsup(element: etree._Element, children) -> None:
     if element_text(superscript) in _NON_EXPONENT_SUPERSCRIPTS or (
         _is_prime_superscript(superscript)
     ):
+        return
+    if _is_minus_one(superscript) and _is_capital_letter(base):
+        # E_1^{-1}: the inverse of the indexed matrix.
+        if _set_args([base, _subscript], ["base", "sub"]):
+            element.set("intent", "inverse(indexed-by($base,$sub))")
         return
     if _set_args(children, ["base", "sub", "exp"]):
         element.set("intent", "power(indexed-by($base,$sub),$exp)")
