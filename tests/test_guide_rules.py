@@ -135,7 +135,9 @@ def test_angle_brackets_are_always_inner_products():
 
 
 def test_an_argument_list_is_neither_a_pair_nor_a_product():
-    assert _intents(r"T(x, y)", area="Álgebra lineal", topic="producto interno") == []
+    assert _intents(r"T(x, y)", area="Álgebra lineal", topic="producto interno") == [
+        "$name($v1, $v2)"
+    ]
 
 
 # ---------------------------------------------------------------------------

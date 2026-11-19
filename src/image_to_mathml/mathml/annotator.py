@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from lxml import etree
 
+from .calculus import annotate_calculus
 from .corrections import ELLIPSIS_SYMBOLS, split_matrix_subscripts
 from .dom import element_children, element_text, is_element, localname, new_element
 
@@ -1490,6 +1491,9 @@ def annotate_tree(
     """
 
     split_matrix_subscripts(root)
+    # Norms, |x|, ∂f/∂x, ∇f and f(x, y) first: they group what the generic
+    # rules below would read as products.
+    annotate_calculus(root)
     _annotate_function_applications(root)
     _annotate_bare_functions(root)
     _annotate_inner_products(root, inner_product_pairs)

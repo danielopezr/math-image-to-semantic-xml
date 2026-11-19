@@ -23,6 +23,7 @@ from .mathml.annotator import (
     enforce_structures,
     strip_default_intents,
 )
+from .mathml.calculus import enforce_partial_derivatives
 from .mathml.concept_rag import ConceptRAG
 from .mathml.concepts import ConceptRegistry, get_registry
 from .mathml.converter import LatexToMathML
@@ -1274,7 +1275,7 @@ class EquationPipeline:
         """
 
         root = parse_and_normalize(candidate)
-        changed = enforce_structures(root)
+        changed = enforce_structures(root) + enforce_partial_derivatives(root)
         variable = self._annotator_options()["derivative_variable"]
         if variable:
             changed += enforce_derivatives(root, variable)
