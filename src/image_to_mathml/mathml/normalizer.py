@@ -22,6 +22,7 @@ from .corrections import (
     attach_parenthesized_bases,
     fix_identifier_tokens,
     fix_operator_tokens,
+    merge_upright_names,
     split_matrix_subscripts,
 )
 from .dom import (
@@ -237,6 +238,7 @@ def parse_and_normalize(markup: str) -> etree._Element:
     _drop_layout_whitespace(root)
     root = _ensure_math_root(root)
     mrow = _ensure_single_mrow(root)
+    merge_upright_names(mrow)
     for child in element_children(mrow):
         _simplify(child)
     _simplify(mrow, is_root_mrow=True)

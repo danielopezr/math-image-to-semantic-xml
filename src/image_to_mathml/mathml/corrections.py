@@ -226,19 +226,58 @@ def fix_identifier_tokens(root: etree._Element) -> int:
     return fixed
 
 
+def merge_upright_names(root: etree._Element) -> int:
+    """Write ``\\mathrm{tr}`` as one ``<mi>tr</mi>``; return how many merged.
+
+    latex2mathml splits an upright name into one ``<mi mathvariant="normal">``
+    per letter inside an ``<mrow>``, which then reads as the product t·r.
+    """
+
+    merged = 0
+    for row in list(root.iter(qname("mrow"))):
+        children = element_children(row)
+        if len(children) < 2 or (row.text or "").strip():
+            continue
+        if not all(
+            localname(child.tag) == "mi"
+            and child.get("mathvariant") == "normal"
+            and len(element_text(child)) == 1
+            and element_text(child).isalpha()
+            and set(child.attrib.keys()) <= {"mathvariant"}
+            for child in children
+        ):
+            continue
+        name = etree.Element(qname("mi"))
+        name.text = "".join(element_text(child) for child in children)
+        for key, value in row.attrib.items():
+            name.set(key, value)
+        name.tail = row.tail
+        parent = row.getparent()
+        if parent is None or localname(parent.tag) == "math":
+            # The top-level row stays: the tree must keep exactly one.
+            continue
+        parent.replace(row, name)
+        merged += 1
+    return merged
+
+
 # Ellipses are operators (punctuation) in MathML, but latex2mathml writes
 # \ldots as <mi>…</mi>; the labels use <mo>.
 ELLIPSIS_SYMBOLS = frozenset({"…", "⋯"})
+# latex2mathml also writes ";" and ":" as <mi>: as identifiers they become
+# factors of a product ("x; x^3" read as x·;).
+_PUNCTUATION = frozenset({";", ":"})
 
 
 def fix_operator_tokens(root: etree._Element) -> int:
-    """Turn ``<mi>…</mi>`` and ``<mi>⋯</mi>`` into ``<mo>``; return how many."""
+    """Turn ``<mi>…</mi>``, ``<mi>⋯</mi>``, ``<mi>;</mi>`` and ``<mi>:</mi>``
+    into ``<mo>``; return how many."""
 
     fixed = 0
     for element in list(root.iter()):
         if localname(element.tag) != "mi":
             continue
-        if element_text(element).strip() not in ELLIPSIS_SYMBOLS:
+        if element_text(element).strip() not in ELLIPSIS_SYMBOLS | _PUNCTUATION:
             continue
         element.tag = qname("mo")
         for name in list(element.attrib):

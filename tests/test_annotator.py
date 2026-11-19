@@ -386,3 +386,29 @@ def test_log_without_base_is_natural_in_calculus():
     assert "natural-logarithm($arg)" in markup
     assert "logarithm($arg,$base)" in markup
     assert "natural-logarithm" not in _annotated(r"\log x")
+
+
+def test_capital_letter_before_a_parenthesis_is_an_application():
+    assert "$name($var)" in _annotated(r"D(1 + x) = 1")
+    assert "$name($var)" in _annotated(r"T(e_{k+1})")
+    assert "$name($var)" in _annotated(r"\dim T(V)")
+    assert "times(" not in _annotated(r"\mathrm{tr}(A + B)")
+
+
+def test_product_of_matrices_in_parentheses_stays_a_product():
+    markup = _flat(r"A(BC)", implicit_times=True)
+    assert "times(" in markup and "$name" not in markup
+
+
+def test_derivative_operator_and_function_name_form_one_name():
+    markup = _flat(r"D_1X_1(u)", implicit_times=True)
+    assert "times(" not in markup and "$name($var)" in markup
+
+
+def test_product_written_with_cdots_is_one_times_with_all_factors():
+    markup = _flat(r"(1-\alpha)(2-\alpha)\cdots(n-\alpha)", implicit_times=True)
+    assert "times($arg1,$arg2,$arg3)" in markup
+
+
+def test_semicolon_separated_polynomials_are_not_products():
+    assert "times(" not in _flat(r"x^{4}+x; \ x^{3}+5", implicit_times=True)

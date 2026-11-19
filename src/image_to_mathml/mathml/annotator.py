@@ -15,6 +15,8 @@ while a wrong ``intent`` makes it say something false.
 
 from __future__ import annotations
 
+import unicodedata
+
 from lxml import etree
 
 from .calculus import annotate_calculus
@@ -204,6 +206,72 @@ def _is_symbol(element: etree._Element) -> bool:
     return _is_mi(element) and len(text) == 1 and text not in FUNCTION_CONCEPTS
 
 
+def _is_capital_letter_token(element: etree._Element) -> bool:
+    text = element_text(element)
+    return (
+        _is_mi(element)
+        and len(text) == 1
+        and text.isupper()
+        and "LATIN" in unicodedata.name(text, "")
+    )
+
+
+def _is_capital_name(element: etree._Element) -> bool:
+    """``T``, ``D``, ``J_p``, ``𝐅``: a capital Latin letter, maybe indexed.
+
+    Followed by a parenthesis it names a function or an operator applied to
+    the content: ``T(e_k)``, ``D(1 + x)``, ``J_p(x)`` (guide section 3; the
+    labels never read it as a product).
+    """
+
+    if localname(element.tag) == "msub":
+        children = element_children(element)
+        return len(children) == 2 and _is_capital_letter_token(children[0])
+    return _is_capital_letter_token(element)
+
+
+def _only_capital_letters(content: list[etree._Element]) -> bool:
+    """Two or more identifiers, all capital letters: ``BC``, ``B + C``.
+
+    A single one is an argument: ``T(V)``, ``N(T)``, ``T_a(O)``.
+    """
+
+    identifiers = [
+        node
+        for element in content
+        for node in element.iter()
+        if is_element(node) and localname(node.tag) in {"mi", "mn"}
+    ]
+    return len(identifiers) >= 2 and all(
+        _is_capital_letter_token(node) for node in identifiers
+    )
+
+
+def _is_operator_prefix(children: list[etree._Element], index: int) -> bool:
+    """``D`` or ``D_1`` right before a function name and its parenthesis.
+
+    ``D X(u)``, ``D_1 X_1(u)``, ``D_1 f(x, y)``: the guide takes ``D_1 f`` as
+    the name of the application.
+    """
+
+    if index + 2 >= len(children):
+        return False
+    operator, name, opener = children[index : index + 3]
+    base = (
+        element_children(operator)[0]
+        if localname(operator.tag) == "msub" and len(element_children(operator)) == 2
+        else operator
+    )
+    return (
+        _is_mi(base)
+        and element_text(base) == "D"
+        and operator.get("arg") is None
+        and (_is_capital_name(name) or is_generic_function_name(name))
+        and name.get("arg") is None
+        and _is_mo(opener, "(")
+    )
+
+
 def _is_single_variable_call(children: list[etree._Element], index: int) -> bool:
     """``T(x)``, ``y_0(t)``, ``Q(x)``: a symbol applied to exactly one variable.
 
@@ -294,8 +362,21 @@ def _annotate_function_applications_in(mrow: etree._Element) -> list[etree._Elem
         if index + 2 >= len(children):
             index += 1
             continue
+        prefixed = _is_operator_prefix(children, index)
+        if prefixed:
+            # D X(u), D_1 X_1(u): the operator and the function name together.
+            name = new_element("mrow")
+            mrow.insert(mrow.index(candidate), name)
+            name.append(candidate)
+            name.append(children[index + 1])
+            children = element_children(mrow)
+            candidate = name
         name_info = _function_name(candidate)
-        if name_info is None and _is_single_variable_call(children, index):
+        if name_info is None and (
+            prefixed
+            or _is_single_variable_call(children, index)
+            or _is_capital_name(candidate)
+        ):
             name_info = (candidate, None)
         if name_info is None:
             index += 1
@@ -310,7 +391,12 @@ def _annotate_function_applications_in(mrow: etree._Element) -> list[etree._Elem
             continue
 
         content = children[index + 2 : close_index]
-        if not content:
+        if not content or (
+            name_info[1] is None
+            and _is_capital_name(candidate)
+            and _only_capital_letters(content)
+        ):
+            # A(BC), A(B + C): a product of matrices, not an application.
             index += 1
             continue
 
@@ -1285,6 +1371,18 @@ def _factor_runs(children: list[etree._Element]) -> list[list[tuple[int, int]]]:
         if localname(child.tag) == "mo" and element_text(child) == _INVISIBLE_TIMES:
             index += 1
             continue
+        if (
+            current
+            and _is_mo(child, "⋯")
+            and index + 1 < len(children)
+            and (
+                _paren_group_end(children, index + 1) is not None
+                or _is_factor(children[index + 1])
+            )
+        ):
+            # (1-α)(2-α)⋯(n-α): one product of all the factors (guide).
+            index += 1
+            continue
         end = _paren_group_end(children, index)
         if end is not None and index == 0 and end == len(children) - 1:
             # The row *is* one parenthesised group, e.g. (2x+1): scan inside.
@@ -1341,6 +1439,9 @@ def _times_intent(names: list[str], nary: bool) -> str:
 
 
 def _annotate_implicit_times_in(mrow: etree._Element, nary: bool) -> list:
+    if mrow.get("arg") == "name":
+        # D_1 X_1 in D_1 X_1(u): the name of an application, not a product.
+        return []
     children = element_children(mrow)
     runs = _factor_runs(children)
     if _in_subscript(mrow):
@@ -1373,10 +1474,14 @@ def _annotate_implicit_times_in(mrow: etree._Element, nary: bool) -> list:
         if whole:
             target = mrow
         else:
+            # Everything from the first factor to the last, in order: the ⋯
+            # of (1-α)(2-α)⋯(n-α) stays between its factors.
+            first, last = mrow.index(factors[0]), mrow.index(factors[-1])
+            span = list(mrow)[first : last + 1]
             target = new_element("mrow")
-            mrow.insert(mrow.index(factors[0]), target)
-            for factor in factors:
-                target.append(factor)
+            mrow.insert(first, target)
+            for node in span:
+                target.append(node)
         names = [f"arg{position}" for position in range(1, len(factors) + 1)]
         if nary or len(factors) == 2:
             for factor, name in zip(factors, names):

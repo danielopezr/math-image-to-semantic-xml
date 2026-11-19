@@ -110,3 +110,9 @@ def test_absolute_value_of_an_application_with_several_arguments():
     assert "absolute-value($a)" in markup and "$name($v1, $v2)" in markup
     assert _annotated(r"|a| = |b|").count("absolute-value($a)") == 2
     assert _annotated(r"|x|, |y|").count("absolute-value($a)") == 2
+
+
+def test_derivative_operator_is_part_of_a_multi_argument_name():
+    markup = _annotated(r"D_{2}h(s,t)=D_{1}f(x,y)")
+    assert markup.count("$name($v1, $v2)") == 2
+    assert "times(" not in markup

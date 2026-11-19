@@ -491,6 +491,18 @@ def _is_name(element: etree._Element) -> bool:
     return _is_primed(element)
 
 
+def _is_d_operator(element: etree._Element) -> bool:
+    """``D`` or ``D_1``, ``D_{ij}``: the derivative operator before a name."""
+
+    if not _untouched(element):
+        return False
+    tag = localname(element.tag)
+    if tag == "msub":
+        base = element_children(element)[0]
+        return localname(base.tag) == "mi" and element_text(base) == "D"
+    return tag == "mi" and element_text(element) == "D"
+
+
 def _split_arguments(nodes: list[etree._Element]) -> list[list[etree._Element]]:
     parts: list[list[etree._Element]] = []
     current: list[etree._Element] = []
@@ -539,6 +551,9 @@ def _application_once(row: etree._Element) -> bool:
             continue
         if not all(_untouched(node) for node in children[index + 1 : close + 1]):
             continue
+        if index > 0 and _is_d_operator(children[index - 1]):
+            # D_1 f(x, y): the guide takes D_1 f as the name.
+            name = _wrap(row, [children[index - 1], name])
         target = _target(row, [name] + children[index + 1 : close + 1])
         name.set("arg", "name")
         if len(parts) == 1:

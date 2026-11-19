@@ -25,8 +25,21 @@ def test_clean_latex_requires_matching_environment_names():
     assert clean_latex(raw) == raw
 
 
-def test_clean_latex_leaves_several_inline_formulas_untouched():
-    assert clean_latex(r"$a$ y $b$") == r"$a$ y $b$"
+def test_clean_latex_joins_several_inline_formulas():
+    # The prose between formulas becomes text instead of loose "$" tokens.
+    assert clean_latex(r"$a$ y $b$") == r"a \text{ y } b"
+    assert (
+        clean_latex(r"d) $ a_{ij} = 0 $ si $ i > j $")
+        == r"\text{ d) } a_{ij} = 0 \text{ si } i > j"
+    )
+    assert clean_latex(r"$\frac{4a}{3bc}$.") == r"\frac{4a}{3bc} ."
+    assert clean_latex(r"\((b_1 - a_1)\).") == r"(b_1 - a_1) ."
+
+
+def test_clean_latex_drops_unpaired_or_stray_dollars_but_not_escaped_ones():
+    assert clean_latex(r"a = 3 $ b") == "a = 3 b"
+    assert clean_latex(r"f dz$$ $$= g") == "f dz = g"
+    assert clean_latex(r"\$5 + x") == r"\$5 + x"
 
 
 @pytest.mark.parametrize(

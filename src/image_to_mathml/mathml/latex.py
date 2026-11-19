@@ -127,6 +127,43 @@ def _flatten_alignments(text: str) -> str:
     return text
 
 
+_INLINE_DELIMITER = re.compile(r"(?<!\\)\$+")
+# Prose between two inline formulas: a connective or an item label ("d)").
+_PROSE_BETWEEN_FORMULAS = re.compile(
+    r"(?:[a-z]\)|y|o|e|u|si|para|donde|con|entonces|cuando|sea|and|or|if|for|"
+    r"where|with|then|when|let)(?:\s*[.,;:])?",
+    re.IGNORECASE,
+)
+
+
+def _join_inline_formulas(text: str) -> str:
+    """Write ``$a$ si $b$`` as ``a \\text{ si } b``.
+
+    OCR of a line with prose returns several inline formulas.  Left as they
+    are, latex2mathml reads every "$" (and the prose between formulas) as
+    identifiers, which the rules then take as factors of a product.
+    """
+
+    text = text.replace("\\(", "$").replace("\\)", "$")
+    parts = _INLINE_DELIMITER.split(text)
+    if len(parts) == 1:
+        return text
+    if len(parts) % 2 == 0:
+        # Unpaired "$": drop them all.
+        return " ".join(part.strip() for part in parts if part.strip())
+    out: list[str] = []
+    for index, part in enumerate(parts):
+        stripped = part.strip()
+        if not stripped:
+            continue
+        if index % 2 == 0 and _PROSE_BETWEEN_FORMULAS.fullmatch(stripped):
+            out.append("\\text{ " + stripped + " }")
+        else:
+            # A formula, punctuation, or math split by stray "$$" (dz$$ $$=).
+            out.append(stripped)
+    return " ".join(out)
+
+
 def clean_latex(latex: str) -> str:
     """Remove math delimiters and equation-numbering noise added by OCR.
 
@@ -144,6 +181,7 @@ def clean_latex(latex: str) -> str:
             break
     for pattern in _NOISE_PATTERNS:
         text = pattern.sub("", text)
+    text = _join_inline_formulas(text)
     text = _OPERATOR_NAME.sub(r"\\\1 ", text)
     text = _SPANISH_OPERATOR_NAME.sub(
         lambda match: "\\" + _SPANISH_OPERATORS[match.group(1) or match.group(2)] + " ",

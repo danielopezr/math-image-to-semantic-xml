@@ -335,3 +335,11 @@ def test_a_denominator_left_with_only_the_attached_power_loses_its_mrow():
     )
     frac = next(element for element in root.iter() if localname(element.tag) == "mfrac")
     assert [localname(child.tag) for child in frac] == ["mn", "msup"]
+
+
+def test_upright_names_are_one_identifier_and_semicolons_are_operators():
+    from image_to_mathml.mathml.converter import LatexToMathML
+
+    markup = normalize_mathml(LatexToMathML().convert(r"\mathrm{tr}(A); x"))
+    assert "<mi>tr</mi>" in markup.replace(' mathvariant="normal"', "")
+    assert "<mo>;</mo>" in markup
