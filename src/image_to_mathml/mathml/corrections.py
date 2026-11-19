@@ -224,3 +224,25 @@ def fix_identifier_tokens(root: etree._Element) -> int:
                 del element.attrib[name]
         fixed += 1
     return fixed
+
+
+# Ellipses are operators (punctuation) in MathML, but latex2mathml writes
+# \ldots as <mi>…</mi>; the labels use <mo>.
+ELLIPSIS_SYMBOLS = frozenset({"…", "⋯"})
+
+
+def fix_operator_tokens(root: etree._Element) -> int:
+    """Turn ``<mi>…</mi>`` and ``<mi>⋯</mi>`` into ``<mo>``; return how many."""
+
+    fixed = 0
+    for element in list(root.iter()):
+        if localname(element.tag) != "mi":
+            continue
+        if element_text(element).strip() not in ELLIPSIS_SYMBOLS:
+            continue
+        element.tag = qname("mo")
+        for name in list(element.attrib):
+            if name not in {"intent", "arg", "id"}:
+                del element.attrib[name]
+        fixed += 1
+    return fixed

@@ -67,7 +67,8 @@ def test_parenthesised_power_is_annotated_by_the_fallback():
         (r"\| v \| = 1", 1, ["‖", "v", "‖"]),
         (r"n! = n (n-1)!", 2, ["n", "!"]),
         (r"\sum_{i=1}^{n} i^{2}+1", 1, ["∑i=1n", "i2"]),
-        (r"\int_{0}^{1} x^{2}\,dx = \frac{1}{3}", 1, ["∫01", "x2", "", "d", "x"]),
+        # \, is dropped when the LaTeX is cleaned.
+        (r"\int_{0}^{1} x^{2}\,dx = \frac{1}{3}", 1, ["∫01", "x2", "d", "x"]),
         (r"\lim_{x \to 0} \frac{\sin x}{x} = 1", 1, ["limx→0", "sinxx"]),
         (r"\frac{d}{dx} x^{3} = 3x^{2}", 1, ["ddx", "x3"]),
     ],
@@ -219,8 +220,11 @@ def test_sum_can_target_the_grouped_operator_and_body():
     )
 
     assert result.llm_used
-    assert 'intent="sum($arg1)"' in result.mathml
     assert any("operator-grouping" in step for step in result.trace)
+    assert any("accepted" in step for step in result.trace)
+    # The guide does not annotate sums with limits: the intent is removed.
+    assert "sum(" not in result.mathml
+    assert any("default-reading" in step for step in result.trace)
     assert result.validation.ok
 
 
@@ -287,3 +291,11 @@ def test_prompt_follows_the_w3c_placement_of_large_operators():
     assert "can never reference its operands" in system
     assert "definite-integral: a1=lower limit" in system
     assert "never an <msubsup>" in system
+
+
+def test_functions_are_grouped_with_an_implicit_product_argument():
+    root = _tree(r"\frac{\cos kx}{2} + \sin 2x = \sin x")
+    assert group_operator_scopes(root) == 3
+    markup = serialize_mathml(root).replace(" ", "").replace("\n", "")
+    assert "<mrow><mi>k</mi><mi>x</mi></mrow>" in markup
+    assert "<mrow><mi>sin</mi><mrow><mn>2</mn><mi>x</mi></mrow></mrow>" in markup

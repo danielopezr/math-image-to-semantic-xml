@@ -17,7 +17,12 @@ from .agents import DirectMathMLAgent, HybridIntentAgent, VisionMathMLAgent
 from .config import Settings
 from .llm.base import LLMClient, LLMError, current_request_timeout, request_timeout
 from .llm.factory import build_llm
-from .mathml.annotator import annotate_tree, strip_default_intents
+from .mathml.annotator import (
+    annotate_tree,
+    enforce_derivatives,
+    enforce_structures,
+    strip_default_intents,
+)
 from .mathml.concept_rag import ConceptRAG
 from .mathml.concepts import ConceptRegistry, get_registry
 from .mathml.converter import LatexToMathML
@@ -1019,8 +1024,16 @@ class EquationPipeline:
                     with timings.measure(
                         "deterministic-fill", "annotator", attempt=attempts
                     ):
+                        candidate, report, enforced = self._enforce_rules(
+                            candidate, report, allow_open
+                        )
                         candidate, report, added = self._fill_unannotated(
                             candidate, report, allow_open
+                        )
+                    if enforced:
+                        trace.append(
+                            f"attempt {attempts}: deterministic rules "
+                            f"({enforced} corrected)"
                         )
                     if added:
                         trace.append(
@@ -1058,9 +1071,14 @@ class EquationPipeline:
                 f"({dropped} invalid one(s) discarded)"
             )
             with timings.measure("deterministic-fill", "annotator"):
+                candidate, report, enforced = self._enforce_rules(
+                    candidate, report, allow_open
+                )
                 candidate, report, added = self._fill_unannotated(
                     candidate, report, allow_open
                 )
+            if enforced:
+                trace.append(f"deterministic rules ({enforced} corrected)")
             if added:
                 trace.append(f"deterministic fill (+{added} intent(s))")
             warnings.append(
@@ -1239,6 +1257,40 @@ class EquationPipeline:
         if added <= 0 or not filled_report.acceptable:
             return candidate, report, 0
         return filled, filled_report, added
+
+    def _enforce_rules(
+        self,
+        candidate: str,
+        report: ValidationReport,
+        allow_open: bool,
+    ) -> tuple[str, ValidationReport, int]:
+        """Override the LLM where an unambiguous deterministic rule applies.
+
+        Matrices, column vectors, ``|A|`` determinants and mixed numbers
+        always; primes and ``y^{(n)}`` derivatives in a calculus context.  The
+        LLM often reads them otherwise (``y^{(4)}`` as a power, ``3 1/2`` as a
+        product).  The corrected version is kept only if it still validates;
+        otherwise the LLM result is returned unchanged.
+        """
+
+        root = parse_and_normalize(candidate)
+        changed = enforce_structures(root)
+        variable = self._annotator_options()["derivative_variable"]
+        if variable:
+            changed += enforce_derivatives(root, variable)
+        if not changed:
+            return candidate, report, 0
+        prune_orphan_args(root)
+        enforced = serialize_mathml(root)
+        enforced_report = validate_mathml(
+            enforced,
+            allow_open_concepts=allow_open,
+            allowed_open_concepts=self._allowed_open(allow_open),
+            registry=self.registry,
+        )
+        if not enforced_report.acceptable:
+            return candidate, report, 0
+        return enforced, enforced_report, changed
 
     def _looks_like_mathml(self, text: str) -> bool:
         lowered = (text or "").lower()

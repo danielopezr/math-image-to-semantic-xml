@@ -9,7 +9,7 @@ from image_to_mathml.config import Settings
 from image_to_mathml.llm.base import LLMError, model_matches
 from image_to_mathml.llm.ollama import OllamaClient
 from image_to_mathml.llm.openai_compat import OpenAICompatibleClient
-from image_to_mathml.models import EquationRequest, Flow
+from image_to_mathml.models import EquationRequest, Flow, MathContext
 from image_to_mathml.pipeline import EquationPipeline
 
 
@@ -299,3 +299,44 @@ def test_fill_is_skipped_when_it_would_break_the_llm_annotation():
     assert 'intent="equals($arg1,$arg2)"' in result.mathml
     assert "$name($var)" not in result.mathml
     assert not any("deterministic fill" in step for step in result.trace)
+
+
+_POWER_DERIVATIVES = (
+    '{"annotations": ['
+    '{"target": "n3", "concept": "power", "args": {"a1": "n4", "a2": "n5"}},'
+    '{"target": "n11", "concept": "power", "args": {"a1": "n12", "a2": "n13"}}]}'
+)
+
+
+def test_derivatives_override_the_llm_powers_in_a_calculus_context():
+    # The LLM reads y^{(4)} and y'' as powers (calc013–calc020, 17/11 run).
+    pipeline = EquationPipeline(
+        Settings(max_repair_attempts=0), llm=_ScriptedLLM(_POWER_DERIVATIVES)
+    )
+
+    result = pipeline.run(
+        EquationRequest(
+            latex="y^{(4)}+4y''=0",
+            flow=Flow.HYBRID,
+            context=MathContext(area="Calculus and differential equations"),
+        )
+    )
+
+    assert result.llm_used
+    assert result.validation.acceptable
+    assert "power(" not in result.mathml
+    assert 'intent="derivative($y,_x,$n)"' in result.mathml
+    assert 'intent="derivative($y,_x,2)"' in result.mathml
+    assert 'arg="base"' not in result.mathml
+    assert any("deterministic rules (2 corrected)" in s for s in result.trace)
+
+
+def test_llm_powers_are_kept_outside_a_calculus_context():
+    pipeline = EquationPipeline(
+        Settings(max_repair_attempts=0), llm=_ScriptedLLM(_POWER_DERIVATIVES)
+    )
+
+    result = pipeline.run(EquationRequest(latex="y^{(4)}+4y''=0", flow=Flow.HYBRID))
+
+    assert result.mathml.count("power(") == 2
+    assert "derivative(" not in result.mathml

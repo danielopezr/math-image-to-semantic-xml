@@ -20,6 +20,7 @@ from __future__ import annotations
 
 from lxml import etree
 
+from .annotator import group_function_products
 from .dom import element_children, element_text, is_element, localname, new_element
 
 _LARGE_OPERATORS = frozenset(
@@ -276,7 +277,12 @@ def group_operator_scopes(root: etree._Element) -> int:
             continue
         seen.add(id(mrow))
         new_rows: list[etree._Element] = []
-        for step in (_group_fences, _group_factorials, _group_operators):
+        for step in (
+            _group_fences,
+            _group_factorials,
+            _group_operators,
+            group_function_products,
+        ):
             new_rows.extend(step(mrow))
         created += len(new_rows)
         queue.extend(new_rows)

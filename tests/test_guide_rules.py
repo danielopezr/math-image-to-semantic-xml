@@ -178,3 +178,23 @@ def test_metric_treats_sibling_and_superscript_primes_as_equal():
     assert exact_match(label, generated, include_intent=True)
     assert intent_f1(label, generated).f1 == 1.0
     assert mathml_bleu(label, generated).structure.score == 1.0
+
+
+def test_self_reading_intents_are_removed_from_llm_output():
+    # Guide, section 4: large operators with limits, visible products and
+    # subscripted symbols read well without an intent.
+    root = parse_and_normalize(
+        f"<math {NS}><mrow>"
+        '<mrow intent="definite-integral($a,$b,$f)"><msubsup><mo>∫</mo>'
+        '<mn arg="a">0</mn><mn arg="b">1</mn></msubsup><mi arg="f">x</mi></mrow>'
+        '<mo>+</mo><mrow intent="times($x,$y)"><mi arg="x">A</mi><mo>×</mo>'
+        '<mi arg="y">B</mi></mrow><mo>+</mo>'
+        '<mrow intent="vector :prefix($v)"><msub arg="v"><mi>e</mi><mi>k</mi></msub>'
+        '</mrow><mo>+</mo><mrow intent="times($p,$q)"><mn arg="p">2</mn>'
+        '<mi arg="q">x</mi></mrow></mrow></math>'
+    )
+
+    assert strip_default_intents(root) == 3
+    markup = serialize_mathml(root)
+    assert "integral" not in markup and "vector" not in markup
+    assert markup.count("times(") == 1

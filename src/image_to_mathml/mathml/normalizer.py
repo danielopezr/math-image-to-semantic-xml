@@ -21,6 +21,7 @@ from lxml import etree
 from .corrections import (
     attach_parenthesized_bases,
     fix_identifier_tokens,
+    fix_operator_tokens,
     split_matrix_subscripts,
 )
 from .dom import (
@@ -218,6 +219,7 @@ def parse_and_normalize(markup: str) -> etree._Element:
     attach_parenthesized_bases(root)
     split_matrix_subscripts(root)
     fix_identifier_tokens(root)
+    fix_operator_tokens(root)
 
     children = element_children(root)
     if len(children) != 1 or localname(children[0].tag) != "mrow":

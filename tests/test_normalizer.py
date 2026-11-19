@@ -300,3 +300,10 @@ def test_infinity_is_an_identifier_not_an_operator():
     result = normalize_mathml('<math><mo stretchy="false" arg="b">∞</mo></math>')
     assert '<mi arg="b">∞</mi>' in result
     assert "<mo" not in result
+
+
+def test_an_ellipsis_is_an_operator_not_an_identifier():
+    result = normalize_mathml('<math><mi arg="x">…</mi><mi>⋯</mi></math>')
+    assert '<mo arg="x">…</mo>' in result
+    assert "<mo>⋯</mo>" in result
+    assert "<mi" not in result

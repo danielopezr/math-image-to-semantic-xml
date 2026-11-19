@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from lxml import etree
 
-from .corrections import split_matrix_subscripts
+from .corrections import ELLIPSIS_SYMBOLS, split_matrix_subscripts
 from .dom import element_children, element_text, is_element, localname, new_element
 
 FUNCTION_CONCEPTS: dict[str, str] = {
@@ -45,13 +45,14 @@ FUNCTION_CONCEPTS: dict[str, str] = {
     "max": "max",
     "min": "min",
     "Γ": "gamma-function",
+    "𝛤": "gamma-function",  # mathematical italic capital gamma
     "gamma": "gamma-function",
     "erf": "error-function",
 }
 
 # Named functions that are only recognised when followed by parentheses.  A
 # bare "Γ x" is far more often a product with the symbol Γ than Γ(x).
-_PARENTHESIS_ONLY_FUNCTIONS = frozenset({"Γ", "gamma"})
+_PARENTHESIS_ONLY_FUNCTIONS = frozenset({"Γ", "𝛤", "gamma"})
 
 # Single-letter names that conventionally denote functions in f(x).  Any other
 # single letter followed by parentheses, as in a(b+c) or 2x(x+1), is far more
@@ -403,9 +404,45 @@ def _bare_argument_is_unambiguous(
     if argument_index == len(children) - 1:
         return True
     following = children[argument_index + 1]
+    if _bare_function(following) is not None or _is_differential(
+        children, argument_index + 1
+    ):
+        # sin θ cos θ, cos x dx: the next function or the differential ends it.
+        return True
     if localname(following.tag) != "mo":
         return False
     return element_text(following) in _BARE_ARGUMENT_FOLLOWERS
+
+
+_PRODUCT_FACTOR_TAGS = frozenset({"mi", "mn", "msup", "msub"})
+
+
+def _product_argument_end(children: list[etree._Element], start: int) -> int | None:
+    """Last index of an implicit product such as ``kx`` in ``cos kx``.
+
+    The factors are plain tokens or scripts, and the product must end where an
+    unparenthesised argument ends (an operator such as + or =, another
+    function, a differential or the end of the row); otherwise ``None``.
+    """
+
+    end = start
+    while (
+        end + 1 < len(children)
+        and localname(children[end + 1].tag) in _PRODUCT_FACTOR_TAGS
+        and children[end + 1].get("intent") is None
+        and children[end + 1].get("arg") is None
+        and _bare_function(children[end + 1]) is None
+        and not _is_differential(children, end + 1)
+    ):
+        end += 1
+    if end == start or not all(
+        localname(child.tag) in _PRODUCT_FACTOR_TAGS
+        for child in children[start : end + 1]
+    ):
+        return None
+    if not _bare_argument_is_unambiguous(children, end):
+        return None
+    return end
 
 
 def _bare_function(element: etree._Element) -> str | None:
@@ -428,13 +465,20 @@ def _annotate_bare_functions_in(mrow: etree._Element) -> None:
         candidate = children[index]
         concept = _bare_function(candidate)
         argument = children[index + 1]
-        if (
-            concept is None
-            or not _is_bare_argument(argument)
-            or not _bare_argument_is_unambiguous(children, index + 1)
-        ):
+        if concept is None or not _is_bare_argument(argument):
             index += 1
             continue
+        if not _bare_argument_is_unambiguous(children, index + 1):
+            # cos kx: the argument is the whole implicit product.
+            end = _product_argument_end(children, index + 1)
+            if end is None:
+                index += 1
+                continue
+            argument = new_element("mrow")
+            mrow.insert(mrow.index(children[index + 1]), argument)
+            for factor in children[index + 1 : end + 1]:
+                argument.append(factor)
+            children = element_children(mrow)
 
         if index == 0 and len(children) == 2:
             target = mrow
@@ -453,6 +497,49 @@ def _annotate_bare_functions_in(mrow: etree._Element) -> None:
             break
         children = element_children(mrow)
         index = mrow.index(target) + 1
+
+
+def group_function_products(mrow: etree._Element) -> list[etree._Element]:
+    """Group ``cos kx`` as ``<mrow>cos <mrow>k x</mrow></mrow>``.
+
+    Used before the LLM so it sees the function and its whole argument as one
+    element instead of a flat cos·k·x.  Returns the ``<mrow>`` elements
+    created.
+    """
+
+    created: list[etree._Element] = []
+    children = element_children(mrow)
+    index = 0
+    while index + 2 < len(children):
+        candidate = children[index]
+        if (
+            _bare_function(candidate) is None
+            or not _is_bare_argument(children[index + 1])
+            or _bare_argument_is_unambiguous(children, index + 1)
+        ):
+            index += 1
+            continue
+        end = _product_argument_end(children, index + 1)
+        if end is None:
+            index += 1
+            continue
+        whole_row = index == 0 and end == len(children) - 1
+        product = new_element("mrow")
+        mrow.insert(mrow.index(children[index + 1]), product)
+        for factor in children[index + 1 : end + 1]:
+            product.append(factor)
+        created.append(product)
+        if whole_row:
+            # The row already is the application: cos kx alone in a numerator.
+            return created
+        application = new_element("mrow")
+        mrow.insert(mrow.index(candidate), application)
+        application.append(candidate)
+        application.append(product)
+        created.append(application)
+        children = element_children(mrow)
+        index = mrow.index(application) + 1
+    return created
 
 
 def _annotate_bare_functions(root: etree._Element) -> None:
@@ -573,6 +660,238 @@ def _annotate_derivative(element, base, exponent, variable: str) -> bool:
         element.set("intent", f"derivative($y,{literal},$n)")
         return True
     return False
+
+
+# ---------------------------------------------------------------------------
+# matrices, column vectors and |matrix| determinants
+# ---------------------------------------------------------------------------
+_MATRIX_FENCES = {"[": "]", "(": ")"}
+
+
+def _table_shape(table: etree._Element) -> tuple[int, int]:
+    rows = [row for row in element_children(table) if localname(row.tag) == "mtr"]
+    columns = max((len(element_children(row)) for row in rows), default=0)
+    return len(rows), columns
+
+
+def _fenced_wrapper(table: etree._Element) -> etree._Element | None:
+    """The ``<mrow>`` holding exactly ``fence table fence``, created if needed."""
+
+    parent = table.getparent()
+    if parent is None:
+        return None
+    siblings = element_children(parent)
+    index = siblings.index(table)
+    if index == 0 or index == len(siblings) - 1:
+        return None
+    opener, closer = siblings[index - 1], siblings[index + 1]
+    if localname(parent.tag) == "mrow" and len(siblings) == 3:
+        return parent
+    wrapper = new_element("mrow")
+    parent.insert(parent.index(opener), wrapper)
+    for node in (opener, table, closer):
+        wrapper.append(node)
+    return wrapper
+
+
+def _fences_of(table: etree._Element) -> tuple[str, str] | None:
+    parent = table.getparent()
+    if parent is None:
+        return None
+    siblings = element_children(parent)
+    index = siblings.index(table)
+    if index == 0 or index == len(siblings) - 1:
+        return None
+    opener, closer = siblings[index - 1], siblings[index + 1]
+    if localname(opener.tag) not in {"mo", "mi"} or localname(closer.tag) not in {
+        "mo",
+        "mi",
+    }:
+        return None
+    return element_text(opener), element_text(closer)
+
+
+def _clear(element: etree._Element, *names: str) -> None:
+    for name in names:
+        if element.get(name) is not None:
+            del element.attrib[name]
+
+
+def _annotate_tables(root: etree._Element, *, override: bool) -> int:
+    """``[table]`` is a matrix (``:matrix``) or, with one column, a vector;
+    ``|table|`` is the determinant of the matrix.
+
+    With ``override`` other intents on the table or its fenced group (an LLM
+    reading) are replaced; otherwise only unannotated elements are touched.
+    Returns the number of tables annotated.
+    """
+
+    changed = 0
+    for table in [
+        node
+        for node in root.iter()
+        if is_element(node) and localname(node.tag) == "mtable"
+    ]:
+        fences = _fences_of(table)
+        if fences is None:
+            continue
+        rows, columns = _table_shape(table)
+        if fences == ("|", "|") and rows >= 2 and columns >= 2:
+            concept, role, matrix = "determinant($mat)", "mat", True
+        elif _MATRIX_FENCES.get(fences[0]) == fences[1] and columns >= 2:
+            concept, role, matrix = None, None, True
+        elif _MATRIX_FENCES.get(fences[0]) == fences[1] and columns == 1 and rows >= 2:
+            concept, role, matrix = "vector($vec)", "vec", False
+        else:
+            continue
+        table_intent = (table.get("intent") or "").replace(" ", "")
+        if (
+            not override
+            and table.get("intent") is not None
+            and table_intent != ":matrix"
+        ):
+            continue
+        if role is not None and concept is not None:
+            if table.get("arg") not in (None, role):
+                continue
+            wrapper = _fenced_wrapper(table)
+            if wrapper is None:
+                continue
+            current = (wrapper.get("intent") or "").replace(" ", "")
+            if current != concept.replace(" ", ""):
+                if current and not override:
+                    continue
+                wrapper.set("intent", concept)
+            table.set("arg", role)
+        elif override:
+            # A matrix(...) reading of the fenced group repeats :matrix.
+            parent = table.getparent()
+            if (
+                parent is not None
+                and len(element_children(parent)) == 3
+                and (parent.get("intent") or "").startswith("matrix")
+            ):
+                _clear(parent, "intent")
+        if matrix:
+            table.set("intent", ":matrix")
+        else:
+            _clear(table, "intent")
+        changed += 1
+    return changed
+
+
+# ---------------------------------------------------------------------------
+# mixed fractions: 3 1/2
+# ---------------------------------------------------------------------------
+def _integer(element: etree._Element) -> int | None:
+    text = element_text(element)
+    if localname(element.tag) != "mn" or not text.isdigit():
+        return None
+    return int(text)
+
+
+def _is_proper_fraction(element: etree._Element) -> bool:
+    if localname(element.tag) != "mfrac":
+        return False
+    parts = element_children(element)
+    if len(parts) != 2:
+        return False
+    numerator, denominator = (_integer(part) for part in parts)
+    return numerator is not None and denominator is not None and numerator < denominator
+
+
+def _annotate_mixed_fractions(root: etree._Element, *, override: bool) -> int:
+    """``3\\frac{1}{2}`` is the mixed number three and a half, not a product."""
+
+    changed = 0
+    for mrow in [
+        node
+        for node in root.iter()
+        if is_element(node) and localname(node.tag) == "mrow"
+    ]:
+        children = element_children(mrow)
+        index = 0
+        while index + 1 < len(children):
+            whole, fraction = children[index], children[index + 1]
+            if _integer(whole) is None or not _is_proper_fraction(fraction):
+                index += 1
+                continue
+            if index > 0 and localname(children[index - 1].tag) in {"mn", "mi"}:
+                index += 1
+                continue
+            parts_free = all(
+                part.get("intent") is None and part.get("arg") is None
+                for part in (whole, fraction)
+            )
+            pair_row = len(children) == 2
+            if pair_row and (mrow.get("intent") is None or override):
+                target = mrow
+            elif parts_free:
+                target = new_element("mrow")
+                mrow.insert(mrow.index(whole), target)
+                target.append(whole)
+                target.append(fraction)
+            else:
+                index += 1
+                continue
+            if not parts_free:
+                if not override:
+                    index += 1
+                    continue
+                for part in (whole, fraction):
+                    _clear(part, "intent", "arg")
+            target.set("intent", "mixed-fraction($int,$frac)")
+            whole.set("arg", "int")
+            fraction.set("arg", "frac")
+            changed += 1
+            children = element_children(mrow)
+            index += 1
+    return changed
+
+
+def enforce_structures(root: etree._Element) -> int:
+    """Readings that win over the LLM: matrices, vectors, ``|A|`` and mixed
+    numbers.  Returns the number of elements re-annotated."""
+
+    return _annotate_tables(root, override=True) + _annotate_mixed_fractions(
+        root, override=True
+    )
+
+
+def enforce_derivatives(root: etree._Element, variable: str) -> int:
+    """Read every y', y'', y''' and y^{(n)} as a derivative, whatever it had.
+
+    In a calculus context these forms are unambiguous, but the LLM tends to
+    read ``y^{(4)}`` (and then every other derivative of the equation) as a
+    power.  The intent another reading left on the ``msup`` and the ``arg``
+    and ``intent`` attributes on its parts are replaced by the deterministic
+    derivative.  Returns the number of elements re-annotated.
+    """
+
+    changed = 0
+    for element in list(root.iter()):
+        if not is_element(element) or localname(element.tag) != "msup":
+            continue
+        children = element_children(element)
+        if len(children) != 2:
+            continue
+        base, exponent = children
+        if localname(base.tag) != "mi" or not _is_generic_or_variable(base):
+            continue
+        if _prime_order(exponent) is None and _parenthesised_order(exponent) is None:
+            continue
+        current = (element.get("intent") or "").replace(" ", "")
+        if current.startswith("derivative("):
+            continue
+        for part in (element, base, *exponent.iter()):
+            if not is_element(part):
+                continue
+            for name in ("intent", "arg") if part is not element else ("intent",):
+                if part.get(name) is not None:
+                    del part.attrib[name]
+        if _annotate_derivative(element, base, exponent, variable):
+            changed += 1
+    return changed
 
 
 def _is_generic_or_variable(element: etree._Element) -> bool:
@@ -815,13 +1134,23 @@ def _paren_group_end(children: list[etree._Element], start: int) -> int | None:
 
 
 def _is_differential(children: list[etree._Element], index: int) -> bool:
+    """``d`` before a variable: ``dx``, and ``dt^n`` in ``d^n/dt^n``."""
+
     child = children[index]
-    return (
-        localname(child.tag) == "mi"
-        and element_text(child) in {"d", "ⅆ"}
-        and index + 1 < len(children)
-        and localname(children[index + 1].tag) == "mi"
-    )
+    if (
+        localname(child.tag) != "mi"
+        or element_text(child) not in {"d", "ⅆ"}
+        or index + 1 >= len(children)
+    ):
+        return False
+    following = children[index + 1]
+    tag = localname(following.tag)
+    if tag == "mi":
+        return True
+    if tag in {"msup", "msub"}:
+        parts = element_children(following)
+        return bool(parts) and localname(parts[0].tag) == "mi"
+    return False
 
 
 def _factor_runs(children: list[etree._Element]) -> list[list[tuple[int, int]]]:
@@ -1035,6 +1364,108 @@ def _annotate_tends_to(root: etree._Element) -> None:
         mrow.set("intent", "tends-to($var,$value)")
 
 
+def _annotate_ellipses(root: etree._Element) -> None:
+    """``…`` and ``⋯`` always read as an ellipsis (annotation guide)."""
+
+    for element in root.iter():
+        if not is_element(element) or localname(element.tag) != "mo":
+            continue
+        if element.get("intent") is None and element_text(element) in ELLIPSIS_SYMBOLS:
+            element.set("intent", "ellipsis")
+
+
+def _factorial_operand(
+    children: list[etree._Element], bang: int
+) -> tuple[int, list[etree._Element]] | None:
+    """Return ``(start, argument nodes)`` of the operand before ``children[bang]``.
+
+    The operand is a number, a letter (``n!``, ``5!``), an indexed letter
+    (``n_1!``) or a parenthesised group (``(n-k)!``); for a group the argument
+    is its content, without the parentheses.  Anything else (``x^2!``) is
+    ambiguous and gives None.
+    """
+
+    previous = children[bang - 1]
+    tag = localname(previous.tag)
+    if tag in {"mi", "mn", "msub"} and not (tag == "mi" and not element_text(previous)):
+        return bang - 1, [previous]
+    if tag == "mrow" and previous.get("intent") is None:
+        inner = element_children(previous)
+        if (
+            len(inner) >= 3
+            and _is_mo(inner[0])
+            and _is_mo(inner[-1])
+            and _OPENERS.get(element_text(inner[0])) == element_text(inner[-1])
+        ):
+            return bang - 1, [previous]  # an already grouped (n+p)
+    if tag != "mo" or element_text(previous) not in {")", "]"}:
+        return None
+    closer = element_text(previous)
+    opener = "(" if closer == ")" else "["
+    depth = 0
+    for index in range(bang - 1, -1, -1):
+        child = children[index]
+        if localname(child.tag) != "mo":
+            continue
+        text = element_text(child)
+        if text == closer:
+            depth += 1
+        elif text == opener:
+            depth -= 1
+            if depth == 0:
+                content = children[index + 1 : bang - 1]
+                return (index, content) if content else None
+    return None
+
+
+def _annotate_factorials(root: etree._Element) -> None:
+    """Read ``n!`` and ``(n-k)!`` as ``factorial($var)`` (annotation guide).
+
+    The intent goes on the group formed by the operand and ``!``. Double
+    factorials (``n!!``) and ``!`` after anything but a number, a letter or a
+    parenthesised group are left alone.
+    """
+
+    for mrow in list(root.iter()):
+        if not is_element(mrow) or localname(mrow.tag) not in {"mrow", "math"}:
+            continue
+        children = element_children(mrow)
+        bangs = [
+            index
+            for index, child in enumerate(children)
+            if index > 0 and _is_mo(child) and element_text(child) == "!"
+        ]
+        for bang in reversed(bangs):
+            children = element_children(mrow)
+            mark = children[bang]
+            neighbours = children[bang - 1 : bang] + children[bang + 1 : bang + 2]
+            if any(_is_mo(n) and element_text(n) == "!" for n in neighbours):
+                continue  # n!! or !!
+            found = _factorial_operand(children, bang)
+            if found is None:
+                continue
+            start, content = found
+            nodes = children[start:bang]
+            if any(node.get("arg") is not None for node in [*nodes, mark]):
+                continue
+            if start == 0 and bang == len(children) - 1 and mrow.get("intent") is None:
+                target = mrow
+            else:
+                target = new_element("mrow")
+                nodes[0].addprevious(target)
+                for node in [*nodes, mark]:
+                    target.append(node)
+            if len(content) == 1:
+                content[0].set("arg", "var")
+            else:
+                wrapper = new_element("mrow")
+                wrapper.set("arg", "var")
+                content[0].addprevious(wrapper)
+                for node in content:
+                    wrapper.append(node)
+            target.set("intent", "factorial($var)")
+
+
 def annotate_tree(
     root: etree._Element,
     *,
@@ -1063,6 +1494,12 @@ def annotate_tree(
     _annotate_bare_functions(root)
     _annotate_inner_products(root, inner_product_pairs)
     _annotate_tends_to(root)
+    _annotate_ellipses(root)
+    _annotate_tables(root, override=False)
+    # Before implicit times, so 3 1/2 is not times(3, 1/2) and 2n! is
+    # times(2, factorial(n)).
+    _annotate_mixed_fractions(root, override=False)
+    _annotate_factorials(root)
     if implicit_times:
         _annotate_implicit_times(root, nary_associative)
     _annotate_linear_fractions(root)
@@ -1103,7 +1540,36 @@ def strip_default_intents(root: etree._Element) -> int:
             continue
         concept = _DEFAULT_INTENTS.get(localname(element.tag))
         intent = element.get("intent") or ""
-        if concept and intent.split("(", 1)[0].strip() == concept:
+        head = intent.split("(", 1)[0].strip()
+        if (
+            (concept and head == concept)
+            or head in _SELF_READING_CONCEPTS
+            or head.replace(" ", "").startswith("vector:prefix")
+            or (head == "times" and _has_visible_product(element))
+        ):
             del element.attrib["intent"]
             removed += 1
     return removed
+
+
+# Annotation guide, section 4: large operators with limits read well on their
+# own, and so do products with a visible × or ·.  Subscripted symbols such as
+# e_k are not annotated as vectors.
+_SELF_READING_CONCEPTS = frozenset(
+    {
+        "integral",
+        "definite-integral",
+        "indefinite-integral",
+        "sum",
+        "product",
+        "limit",
+    }
+)
+_VISIBLE_PRODUCTS = frozenset({"×", "⋅", "·"})
+
+
+def _has_visible_product(element: etree._Element) -> bool:
+    return any(
+        _is_mo(child) and element_text(child) in _VISIBLE_PRODUCTS
+        for child in element_children(element)
+    )

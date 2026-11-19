@@ -1,6 +1,10 @@
 from lxml import etree
 
-from image_to_mathml.mathml.annotator import annotate_tree
+from image_to_mathml.mathml.annotator import (
+    annotate_tree,
+    enforce_derivatives,
+    enforce_structures,
+)
 from image_to_mathml.mathml.converter import LatexToMathML
 from image_to_mathml.mathml.dom import localname
 from image_to_mathml.mathml.normalizer import (
@@ -104,9 +108,20 @@ def test_annotates_bare_named_functions_when_unambiguous():
     assert 'intent="sine($arg)"' in _annotated(r"a+\sin x")
 
 
-def test_does_not_guess_ambiguous_bare_function_argument():
-    result = _annotated(r"\sin 2x")
-    assert "sine($arg)" not in result
+def test_bare_function_takes_a_whole_implicit_product():
+    # The labels read cos kx as cosine(kx), as is usual in mathematics.
+    assert "sine($arg)" in _annotated(r"\sin 2x")
+    assert "cosine($arg)" in _annotated(r"\frac{\cos kx}{\sqrt{\pi}}")
+
+
+def test_bare_function_product_stops_at_the_next_function_or_differential():
+    result = _annotated(r"\sin \theta \cos \theta")
+    assert "sine($arg)" in result and "cosine($arg)" in result
+    assert "cosine($arg)" in _annotated(r"\int f(x) \cos kx \, dx")
+
+
+def test_does_not_guess_a_bare_argument_followed_by_a_parenthesis():
+    assert "sine($arg)" not in _annotated(r"\sin x (a+b)")
 
 
 def test_does_not_mislabel_function_powers_or_log_bases():
@@ -200,3 +215,109 @@ def test_annotates_a_variable_tending_to_a_value():
 def test_maps_between_sets_are_not_read_as_tends_to():
     assert "tends-to" not in _annotated(r"T: \mathbb{R}^2 \to \mathbb{R}^2")
     assert "tends-to" not in _annotated(r"f: A \to B")
+
+
+def _flat(latex: str, **options) -> str:
+    base = LatexToMathML().convert(latex)
+    root = parse_and_normalize(base)
+    annotate_tree(root, **options)
+    return " ".join(serialize_mathml(root).split())
+
+
+def test_annotates_a_factorial_on_the_group_with_its_mark():
+    result = _flat(r"n!")
+    assert '<mrow intent="factorial($var)"> <mi arg="var">n</mi> <mo>!</mo>' in result
+    assert 'intent="factorial($var)"> <mn arg="var">5</mn> <mo>!</mo>' in _flat(r"5!")
+
+
+def test_a_parenthesised_factorial_takes_the_content_as_argument():
+    result = _flat(r"\frac{n!}{(n-k)!}")
+    assert result.count('intent="factorial($var)"') == 2
+    assert (
+        '<mrow arg="var"> <mi>n</mi> <mo>−</mo> <mi>k</mi> </mrow> '
+        '<mo stretchy="false">)</mo> <mo>!</mo>'
+    ) in result
+
+
+def test_a_factorial_is_one_factor_of_an_implicit_product():
+    result = _flat(r"2n!", implicit_times=True)
+    assert '<mrow intent="times($arg1,$arg2)"> <mn arg="arg1">2</mn>' in result
+    assert '<mrow intent="factorial($var)" arg="arg2">' in result
+
+
+def test_ambiguous_exclamation_marks_are_not_factorials():
+    assert "factorial" not in _flat(r"n!!")
+    assert "factorial" not in _flat(r"x^2!")
+
+
+def test_ellipses_are_annotated_and_are_operators():
+    result = _flat(r"a_1, a_2, \ldots, a_n")
+    assert '<mo intent="ellipsis">…</mo>' in result
+    assert '<mo intent="ellipsis">⋯</mo>' in _flat(r"1 + 2 + \cdots + n")
+
+
+def test_the_d_of_a_higher_order_differential_is_not_a_factor():
+    result = _flat(r"\frac{d^n}{dt^n}", implicit_times=True)
+    assert '<mrow arg="den"> <mi>d</mi> <msup intent="power($base,$exp)">' in result
+    assert "times" not in result
+
+
+def test_enforce_derivatives_replaces_another_reading():
+    root = parse_and_normalize(
+        '<math xmlns="http://www.w3.org/1998/Math/MathML"><mrow>'
+        '<msup intent="power($base,$exp)"><mi arg="base">y</mi>'
+        '<mrow arg="exp"><mo>(</mo><mn>4</mn><mo>)</mo></mrow></msup>'
+        '<mo>+</mo><msup intent="power($base,$exp)"><mi arg="base">y</mi>'
+        '<mi arg="exp">″</mi></msup><mo>+</mo>'
+        '<msup intent="derivative($y,_t,1)"><mi arg="y">y</mi><mi>′</mi></msup>'
+        '<mo>+</mo><msup intent="power($base,$exp)"><mi arg="base">x</mi>'
+        '<mn arg="exp">2</mn></msup></mrow></math>'
+    )
+
+    assert enforce_derivatives(root, "x") == 2
+    markup = serialize_mathml(root)
+    assert 'intent="derivative($y,_x,$n)"' in markup
+    assert 'intent="derivative($y,_x,2)"' in markup
+    # An existing derivative and a real power are left alone.
+    assert 'intent="derivative($y,_t,1)"' in markup
+    assert markup.count("power(") == 1
+    assert markup.count('arg="base"') == 1
+
+
+def test_bracketed_tables_are_matrices_vectors_or_determinants():
+    assert 'intent=":matrix"' in _annotated(
+        r"\begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix}"
+    )
+    vector = _annotated(r"T\left(\begin{bmatrix} x \\ y \end{bmatrix}\right)")
+    assert 'intent="vector($vec)"' in vector
+    assert 'arg="vec"' in vector
+    determinant = _annotated(r"\begin{vmatrix} a & b \\ c & d \end{vmatrix}")
+    assert 'intent="determinant($mat)"' in determinant
+    assert 'intent=":matrix"' in determinant
+    # A table without brackets (a system of equations) is left alone.
+    assert "intent" not in _annotated(r"\begin{matrix} a & b \end{matrix}")
+
+
+def test_mixed_numbers_are_not_products():
+    result = _annotated(r"\frac{47}{12} = 3\frac{11}{12}")
+    assert 'intent="mixed-fraction($int,$frac)"' in result
+    assert "mixed-fraction" not in _annotated(r"3\frac{12}{11}")
+    assert "mixed-fraction" not in _annotated(r"x 3\frac{1}{2}")
+
+
+def test_enforce_structures_replaces_llm_readings():
+    root = parse_and_normalize(
+        '<math xmlns="http://www.w3.org/1998/Math/MathML"><mrow>'
+        '<mo>|</mo><mtable intent="determinant($arg)"><mtr arg="arg">'
+        "<mtd><mi>a</mi></mtd><mtd><mi>b</mi></mtd></mtr>"
+        "<mtr><mtd><mi>c</mi></mtd><mtd><mi>d</mi></mtd></mtr></mtable>"
+        '<mo>|</mo><mo>=</mo><mrow intent="times($a,$b)"><mn arg="a">3</mn>'
+        '<mfrac arg="b"><mn>1</mn><mn>2</mn></mfrac></mrow></mrow></math>'
+    )
+
+    assert enforce_structures(root) == 2
+    markup = serialize_mathml(root)
+    assert 'intent="determinant($mat)"' in markup
+    assert 'intent=":matrix"' in markup
+    assert 'intent="mixed-fraction($int,$frac)"' in markup
+    assert "times(" not in markup
