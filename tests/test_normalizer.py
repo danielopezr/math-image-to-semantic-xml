@@ -322,3 +322,16 @@ def test_table_cells_with_several_children_get_one_mrow():
     assert [localname(child.tag) for child in first] == ["mrow"]
     assert len(first[0]) == 4
     assert [localname(child.tag) for child in second] == ["mi"]
+
+
+def test_a_denominator_left_with_only_the_attached_power_loses_its_mrow():
+    # latex2mathml for \frac{1}{[u(t)]^{2}}: the 2 hangs on the closing "]".
+    root = _root(
+        normalize_mathml(
+            '<math xmlns="http://www.w3.org/1998/Math/MathML"><mfrac><mn>1</mn>'
+            "<mrow><mo>[</mo><mi>u</mi><mo>(</mo><mi>t</mi><mo>)</mo>"
+            "<msup><mo>]</mo><mn>2</mn></msup></mrow></mfrac></math>"
+        )
+    )
+    frac = next(element for element in root.iter() if localname(element.tag) == "mfrac")
+    assert [localname(child.tag) for child in frac] == ["mn", "msup"]

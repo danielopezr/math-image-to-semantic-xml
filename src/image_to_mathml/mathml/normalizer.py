@@ -241,7 +241,11 @@ def parse_and_normalize(markup: str) -> etree._Element:
         _simplify(child)
     _simplify(mrow, is_root_mrow=True)
     _wrap_table_cells(root)
-    attach_parenthesized_bases(root)
+    if attach_parenthesized_bases(root):
+        # The script now holds the whole group: a row left with only that
+        # script (the denominator of 1/[u(t)]^2) is redundant.
+        for child in element_children(mrow):
+            _simplify(child)
     split_matrix_subscripts(root)
     fix_identifier_tokens(root)
     fix_operator_tokens(root)
