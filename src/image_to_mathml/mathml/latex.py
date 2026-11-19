@@ -53,12 +53,80 @@ _SPANISH_WORD = re.compile(
 # A preceding backslash means "\\" (a row break) followed by a comma.
 _SMALL_SPACES = re.compile(r"(?<!\\)\\[,;:!]")
 
+# Alignment environments: latex2mathml does not know aligned, alignedat or
+# eqnarray and leaves every "&" as a raw <mi>&</mi> (invalid XML), and it
+# splits align*/split rows into one cell per column.  A system of equations is
+# written as one cell per row (as in the dataset labels), so the alignment
+# points are dropped and the environment becomes a one-column array.
+_ALIGN_ENVS = (
+    "aligned|alignedat|align|align\\*|alignat|alignat\\*|eqnarray|eqnarray\\*|"
+    "split|flalign|flalign\\*|gathered|gather|gather\\*"
+)
+_ALIGN_BEGIN = re.compile(r"\\begin\{(" + _ALIGN_ENVS + r")\}(?:\{\d+\})?")
+_ENV_TOKEN = re.compile(r"\\(begin|end)\{([^{}]*)\}")
+
+
+def _drop_alignment_points(body: str) -> str:
+    """Remove the "&" of ``body`` that are not inside a nested environment."""
+
+    out: list[str] = []
+    depth = 0
+    index = 0
+    while index < len(body):
+        match = _ENV_TOKEN.match(body, index)
+        if match:
+            depth += 1 if match.group(1) == "begin" else -1
+            out.append(match.group(0))
+            index = match.end()
+            continue
+        character = body[index]
+        if character == "\\" and index + 1 < len(body):
+            out.append(body[index : index + 2])
+            index += 2
+            continue
+        if character == "&" and depth == 0:
+            out.append(" ")
+        else:
+            out.append(character)
+        index += 1
+    return "".join(out)
+
+
+def _flatten_alignments(text: str) -> str:
+    """Rewrite alignment environments, and bare "&" rows, as one-column arrays."""
+
+    while True:
+        begin = _ALIGN_BEGIN.search(text)
+        if begin is None:
+            break
+        env = begin.group(1)
+        end_token = "\\end{" + env + "}"
+        end = text.find(end_token, begin.end())
+        if end < 0:
+            break
+        body = _drop_alignment_points(text[begin.end() : end])
+        text = (
+            text[: begin.start()]
+            + "\\begin{array}{l}"
+            + body
+            + "\\end{array}"
+            + text[end + len(end_token) :]
+        )
+    # Rows aligned with "&" but without any environment ("a &= b \\ c &= d").
+    flattened = _drop_alignment_points(text)
+    if flattened != text:
+        if "\\\\" in flattened and "\\begin" not in flattened:
+            flattened = "\\begin{array}{l}" + flattened + "\\end{array}"
+        text = flattened
+    return text
+
 
 def clean_latex(latex: str) -> str:
     """Remove math delimiters and equation-numbering noise added by OCR.
 
     Also writes operator names as their LaTeX commands (\\mathrm{det} becomes
-    \\det) and drops the small spacing commands (\\, \\; \\: \\!).
+    \\det), drops the small spacing commands (\\, \\; \\: \\!) and writes
+    alignment environments (aligned, eqnarray, ...) as one-column arrays.
     """
 
     text = (latex or "").strip()
@@ -73,4 +141,5 @@ def clean_latex(latex: str) -> str:
     text = _OPERATOR_NAME.sub(r"\\\1 ", text)
     text = _SPANISH_WORD.sub(r"\1\\text{ \2 }", text)
     text = _SMALL_SPACES.sub(" ", text)
+    text = _flatten_alignments(text)
     return " ".join(text.split())

@@ -271,11 +271,16 @@ def group_operator_scopes(root: etree._Element) -> int:
     ]
     created = 0
     seen: set[int] = set()
+    # lxml element proxies can be freed and their id() reused by another
+    # element; keeping every processed row alive keeps the ids unique (without
+    # it, the grouping depended on memory layout and changed between runs).
+    processed: list[etree._Element] = []
     while queue:
         mrow = queue.pop(0)
         if id(mrow) in seen:
             continue
         seen.add(id(mrow))
+        processed.append(mrow)
         new_rows: list[etree._Element] = []
         for step in (
             _group_fences,

@@ -2,7 +2,13 @@
 
 from __future__ import annotations
 
+import re
+
 from .latex import clean_latex
+
+# latex2mathml copies an "&" it cannot place (an alignment point outside a
+# table) verbatim into the markup, which is not well-formed XML.
+_STRAY_AMPERSAND = re.compile(r"&(?!#?[A-Za-z0-9]+;)")
 
 
 class ConversionError(RuntimeError):
@@ -39,4 +45,4 @@ class LatexToMathML:
             raise ConversionError(f"Could not convert LaTeX to MathML: {exc}") from exc
         if not markup or "<math" not in markup:
             raise ConversionError("latex2mathml returned no <math> element")
-        return markup
+        return _STRAY_AMPERSAND.sub("&amp;", markup)

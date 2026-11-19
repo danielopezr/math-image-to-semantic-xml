@@ -53,3 +53,36 @@ def test_clean_latex_keeps_spanish_words_between_spaces_as_text():
     assert clean_latex(r"s > 0 \, y \, s \neq 0") == r"s > 0 \text{ y } s \neq 0"
     assert clean_latex(r"a \quad o \quad b") == r"a \quad\text{ o }\quad b"
     assert clean_latex(r"x\,e\,y") == r"x e y"
+
+
+@pytest.mark.parametrize("env", ["aligned", "align*", "eqnarray", "split"])
+def test_clean_latex_writes_alignment_environments_as_one_column_arrays(env):
+    raw = (
+        r"\begin{" + env + r"} 2x_1 - x_2 &= \lambda x_1 \\ "
+        r"x_3 &= 0 \end{" + env + "}"
+    )
+    assert clean_latex(raw) == (
+        r"\begin{array}{l} 2x_1 - x_2 = \lambda x_1 \\ x_3 = 0 \end{array}"
+    )
+
+
+def test_clean_latex_keeps_nested_matrix_cells_and_escaped_ampersands():
+    raw = r"\begin{aligned} A &= \begin{bmatrix} 1 & 2 \end{bmatrix} \\ \& &= 0 \end{aligned}"
+    assert clean_latex(raw) == (
+        r"\begin{array}{l} A = \begin{bmatrix} 1 & 2 \end{bmatrix} \\ \& = 0 \end{array}"
+    )
+
+
+def test_clean_latex_wraps_bare_aligned_rows_in_an_array():
+    assert (
+        clean_latex(r"a &= b \\ c &= d") == r"\begin{array}{l}a = b \\ c = d\end{array}"
+    )
+
+
+def test_clean_latex_leaves_matrices_and_cases_untouched():
+    for raw in (
+        r"\begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix}",
+        r"\begin{cases} x & x > 0 \\ 0 & x \le 0 \end{cases}",
+        r"\left[ \begin{array}{cc} 1 & 2 \end{array} \right]",
+    ):
+        assert clean_latex(raw) == raw

@@ -346,12 +346,14 @@ def _annotate_function_applications(root: etree._Element) -> None:
         if is_element(node) and localname(node.tag) == "mrow"
     ]
     seen: set[int] = set()
+    processed: list[etree._Element] = []  # keeps id() unique, see grouping
     while queue:
         mrow = queue.pop(0)
         marker = id(mrow)
         if marker in seen:
             continue
         seen.add(marker)
+        processed.append(mrow)
         queue.extend(_annotate_function_applications_in(mrow))
 
 
@@ -550,12 +552,14 @@ def _annotate_bare_functions(root: etree._Element) -> None:
         if is_element(node) and localname(node.tag) == "mrow"
     ]
     seen: set[int] = set()
+    processed: list[etree._Element] = []  # keeps id() unique, see grouping
     while queue:
         mrow = queue.pop(0)
         marker = id(mrow)
         if marker in seen:
             continue
         seen.add(marker)
+        processed.append(mrow)
         _annotate_bare_functions_in(mrow)
         queue.extend(
             child for child in element_children(mrow) if localname(child.tag) == "mrow"
@@ -1288,11 +1292,13 @@ def _annotate_implicit_times(root: etree._Element, nary: bool) -> None:
         if is_element(node) and localname(node.tag) == "mrow"
     ]
     seen: set[int] = set()
+    processed: list[etree._Element] = []  # keeps id() unique, see grouping
     while queue:
         mrow = queue.pop(0)
         if id(mrow) in seen:
             continue
         seen.add(id(mrow))
+        processed.append(mrow)
         # Parenthesised groups created here are scanned too: (2x+1) has its
         # own product inside.
         queue.extend(_annotate_implicit_times_in(mrow, nary))

@@ -211,6 +211,10 @@ def parse_and_normalize(markup: str) -> etree._Element:
         raise NormalizationError(f"Invalid MathML: {exc}") from exc
 
     root = _clone_with_namespace(parsed)
+    # Indentation from an earlier pretty-print is not content: left in the
+    # tree it leaks into element_text() ("′\n  ′\n  ′" is no longer y''') and
+    # the rules read a re-parsed tree differently from a fresh one.
+    _drop_layout_whitespace(root)
     root = _ensure_math_root(root)
     mrow = _ensure_single_mrow(root)
     for child in element_children(mrow):

@@ -363,7 +363,7 @@ def _check_concept(
 def _resolve_target(
     annotation: dict[str, Any],
     id_map: dict[str, etree._Element],
-    seen_targets: set[int],
+    seen_targets: dict[int, etree._Element],
 ) -> etree._Element:
     target_value = annotation.get("target", annotation.get("target_id"))
     wrap_value = annotation.get("wrap", annotation.get("target_wrap"))
@@ -422,7 +422,7 @@ def _resolve_target(
         raise SemanticError("The same target is annotated more than once")
     if target.get("intent") is not None:
         raise SemanticError(f"Target {path(target)} already has an intent")
-    seen_targets.add(id(target))
+    seen_targets[id(target)] = target
     return target
 
 
@@ -543,7 +543,7 @@ def _literal_is_valid(value: str) -> bool:
 def _apply_annotation(
     annotation: dict[str, Any],
     id_map: dict[str, etree._Element],
-    seen_targets: set[int],
+    seen_targets: dict[int, etree._Element],
     registry: ConceptRegistry,
     allow_open_concepts: bool,
     allowed_open_concepts: set[str] | None,
@@ -737,7 +737,8 @@ def apply_semantic_payload(
         for target_id, count in target_counts.items()
         if count > 1 and target_id in id_map
     }
-    seen_targets: set[int] = set()
+    # id() -> element: holding the element keeps its id() from being reused.
+    seen_targets: dict[int, etree._Element] = {}
 
     for index, annotation in enumerate(annotations, 1):
         target_id = _annotation_target_id(annotation)
@@ -751,7 +752,7 @@ def apply_semantic_payload(
         # is rolled back completely, so the valid ones can still be used.
         snapshot = _snapshot(root)
         saved_ids = dict(id_map)
-        saved_targets = set(seen_targets)
+        saved_targets = dict(seen_targets)
         try:
             _apply_annotation(
                 annotation,
