@@ -194,6 +194,26 @@ def _simplify(element: etree._Element, *, is_root_mrow: bool = False) -> None:
         parent.insert(index, child)
 
 
+def _wrap_table_cells(root: etree._Element) -> None:
+    """Give every table cell with several children a single ``<mrow>``.
+
+    latex2mathml leaves the content of each ``<mtd>`` loose, while the labels
+    (and the rules, which only look inside ``<mrow>``) expect one row per cell:
+    without it the products of a system of equations are never annotated.
+    """
+
+    for cell in list(root.iter(qname("mtd"))):
+        children = element_children(cell)
+        if len(children) < 2:
+            continue
+        wrapper = etree.Element(qname("mrow"))
+        wrapper.text = cell.text
+        cell.text = None
+        for child in list(cell):
+            wrapper.append(child)
+        cell.append(wrapper)
+
+
 def parse_and_normalize(markup: str) -> etree._Element:
     """Parse model output and return the normalised MathML tree."""
 
@@ -220,6 +240,7 @@ def parse_and_normalize(markup: str) -> etree._Element:
     for child in element_children(mrow):
         _simplify(child)
     _simplify(mrow, is_root_mrow=True)
+    _wrap_table_cells(root)
     attach_parenthesized_bases(root)
     split_matrix_subscripts(root)
     fix_identifier_tokens(root)

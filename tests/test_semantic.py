@@ -499,3 +499,86 @@ def test_concept_roles_only_use_known_concepts():
         name for name in CONCEPT_ROLES if registry.classification(name) == "unknown"
     ]
     assert unknown == []
+
+
+def test_argument_beside_the_function_name_moves_the_target_to_the_group():
+    # sin x + 1: the LLM targets "sin" (n3) and takes x (n4) as its argument.
+    root = _with_ids(
+        f"<math {NS}><mrow><mi>sin</mi><mi>x</mi><mo>+</mo><mn>1</mn></mrow></math>"
+    )
+    result = apply_semantic_payload(
+        root, [{"target": "n3", "concept": "sine", "args": {"a1": "n4"}}]
+    )
+    assert result.ok
+    markup = " ".join(_final(root).split())
+    assert (
+        '<mrow intent="sine($arg)"> <mi>sin</mi> <mi arg="arg">x</mi> </mrow>' in markup
+    )
+    assert validate_mathml(markup).acceptable
+
+
+def test_argument_beside_the_name_includes_the_closing_parenthesis():
+    root = _with_ids(
+        f"<math {NS}><mrow><mi>Γ</mi><mo>(</mo><mn>1</mn><mo>−</mo><mi>α</mi>"
+        "<mo>)</mo><mo>=</mo><mn>2</mn></mrow></math>"
+    )
+    result = apply_semantic_payload(
+        root,
+        [
+            {
+                "target": "n3",
+                "concept": "gamma-function",
+                "args": {"a1": ["n5", "n6", "n7"]},
+            }
+        ],
+    )
+    assert result.ok
+    markup = " ".join(_final(root).split())
+    assert '<mrow intent="gamma-function($arg)"> <mi>Γ</mi> <mo>(</mo>' in markup
+    assert "<mo>)</mo> </mrow> <mo>=</mo>" in markup
+
+
+def test_argument_far_from_the_name_is_still_rejected():
+    root = _with_ids(
+        f"<math {NS}><mrow><mi>sin</mi><mi>x</mi><mo>+</mo><mi>y</mi></mrow></math>"
+    )
+    result = apply_semantic_payload(
+        root, [{"target": "n3", "concept": "sine", "args": {"a1": "n6"}}]
+    )
+    assert not result.ok
+    assert "not a descendant of the target" in result.errors[0]
+
+
+def test_literals_nested_inside_args_are_accepted():
+    root = _with_ids(f"<math {NS}><mrow><msqrt><mi>x</mi></msqrt></mrow></math>")
+    result = apply_semantic_payload(
+        root,
+        [
+            {
+                "target": "n3",
+                "concept": "root",
+                "args": {"a1": "n4", "literals": {"a2": "2"}},
+            }
+        ],
+    )
+    assert result.ok
+    assert 'intent="root($radicand, 2)"' in _final(root)
+
+
+def test_redundant_annotations_are_skipped_with_a_warning():
+    root = _with_ids(
+        f"<math {NS}><mrow><msqrt><mi>x</mi></msqrt><mo>+</mo><mover><mi>y</mi>"
+        "<mo>~</mo></mover></mrow></math>"
+    )
+    result = apply_semantic_payload(
+        root,
+        [
+            {"target": "n3", "concept": "root", "args": {"a1": "n4"}},
+            {"target": "n6", "concept": "tilde", "args": {"a1": "n7"}},
+        ],
+        drop_redundant=True,
+    )
+    assert result.ok
+    assert result.applied == 0
+    assert len(result.warnings) == 2
+    assert "intent=" not in _final(root)

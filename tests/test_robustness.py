@@ -374,17 +374,17 @@ def test_rules_first_keeps_the_rules_where_the_llm_disagrees():
 
 
 def test_rules_first_adds_the_llm_annotations_the_rules_do_not_cover():
-    # The rules leave the accent of \tilde{y} alone; the LLM's tilde is added
-    # on top of the rules.
+    # The rules leave the bar of \bar{z} alone; the LLM's complex conjugate
+    # is added on top of the rules.
     llm = _ScriptedLLM(
-        '{"annotations": [{"target": "n3", "concept": "tilde",'
-        ' "args": {"a1": "n4", "a2": "n5"}}]}'
+        '{"annotations": [{"target": "n3", "concept": "complex-conjugate",'
+        ' "args": {"a1": "n4"}}]}'
     )
     pipeline = EquationPipeline(Settings(max_repair_attempts=0), llm=llm)
 
-    result = pipeline.run(EquationRequest(latex=r"\tilde{y}=0", flow=Flow.HYBRID))
+    result = pipeline.run(EquationRequest(latex=r"\bar{z}=0", flow=Flow.HYBRID))
 
-    assert 'intent="tilde($arg1,$arg2)"' in result.mathml
+    assert 'intent="complex-conjugate($arg)"' in result.mathml
     assert any("rules-first: 1 LLM annotation(s)" in s for s in result.trace)
 
 

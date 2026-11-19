@@ -90,3 +90,16 @@ def test_enforce_partial_derivatives_replaces_llm_reading():
     assert 'intent="partial-derivative($f,1,$v1)"' in markup
     assert "fraction(" not in markup
     assert enforce_partial_derivatives(root) == 0
+
+
+def test_a_jacobian_keeps_its_ellipses_when_the_partial_rule_does_not_apply():
+    root = parse_and_normalize(
+        LatexToMathML().convert(
+            r"\frac{\partial(f_{1},\ldots,f_{n})}{\partial(x_{1},\ldots,x_{n})}"
+        )
+    )
+    annotate_tree(root, implicit_times=True, default_structures=False)
+    before = serialize_mathml(root).count('intent="ellipsis"')
+    assert before == 2
+    enforce_partial_derivatives(root)
+    assert serialize_mathml(root).count('intent="ellipsis"') == 2

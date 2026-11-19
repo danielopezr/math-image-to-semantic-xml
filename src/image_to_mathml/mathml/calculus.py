@@ -356,15 +356,21 @@ def enforce_partial_derivatives(root: etree._Element) -> int:
             .startswith("partial-derivative(")
         ):
             continue
-        for node in frac.iter():
-            if not is_element(node):
-                continue
+        saved = [(node, dict(node.attrib)) for node in frac.iter() if is_element(node)]
+        for node, _ in saved:
             if node.get("intent") is not None:
                 del node.attrib["intent"]
             if node is not frac and node.get("arg") is not None:
                 del node.attrib["arg"]
         if _annotate_partial(frac):
             changed += 1
+        else:
+            # Not a derivative the rule can read (the Jacobian
+            # ∂(f_1, …, f_n)/∂(x_1, …, x_n)): keep what it had, e.g. the
+            # ellipses.
+            for node, attributes in saved:
+                node.attrib.clear()
+                node.attrib.update(attributes)
     return changed
 
 

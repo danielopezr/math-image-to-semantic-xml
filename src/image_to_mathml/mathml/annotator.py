@@ -644,12 +644,46 @@ def _parenthesised_order(exponent: etree._Element) -> etree._Element | None:
     return None
 
 
+def _derivative_variable(element: etree._Element, default: str) -> str:
+    """The variable a prime derivative is taken with respect to.
+
+    The variable of its own application (r'(t), X'(z), g''(u)); otherwise
+    the only variable the expression applies functions to (Y' = P(t)Y + Q(t));
+    otherwise ``default``.  The labels write the derivative that way.
+    """
+
+    parent = element.getparent()
+    if parent is not None:
+        siblings = element_children(parent)
+        index = siblings.index(element)
+        following = siblings[index + 1 : index + 4]
+        if (
+            len(following) == 3
+            and _is_mo(following[0], "(")
+            and _is_mo(following[2], ")")
+            and localname(following[1].tag) == "mi"
+            and _is_symbol(following[1])
+        ):
+            return element_text(following[1])
+    variables: set[str] = set()
+    for row in element.getroottree().getroot().iter():
+        if not is_element(row):
+            continue
+        children = element_children(row)
+        for position in range(len(children)):
+            if _is_single_variable_call(children, position):
+                variables.add(element_text(children[position + 2]))
+    if len(variables) == 1:
+        return variables.pop()
+    return default
+
+
 def _annotate_derivative(element, base, exponent, variable: str) -> bool:
     """y', y'', y''' and y^{(n)} as derivative($y, _x, n)."""
 
     if localname(base.tag) != "mi" or not _is_generic_or_variable(base):
         return False
-    literal = "_" + variable
+    literal = "_" + _derivative_variable(element, variable)
     order = _prime_order(exponent)
     if order is not None:
         if _set_arg(base, "y"):
@@ -887,6 +921,16 @@ def enforce_derivatives(root: etree._Element, variable: str) -> int:
             continue
         current = (element.get("intent") or "").replace(" ", "")
         if current.startswith("derivative("):
+            continue
+        parent = element.getparent()
+        if (
+            element.get("arg") == "name"
+            and parent is not None
+            and (parent.get("intent") or "").startswith("$name($v1")
+        ):
+            # f'(a; y) is the derivative of f at a in the direction y, not a
+            # derivative with respect to x: the labels (and the rules) keep it
+            # as $name($v1, $v2).  f'(0) is still a derivative.
             continue
         for part in (element, base, *exponent.iter()):
             if not is_element(part):
@@ -1526,7 +1570,7 @@ def annotate_tree(
     )
 
 
-_DEFAULT_INTENTS = {
+DEFAULT_INTENTS = {
     "mfrac": "fraction",
     "msub": "indexed-by",
     "msqrt": "root",
@@ -1548,12 +1592,12 @@ def strip_default_intents(root: etree._Element) -> int:
     for element in root.iter():
         if not is_element(element):
             continue
-        concept = _DEFAULT_INTENTS.get(localname(element.tag))
+        concept = DEFAULT_INTENTS.get(localname(element.tag))
         intent = element.get("intent") or ""
         head = intent.split("(", 1)[0].strip()
         if (
             (concept and head == concept)
-            or head in _SELF_READING_CONCEPTS
+            or head in SELF_READING_CONCEPTS
             or head.replace(" ", "").startswith("vector:prefix")
             or (head == "times" and _has_visible_product(element))
         ):
@@ -1565,7 +1609,7 @@ def strip_default_intents(root: etree._Element) -> int:
 # Annotation guide, section 4: large operators with limits read well on their
 # own, and so do products with a visible × or ·.  Subscripted symbols such as
 # e_k are not annotated as vectors.
-_SELF_READING_CONCEPTS = frozenset(
+SELF_READING_CONCEPTS = frozenset(
     {
         "integral",
         "definite-integral",
@@ -1573,6 +1617,13 @@ _SELF_READING_CONCEPTS = frozenset(
         "sum",
         "product",
         "limit",
+        # The visible notation already says it (section 4): ỹ, {a, b},
+        # (a, b) and x_k.  No label uses them; only the LLM added them
+        # (18/11/2026: 7 times, all wrong).
+        "tilde",
+        "set",
+        "ordered-pair",
+        "indexed-by",
     }
 )
 _VISIBLE_PRODUCTS = frozenset({"×", "⋅", "·"})

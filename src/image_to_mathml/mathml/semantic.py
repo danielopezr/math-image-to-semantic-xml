@@ -15,7 +15,7 @@ from typing import Any
 
 from lxml import etree
 
-from .annotator import FUNCTION_CONCEPTS
+from .annotator import DEFAULT_INTENTS, FUNCTION_CONCEPTS, SELF_READING_CONCEPTS
 from .concepts import ConceptRegistry, get_registry
 from .dom import (
     drop_attribute,
@@ -315,6 +315,14 @@ def _collect_slots(
 
     if args is None:
         args = {}
+    if isinstance(args, dict) and "literals" in args:
+        # Small models nest the literals inside args ({"a1": "n5", "literals":
+        # {"a2": "2"}}).  A dict is moved where it belongs; anything else
+        # (a bare slot name such as "a2") carries no value and is dropped.
+        args = dict(args)
+        nested = args.pop("literals")
+        if isinstance(nested, dict):
+            literals = {**nested, **(literals if isinstance(literals, dict) else {})}
     if isinstance(args, list):
         for index, value in enumerate(args):
             add(index, *_coerce_arg(value))
@@ -540,6 +548,152 @@ def _literal_is_valid(value: str) -> bool:
     return bool(_NUMBER_RE.match(value) or _NCNAME_RE.match(value))
 
 
+_OPEN_FENCES = frozenset({"(", "[", "{"})
+_CLOSE_FENCES = frozenset({")", "]", "}"})
+
+
+def _argument_nodes(
+    annotation: dict[str, Any], id_map: dict[str, etree._Element]
+) -> list[etree._Element] | None:
+    """Elements named as arguments, or ``None`` if any id is unknown."""
+
+    args = annotation.get("args", annotation.get("roles"))
+    values: list[Any] = []
+    if isinstance(args, dict):
+        values = [value for key, value in args.items() if key != "literals"]
+    elif isinstance(args, list):
+        values = list(args)
+    groups = annotation.get("groups", annotation.get("role_groups"))
+    if isinstance(groups, dict):
+        values += list(groups.values())
+    nodes: list[etree._Element] = []
+    for value in values:
+        if isinstance(value, dict):
+            value = value.get("ref", value.get("id", value.get("group")))
+        ids = [value] if isinstance(value, str) else value
+        if not isinstance(ids, list):
+            return None
+        for node_id in ids:
+            node = id_map.get(str(node_id))
+            if node is None:
+                return None
+            nodes.append(node)
+    return nodes
+
+
+def _fence(element: etree._Element) -> str:
+    return element_text(element) if localname(element.tag) == "mo" else ""
+
+
+def _repair_sibling_arguments(
+    annotation: dict[str, Any], id_map: dict[str, etree._Element]
+) -> dict[str, Any]:
+    """Retarget a prefix function whose arguments follow it as siblings.
+
+    The most frequent rejection (18/11/2026: 182 of 357) is an annotation on
+    the function name (``sin``, ``Γ``, ``f``) with its argument taken from the
+    element beside it, which is not inside the target.  When everything from
+    the name to the last argument (plus the fences that close it) is only the
+    name, the arguments and fences, the annotation is moved to the group of
+    those siblings, which is what the LLM meant.  Anything else is returned
+    unchanged and fails validation as before.
+    """
+
+    target_id = annotation.get("target", annotation.get("target_id"))
+    if not isinstance(target_id, str) or "wrap" in annotation:
+        return annotation
+    target = id_map.get(target_id)
+    nodes = _argument_nodes(annotation, id_map)
+    if target is None or not nodes:
+        return annotation
+    outside = [node for node in nodes if not _is_descendant(node, target)]
+    if not outside:
+        return annotation
+    parent = target.getparent()
+    if parent is None or has_positional_children(parent):
+        return annotation
+    concept = str(annotation.get("concept") or "").strip()
+    if localname(target.tag) == "mo":
+        # Operators such as sup, adj or lim: the labels leave them alone.
+        return annotation
+    if target in outside and concept not in _GENERIC_CONCEPTS:
+        # Only a generic application names its function as an argument.
+        return annotation
+
+    siblings = element_children(parent)
+    start = siblings.index(target)
+    covered: set[int] = {start}
+    for node in outside:
+        ancestor: etree._Element | None = node
+        while ancestor is not None and ancestor.getparent() is not parent:
+            ancestor = ancestor.getparent()
+        if ancestor is None:
+            return annotation
+        covered.add(siblings.index(ancestor))
+    if min(covered) < start:
+        return annotation
+    end = max(covered)
+
+    depth = 0
+    for element in siblings[start + 1 : end + 1]:
+        text = _fence(element)
+        depth += text in _OPEN_FENCES
+        depth -= text in _CLOSE_FENCES
+    while (
+        depth > 0
+        and end + 1 < len(siblings)
+        and _fence(siblings[end + 1]) in _CLOSE_FENCES
+    ):
+        end += 1
+        depth -= 1
+    if depth != 0:
+        return annotation
+    for index in range(start + 1, end + 1):
+        text = _fence(siblings[index])
+        if index not in covered and text not in _OPEN_FENCES | _CLOSE_FENCES:
+            return annotation
+
+    span = siblings[start : end + 1]
+    repaired = {
+        key: value
+        for key, value in annotation.items()
+        if key not in {"target", "target_id"}
+    }
+    parent_id = parent.get(ID_ATTR)
+    if len(span) == len(siblings) and parent_id and localname(parent.tag) == "mrow":
+        repaired["target"] = parent_id
+        return repaired
+    span_ids = [element.get(ID_ATTR) for element in span]
+    if not all(span_ids):
+        return annotation
+    repaired["wrap"] = span_ids
+    return repaired
+
+
+def _redundant_reason(
+    annotation: dict[str, Any], id_map: dict[str, etree._Element]
+) -> str | None:
+    """Why an annotation would be removed from the output anyway, or ``None``.
+
+    Intents that only repeat the default reading (``root`` on ``msqrt``) or
+    that the guide leaves out (sums, integrals, limits) are stripped from the
+    final output; validating them only produced rejections (18/11/2026: 81
+    for ``root``, 32 for ``sum`` and ``definite-integral``).
+    """
+
+    concept = str(annotation.get("concept") or "").strip()
+    if concept in SELF_READING_CONCEPTS:
+        return f"{concept!r} reads well on its own; left unannotated"
+    target_id = _annotation_target_id(annotation)
+    target = id_map.get(target_id) if target_id else None
+    if target is not None and DEFAULT_INTENTS.get(localname(target.tag)) == concept:
+        return (
+            f"{concept!r} is the default reading of <{localname(target.tag)}>; "
+            "left unannotated"
+        )
+    return None
+
+
 def _apply_annotation(
     annotation: dict[str, Any],
     id_map: dict[str, etree._Element],
@@ -556,6 +710,7 @@ def _apply_annotation(
         concept = "generic-application"
     _check_concept(concept, registry, allow_open_concepts, allowed_open_concepts)
 
+    annotation = _repair_sibling_arguments(annotation, id_map)
     target = _resolve_target(annotation, id_map, seen_targets)
     _check_target_kind(concept, target)
     slots = _collect_slots(annotation, concept)
@@ -717,8 +872,13 @@ def apply_semantic_payload(
     registry: ConceptRegistry | None = None,
     allow_open_concepts: bool = True,
     allowed_open_concepts: set[str] | None = None,
+    drop_redundant: bool = False,
 ) -> SemanticApplyResult:
-    """Apply a validated semantic JSON description to a tree with ids."""
+    """Apply a validated semantic JSON description to a tree with ids.
+
+    With ``drop_redundant`` the annotations that the output would lose anyway
+    (see :func:`_redundant_reason`) are skipped with a warning.
+    """
 
     registry = registry or get_registry()
     result = SemanticApplyResult()
@@ -747,6 +907,10 @@ def apply_semantic_payload(
                 f"annotation {index}: target {target_id!r} has multiple "
                 "annotations; left unannotated"
             )
+            continue
+        reason = _redundant_reason(annotation, id_map) if drop_redundant else None
+        if reason is not None:
+            result.warnings.append(f"annotation {index}: {reason}")
             continue
         # Each annotation is applied as a transaction: a failing annotation
         # is rolled back completely, so the valid ones can still be used.

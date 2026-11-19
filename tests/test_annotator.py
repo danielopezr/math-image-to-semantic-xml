@@ -321,3 +321,33 @@ def test_enforce_structures_replaces_llm_readings():
     assert 'intent=":matrix"' in markup
     assert 'intent="mixed-fraction($int,$frac)"' in markup
     assert "times(" not in markup
+
+
+def test_products_inside_table_cells_are_annotated():
+    result = _flat(
+        r"\begin{array}{l} 2x_1 - x_2 = \lambda x_1 \ x_1 + 3x_2 = 0 \end{array}",
+        implicit_times=True,
+    )
+    assert result.count('intent="times($arg1,$arg2)"') == 3
+
+
+def test_prime_derivative_takes_the_variable_of_its_application():
+    assert 'intent="derivative($y,_t,1)"' in _flat(
+        r"r'(t) = i + (2t - 1)j", derivative_variable="x"
+    )
+    assert 'intent="derivative($y,_t,1)"' in _flat(
+        r"Y' = P(t)Y + Q(t)", derivative_variable="x"
+    )
+    assert 'intent="derivative($y,_x,1)"' in _flat(
+        r"y' + y = 0", derivative_variable="x"
+    )
+
+
+def test_enforce_derivatives_leaves_directional_derivatives_alone():
+    root = parse_and_normalize(
+        '<math xmlns="http://www.w3.org/1998/Math/MathML"><mrow>'
+        '<mrow intent="$name($v1, $v2)"><msup arg="name"><mi>f</mi><mi>′</mi></msup>'
+        '<mo>(</mo><mi arg="v1">a</mi><mi>;</mi><mi arg="v2">y</mi><mo>)</mo></mrow>'
+        "</mrow></math>"
+    )
+    assert enforce_derivatives(root, "x") == 0

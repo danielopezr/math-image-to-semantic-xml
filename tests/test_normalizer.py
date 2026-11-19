@@ -307,3 +307,18 @@ def test_an_ellipsis_is_an_operator_not_an_identifier():
     assert '<mo arg="x">…</mo>' in result
     assert "<mo>⋯</mo>" in result
     assert "<mi" not in result
+
+
+def test_table_cells_with_several_children_get_one_mrow():
+    root = _root(
+        normalize_mathml(
+            '<math xmlns="http://www.w3.org/1998/Math/MathML"><mtable><mtr>'
+            "<mtd><mn>2</mn><mi>x</mi><mo>=</mo><mn>1</mn></mtd>"
+            "<mtd><mi>y</mi></mtd></mtr></mtable></math>"
+        )
+    )
+    cells = [element for element in root.iter() if localname(element.tag) == "mtd"]
+    first, second = cells
+    assert [localname(child.tag) for child in first] == ["mrow"]
+    assert len(first[0]) == 4
+    assert [localname(child.tag) for child in second] == ["mi"]

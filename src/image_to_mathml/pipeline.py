@@ -626,6 +626,10 @@ class EquationPipeline:
                 allowed_open_concepts=self._allowed_open(allow_open),
                 registry=self.registry,
             )
+            # The same overrides the hybrid flow applies after the rules
+            # (derivatives such as f'(0) inside an application, ...): without
+            # them the rules alone read less than the rules-first hybrid.
+            mathml, report, _ = self._enforce_rules(mathml, report, allow_open)
         warnings: list[str] = []
         if count == 0:
             warnings.append("The deterministic annotator found no safe intent to add")
@@ -1131,6 +1135,7 @@ class EquationPipeline:
                         registry=self.registry,
                         allow_open_concepts=allow_open,
                         allowed_open_concepts=self._allowed_open(allow_open),
+                        drop_redundant=not self.settings.annotate_default_structures,
                     )
                 if applied.warnings:
                     warnings.extend(applied.warnings)
@@ -1476,6 +1481,7 @@ class EquationPipeline:
             registry=self.registry,
             allow_open_concepts=allow_open,
             allowed_open_concepts=self._allowed_open(allow_open),
+            drop_redundant=not self.settings.annotate_default_structures,
         )
         strip_node_ids(root)
         try:
@@ -1655,6 +1661,7 @@ class EquationPipeline:
                 allowed_open_concepts=self._allowed_open(allow_open),
                 registry=self.registry,
             )
+            mathml, report, _ = self._enforce_rules(mathml, report, allow_open)
         if count == 0:
             warnings.append("The deterministic annotator found no safe intent to add")
         return PipelineResult(

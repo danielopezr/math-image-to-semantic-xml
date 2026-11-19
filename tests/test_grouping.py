@@ -224,7 +224,7 @@ def test_sum_can_target_the_grouped_operator_and_body():
     assert any("accepted" in step for step in result.trace)
     # The guide does not annotate sums with limits: the intent is removed.
     assert "sum(" not in result.mathml
-    assert any("default-reading" in step for step in result.trace)
+    assert any("reads well on its own" in item for item in result.warnings)
     assert result.validation.ok
 
 
