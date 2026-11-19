@@ -110,3 +110,20 @@ def test_convert_output_includes_phase_timings_and_attempt_summary():
     assert "attempts total: 100.0 ms; average: 100.0 ms (1 attempts)" in output
     assert "total pipeline: 200.0 ms" in output
     assert output.rstrip().endswith("<math>final</math>")
+
+
+def test_main_writes_utf8_when_stdout_uses_a_legacy_code_page(monkeypatch):
+    import io
+    import sys
+
+    from image_to_mathml.cli import main
+
+    buffer = io.BytesIO()
+    stdout = io.TextIOWrapper(buffer, encoding="cp1252")
+    monkeypatch.setattr(sys, "stdout", stdout)
+
+    code = main(["convert", "--latex", "a-b", "--flow", "offline"])
+    stdout.flush()
+
+    assert code == 0
+    assert "−" in buffer.getvalue().decode("utf-8")

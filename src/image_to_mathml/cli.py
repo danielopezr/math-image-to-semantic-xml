@@ -223,6 +223,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Write the per-sample report table to this CSV file, including "
         "the total time and the time per attempt",
     )
+    evaluate.add_argument(
+        "--resume",
+        action="store_true",
+        help="Continue an interrupted evaluation: samples saved in "
+        "<output>.partial.jsonl are not run again (needs --output)",
+    )
     evaluate.set_defaults(func=cmd_evaluate)
 
     check = subparsers.add_parser("check", help="Validate a MathML + intent document")
@@ -247,7 +253,22 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _use_utf8_output() -> None:
+    """Write stdout/stderr as UTF-8.
+
+    MathML output contains characters such as U+2212 (minus) that legacy
+    Windows code pages (cp1252) cannot encode, which crashes the command when
+    its output is redirected to a file or a pipe.
+    """
+
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8")
+
+
 def main(argv: list[str] | None = None) -> int:
+    _use_utf8_output()
     parser = build_parser()
     args = parser.parse_args(argv)
     try:

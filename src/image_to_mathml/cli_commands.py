@@ -14,6 +14,7 @@ from typing import Any
 
 from .config import Settings
 from .evaluation import (
+    SampleEvaluation,
     evaluate_samples,
     load_evaluation_config,
     load_evaluation_samples,
@@ -272,6 +273,81 @@ def _image_dataset_defaults(args: argparse.Namespace) -> dict[str, Any]:
     return defaults
 
 
+def _partial_path(output: str | None) -> Path | None:
+    """Where the per-sample results of an evaluation are saved as it runs."""
+
+    if not output:
+        return None
+    path = Path(output)
+    return path.with_name(f"{path.stem}.partial.jsonl")
+
+
+def _read_partial(path: Path, sample_ids: set[str]) -> dict[str, dict[str, Any]]:
+    """Load the samples saved by an interrupted evaluation.
+
+    A line cut short by the interruption is ignored, so that sample runs again.
+    """
+
+    completed: dict[str, dict[str, Any]] = {}
+    if not path.exists():
+        return completed
+    for line in path.read_text(encoding="utf-8").splitlines():
+        try:
+            data = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        sample_id = data.get("sample_id") if isinstance(data, dict) else None
+        if sample_id in sample_ids:
+            completed[sample_id] = data
+    return completed
+
+
+def _format_duration(seconds: float) -> str:
+    minutes = round(seconds / 60)
+    if minutes < 1:
+        return "< 1 min"
+    if minutes < 60:
+        return f"{minutes} min"
+    return f"{minutes // 60} h {minutes % 60:02d} min"
+
+
+class _EvaluationProgress:
+    """Print one line per finished sample and append it to the partial file."""
+
+    def __init__(self, partial: Path | None, *, quiet: bool) -> None:
+        self.partial = partial
+        self.quiet = quiet
+        self.run_seconds = 0.0
+        self.run_count = 0
+
+    def __call__(self, sample: SampleEvaluation, index: int, total: int) -> None:
+        if self.partial is not None and not sample.resumed:
+            with self.partial.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(sample.as_dict(), ensure_ascii=False) + "\n")
+                handle.flush()
+                os.fsync(handle.fileno())
+        if self.quiet:
+            return
+        parts = [f"[{index}/{total}] {sample.sample_id} ({sample.eqn_complexity})"]
+        if sample.resumed:
+            parts.append("retomada del archivo parcial")
+        else:
+            self.run_seconds += sample.elapsed_seconds
+            self.run_count += 1
+            parts.append(f"{sample.elapsed_seconds:.0f} s")
+            if sample.timeout_retries:
+                parts.append(f"{sample.timeout_retries} reintento(s) por timeout")
+        if sample.fallback:
+            parts.append("respaldo")
+        if sample.error:
+            parts.append("ERROR")
+        remaining = total - index
+        if remaining and self.run_count:
+            eta = self.run_seconds / self.run_count * remaining
+            parts.append(f"restante ≈ {_format_duration(eta)}")
+        print(" · ".join(parts), file=sys.stderr, flush=True)
+
+
 def cmd_evaluate(args: argparse.Namespace) -> int:
     settings = _settings_from_args(args)
     dataset_path = Path(args.dataset)
@@ -295,6 +371,27 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
     if max_samples is not None and max_samples >= 0:
         samples = samples[:max_samples]
 
+    output = getattr(args, "output", None)
+    partial = _partial_path(output)
+    completed: dict[str, dict[str, Any]] = {}
+    if getattr(args, "resume", False):
+        if partial is None:
+            print("error: --resume necesita --output", file=sys.stderr)
+            return 1
+        completed = _read_partial(partial, {sample.sample_id for sample in samples})
+        print(
+            f"Retomando: {len(completed)} de {len(samples)} muestras ya hechas "
+            f"en {partial}",
+            file=sys.stderr,
+        )
+    elif partial is not None and partial.exists():
+        print(
+            f"error: ya existe {partial} de una evaluación interrumpida; usa "
+            "--resume para continuarla o bórralo para empezar de cero",
+            file=sys.stderr,
+        )
+        return 1
+
     report = evaluate_samples(
         samples,
         pipeline,
@@ -306,17 +403,22 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
         ),
         max_timeout_retries=max(0, int(getattr(args, "max_timeout_retries", 3) or 0)),
         complexity_weights=complexity_weights,
+        on_sample=_EvaluationProgress(partial, quiet=getattr(args, "quiet", False)),
+        completed=completed,
     )
     payload = report.as_dict()
-    output = getattr(args, "output", None)
     if output:
         Path(output).write_text(
             json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",
         )
+        # The full report now holds every sample.
+        if partial is not None and partial.exists():
+            partial.unlink()
     csv_output = getattr(args, "csv", None)
     if csv_output:
-        Path(csv_output).write_text(report_csv(report), encoding="utf-8")
+        # The BOM lets Excel on Windows detect UTF-8 (accents in "sí").
+        Path(csv_output).write_text(report_csv(report), encoding="utf-8-sig")
 
     if getattr(args, "json", False):
         print(json.dumps(payload, ensure_ascii=False, indent=2))

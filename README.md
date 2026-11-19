@@ -464,8 +464,8 @@ For image datasets, CSV is supported with the columns
 
 ```csv
 id,img_path,mathml_path,area,topic,timeout,eqn_complexity
-alg001,alg001.jpeg,alg001.mathml,Álgebra lineal,ortogonalización,300,muy simple
-alg002,alg002.jpeg,alg002.mathml,Álgebra lineal,bases ortogonales,600,compleja
+alg001,alg001.jpeg,alg001.mathml,Álgebra lineal,ortogonalización,600,muy simple
+alg002,alg002.jpeg,alg002.mathml,Álgebra lineal,bases ortogonales,1200,compleja
 ```
 
 `img_path` and `mathml_path` are resolved relative to the CSV file. `timeout` is
@@ -480,6 +480,17 @@ to the hybrid flow, `--ocr ollama_vision`, `--model qwen3:4b-instruct` and
 the flag nor its environment variable (`IMAGE_TO_MATHML_OCR`, `OLLAMA_MODEL`,
 `IMAGE_TO_MATHML_OLLAMA_VISION_MODEL`) is set. The report header shows the
 model, vision model and OCR backend that were used.
+
+Long evaluations report and save their progress as they go. After each sample
+the command prints a line to stderr with the sample, its time, its timeout
+retries and the estimated time left (`[12/77] balg012 (simple) · 412 s ·
+restante ≈ 7 h 32 min`), and, when `--output` is given, appends the sample to
+`<output>.partial.jsonl`. If the run is interrupted, run the same command with
+`--resume`: the saved samples are scored again from their saved output (with
+the current references and metrics) instead of being run, and the partial file
+is deleted once the full report is written. Without `--resume` the command
+refuses to start while a partial file exists, so an interrupted run is never
+overwritten by mistake.
 
 To avoid repeating absolute paths in the CSV, use a YAML file:
 

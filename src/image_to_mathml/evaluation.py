@@ -8,6 +8,7 @@ import json
 import os
 import re
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -22,6 +23,7 @@ from .metrics.bleu import (
     canonical_mathml_tokens,
     exact_match,
     intent_f1,
+    lenient_exact_match,
     mathml_bleu,
     mathml_corpus_bleu,
 )
@@ -106,10 +108,15 @@ class SampleEvaluation:
     intent_f1: IntentF1 | None = None
     exact_structure: bool | None = None
     exact_intent: bool | None = None
+    # Exact match ignoring bare <mrow> grouping and trailing punctuation.
+    lenient_exact_structure: bool | None = None
+    lenient_exact_intent: bool | None = None
     elapsed_seconds: float = 0.0
     # Attempts counted for the per-attempt time: every pipeline run (including
     # the timeout retries) and its internal repair attempts.
     attempts_total: int = 0
+    # Restored from a partial results file instead of being run again.
+    resumed: bool = False
 
     @property
     def ok(self) -> bool:
@@ -150,6 +157,8 @@ class SampleEvaluation:
             "warnings": self.warnings,
             "exact_structure": self.exact_structure,
             "exact_intent": self.exact_intent,
+            "lenient_exact_structure": self.lenient_exact_structure,
+            "lenient_exact_intent": self.lenient_exact_intent,
         }
         if self.structure is not None:
             payload["structure_bleu"] = self.structure.as_dict()
@@ -234,6 +243,14 @@ class EvaluationReport:
         return self._rate(lambda sample: bool(sample.exact_intent))
 
     @property
+    def lenient_exact_structure_rate(self) -> float:
+        return self._rate(lambda sample: bool(sample.lenient_exact_structure))
+
+    @property
+    def lenient_exact_intent_rate(self) -> float:
+        return self._rate(lambda sample: bool(sample.lenient_exact_intent))
+
+    @property
     def mean_intent_f1(self) -> float:
         if not self.samples:
             return 0.0
@@ -275,6 +292,8 @@ class EvaluationReport:
                 "validation": round(self.validation_rate, 6),
                 "exact_structure": round(self.exact_structure_rate, 6),
                 "exact_intent": round(self.exact_intent_rate, 6),
+                "lenient_exact_structure": round(self.lenient_exact_structure_rate, 6),
+                "lenient_exact_intent": round(self.lenient_exact_intent_rate, 6),
                 "mean_intent_f1": round(self.mean_intent_f1, 6),
             },
             "by_complexity": {
@@ -725,6 +744,149 @@ def _weighted(
     )
 
 
+def _run_sample(
+    evaluation: SampleEvaluation,
+    sample: EvaluationSample,
+    pipeline: EquationPipeline,
+    *,
+    default_flow: Flow,
+    retry_limit: int,
+    increment: float,
+    default_timeout: float,
+) -> str | None:
+    """Run one sample (with timeout retries) and return its MathML output.
+
+    ``None`` means the pipeline raised and produced nothing to score.
+    """
+
+    flow = sample.flow or default_flow
+    sample_started = time.perf_counter()
+    attempts_total = 0
+    current_timeout = sample.timeout
+    retries = 0
+    result = None
+    while True:
+        try:
+            result = pipeline.run(
+                sample.to_request(default_flow, timeout=current_timeout)
+            )
+        except (ValueError, RuntimeError, OSError) as exc:
+            attempts_total += 1
+            message = str(exc)
+            timed_out = _is_timeout_text(message)
+            if timed_out and retries < retry_limit:
+                current_timeout = (
+                    _timeout_retry_base(current_timeout, message, default_timeout)
+                    + increment
+                )
+                retries += 1
+                continue
+            evaluation.error = message
+            evaluation.timed_out = timed_out
+            result = None
+            break
+
+        attempts_total += max(1, int(getattr(result, "attempts", 0) or 0))
+        timed_out = _result_timed_out(result)
+        if timed_out and retries < retry_limit:
+            current_timeout = (
+                _timeout_retry_base(
+                    current_timeout,
+                    _result_timeout_text(result),
+                    default_timeout,
+                )
+                + increment
+            )
+            retries += 1
+            continue
+        evaluation.timed_out = timed_out
+        break
+
+    evaluation.elapsed_seconds = time.perf_counter() - sample_started
+    evaluation.attempts_total = attempts_total
+    evaluation.timeout = current_timeout
+    evaluation.timeout_retries = retries
+    if result is None:
+        return None
+    evaluation.output_mathml = result.mathml
+    evaluation.validation_ok = result.validation.ok
+    evaluation.llm_used = bool(result.llm_used)
+    evaluation.structure_source = result.structure_source
+    evaluation.attempts = result.attempts
+    evaluation.warnings = list(result.warnings)
+    evaluation.fallback = flow in _LLM_FLOWS and not result.llm_used
+    return result.mathml
+
+
+def _restore_sample(evaluation: SampleEvaluation, data: dict[str, Any]) -> str | None:
+    """Fill ``evaluation`` from a saved :meth:`SampleEvaluation.as_dict`.
+
+    Only what the pipeline produced is restored; the scores are recomputed, so
+    a resumed run is scored with the current references and metrics.
+    """
+
+    produced = data.get("validation_ok") is not None
+    evaluation.output_mathml = str(data.get("output_mathml") or "")
+    evaluation.validation_ok = data.get("validation_ok")
+    evaluation.llm_used = data.get("llm_used")
+    evaluation.fallback = bool(data.get("fallback", False))
+    evaluation.structure_source = str(data.get("structure_source") or "")
+    evaluation.attempts = int(data.get("attempts") or 0)
+    evaluation.attempts_total = int(data.get("attempts_total") or 0)
+    evaluation.warnings = [str(item) for item in data.get("warnings") or []]
+    evaluation.timeout = data.get("timeout")
+    evaluation.timeout_retries = int(data.get("timeout_retries") or 0)
+    evaluation.timed_out = bool(data.get("timed_out", False))
+    evaluation.elapsed_seconds = float(data.get("elapsed_seconds") or 0.0)
+    evaluation.resumed = True
+    # A pipeline error is kept; a scoring error is recomputed when scoring.
+    evaluation.error = "" if produced else str(data.get("error") or "")
+    return evaluation.output_mathml if produced else None
+
+
+def _score_sample(
+    evaluation: SampleEvaluation,
+    reference: str,
+    output: str | None,
+    *,
+    max_n: int,
+    smooth: bool,
+) -> str:
+    """Score ``output`` against ``reference``; return the scored candidate."""
+
+    candidate = ""
+    if output is not None:
+        try:
+            scores = mathml_bleu(reference, output, max_n=max_n, smooth=smooth)
+        except MathMLNormalizationError as exc:
+            evaluation.error = f"Invalid output MathML: {exc}"
+        else:
+            evaluation.structure = scores.structure
+            evaluation.intent = scores.intent
+            candidate = output
+            evaluation.intent_f1 = intent_f1(reference, candidate)
+            evaluation.exact_structure = exact_match(
+                reference, candidate, include_intent=False
+            )
+            evaluation.exact_intent = exact_match(
+                reference, candidate, include_intent=True
+            )
+            evaluation.lenient_exact_structure = lenient_exact_match(
+                reference, candidate, include_intent=False
+            )
+            evaluation.lenient_exact_intent = lenient_exact_match(
+                reference, candidate, include_intent=True
+            )
+
+    if evaluation.intent_f1 is None:
+        evaluation.intent_f1 = intent_f1(reference, None)
+        evaluation.exact_structure = False
+        evaluation.exact_intent = False
+        evaluation.lenient_exact_structure = False
+        evaluation.lenient_exact_intent = False
+    return candidate
+
+
 def evaluate_samples(
     samples: list[EvaluationSample],
     pipeline: EquationPipeline,
@@ -735,8 +897,16 @@ def evaluate_samples(
     timeout_increment: float = 60.0,
     max_timeout_retries: int = 3,
     complexity_weights: dict[str, float] | None = None,
+    on_sample: Callable[[SampleEvaluation, int, int], None] | None = None,
+    completed: dict[str, dict[str, Any]] | None = None,
 ) -> EvaluationReport:
     """Run every sample through the pipeline and compute the metrics.
+
+    ``on_sample(evaluation, index, total)`` is called as soon as each sample
+    is scored, so callers can report progress or save partial results.
+    ``completed`` maps sample ids to saved :meth:`SampleEvaluation.as_dict`
+    entries: those samples are not run again, their saved output is scored
+    instead (used to resume an interrupted evaluation).
 
     When the pipeline reports a timeout (as an exception or as a fallback
     warning) the sample is retried with ``timeout + timeout_increment`` up to
@@ -762,8 +932,8 @@ def evaluate_samples(
     settings = getattr(pipeline, "settings", None)
     default_timeout = float(getattr(settings, "ollama_timeout", 180.0))
 
-    for sample in samples:
-        flow = sample.flow or default_flow
+    total = len(samples)
+    for index, sample in enumerate(samples, start=1):
         evaluation = SampleEvaluation(
             sample_id=sample.sample_id,
             input=sample.input_description,
@@ -773,96 +943,32 @@ def evaluate_samples(
             reference_source=sample.reference_source,
         )
         evaluations.append(evaluation)
-        sample_started = time.perf_counter()
-        attempts_total = 0
 
         try:
             canonical_mathml_tokens(sample.reference_mathml, include_intent=True)
         except MathMLNormalizationError as exc:
             # Without a valid reference the sample cannot be scored at all.
             evaluation.error = f"Invalid reference MathML: {exc}"
-            evaluation.elapsed_seconds = time.perf_counter() - sample_started
-            evaluation.attempts_total = attempts_total
+            if on_sample is not None:
+                on_sample(evaluation, index, total)
             continue
 
-        current_timeout = sample.timeout
-        retries = 0
-        result = None
-        while True:
-            try:
-                result = pipeline.run(
-                    sample.to_request(default_flow, timeout=current_timeout)
-                )
-            except (ValueError, RuntimeError, OSError) as exc:
-                attempts_total += 1
-                message = str(exc)
-                timed_out = _is_timeout_text(message)
-                if timed_out and retries < retry_limit:
-                    current_timeout = (
-                        _timeout_retry_base(current_timeout, message, default_timeout)
-                        + increment
-                    )
-                    retries += 1
-                    continue
-                evaluation.error = message
-                evaluation.timed_out = timed_out
-                result = None
-                break
-
-            attempts_total += max(1, int(getattr(result, "attempts", 0) or 0))
-            timed_out = _result_timed_out(result)
-            if timed_out and retries < retry_limit:
-                current_timeout = (
-                    _timeout_retry_base(
-                        current_timeout,
-                        _result_timeout_text(result),
-                        default_timeout,
-                    )
-                    + increment
-                )
-                retries += 1
-                continue
-            evaluation.timed_out = timed_out
-            break
-
-        evaluation.elapsed_seconds = time.perf_counter() - sample_started
-        evaluation.attempts_total = attempts_total
-        evaluation.timeout = current_timeout
-        evaluation.timeout_retries = retries
-        candidate = ""
-        if result is not None:
-            evaluation.output_mathml = result.mathml
-            evaluation.validation_ok = result.validation.ok
-            evaluation.llm_used = bool(result.llm_used)
-            evaluation.structure_source = result.structure_source
-            evaluation.attempts = result.attempts
-            evaluation.warnings = list(result.warnings)
-            evaluation.fallback = flow in _LLM_FLOWS and not result.llm_used
-            try:
-                scores = mathml_bleu(
-                    sample.reference_mathml,
-                    result.mathml,
-                    max_n=max_n,
-                    smooth=smooth,
-                )
-            except MathMLNormalizationError as exc:
-                evaluation.error = f"Invalid output MathML: {exc}"
-            else:
-                evaluation.structure = scores.structure
-                evaluation.intent = scores.intent
-                candidate = result.mathml
-                evaluation.intent_f1 = intent_f1(sample.reference_mathml, candidate)
-                evaluation.exact_structure = exact_match(
-                    sample.reference_mathml, candidate, include_intent=False
-                )
-                evaluation.exact_intent = exact_match(
-                    sample.reference_mathml, candidate, include_intent=True
-                )
-
-        if evaluation.intent_f1 is None:
-            evaluation.intent_f1 = intent_f1(sample.reference_mathml, None)
-            evaluation.exact_structure = False
-            evaluation.exact_intent = False
+        previous = (completed or {}).get(sample.sample_id)
+        if previous is not None:
+            output = _restore_sample(evaluation, previous)
+        else:
+            output = _run_sample(
+                evaluation,
+                sample,
+                pipeline,
+                default_flow=default_flow,
+                retry_limit=retry_limit,
+                increment=increment,
+                default_timeout=default_timeout,
+            )
+        candidate = _score_sample(
+            evaluation, sample.reference_mathml, output, max_n=max_n, smooth=smooth
+        )
 
         # Failed samples count as an empty output instead of being excluded.
         references.append(sample.reference_mathml)
@@ -874,6 +980,8 @@ def evaluate_samples(
         if evaluation.scored_with_llm:
             llm_references.append(sample.reference_mathml)
             llm_candidates.append(candidate)
+        if on_sample is not None:
+            on_sample(evaluation, index, total)
 
     corpus = mathml_corpus_bleu(
         references,
@@ -970,6 +1078,10 @@ _CSV_HEADERS = (
     "bleu_estructura",
     "bleu_intent",
     "f1_intent",
+    "exacta_estructura",
+    "exacta_intent",
+    "exacta_flexible_estructura",
+    "exacta_flexible_intent",
     "llm",
     "validacion",
     "timeout",
@@ -979,12 +1091,19 @@ _CSV_HEADERS = (
 )
 
 
+def _yes_no(value: bool | None) -> str:
+    if value is None:
+        return ""
+    return "sí" if value else "no"
+
+
 def report_csv(report: EvaluationReport) -> str:
     """Return the per-sample report table as CSV.
 
-    It mirrors the table printed by :func:`report_markdown` and adds the total
-    execution time of each equation and the time per attempt (total time
-    divided by the attempts made, including timeout retries).
+    It mirrors the table printed by :func:`report_markdown` and adds the exact
+    and lenient exact matches, the total execution time of each equation and
+    the time per attempt (total time divided by the attempts made, including
+    timeout retries).
     """
 
     buffer = io.StringIO()
@@ -996,11 +1115,6 @@ def report_csv(report: EvaluationReport) -> str:
         )
         intent = f"{sample.intent.score:.6f}" if sample.intent is not None else ""
         f1 = f"{sample.intent_f1.f1:.6f}" if sample.intent_f1 is not None else ""
-        validation = (
-            ""
-            if sample.validation_ok is None
-            else ("sí" if sample.validation_ok else "no")
-        )
         writer.writerow(
             [
                 sample.sample_id,
@@ -1008,8 +1122,12 @@ def report_csv(report: EvaluationReport) -> str:
                 structure,
                 intent,
                 f1,
+                _yes_no(sample.exact_structure),
+                _yes_no(sample.exact_intent),
+                _yes_no(sample.lenient_exact_structure),
+                _yes_no(sample.lenient_exact_intent),
                 _llm_cell(sample),
-                validation,
+                _yes_no(sample.validation_ok),
                 _timeout_cell(sample),
                 " ".join(sample.error.split()),
                 f"{sample.elapsed_seconds:.3f}",
@@ -1068,6 +1186,14 @@ def report_markdown(report: EvaluationReport) -> str:
             f"- validación correcta: {report.validation_rate:.1%}",
             f"- coincidencia exacta de estructura: {report.exact_structure_rate:.1%}",
             f"- coincidencia exacta con intents: {report.exact_intent_rate:.1%}",
+            (
+                "- coincidencia exacta flexible de estructura (sin agrupación "
+                f"<mrow> ni puntuación final): {report.lenient_exact_structure_rate:.1%}"
+            ),
+            (
+                "- coincidencia exacta flexible con intents: "
+                f"{report.lenient_exact_intent_rate:.1%}"
+            ),
             f"- F1 de intents (media): {report.mean_intent_f1:.6f}",
             "",
             (

@@ -1,78 +1,78 @@
 id,img_path,mathml_path,area,topic,timeout,eqn_complexity
-balg001,balg001.jpeg,balg001.txt,Algebra,interes compuesto-serie geometrica,300,simple
-balg002,balg002.jpeg,balg002.txt,Algebra,interes compuesto-serie geometrica,600,media
-balg003,balg003.jpeg,balg003.txt,Algebra,interes compuesto-serie geometrica,300,simple
-balg004,balg004.jpeg,balg004.txt,Algebra,interes compuesto-serie geometrica,300,simple
-balg005,balg005.jpeg,balg005.txt,Algebra,interes compuesto-serie geometrica,300,simple
-balg006,balg006.jpeg,balg006.txt,Algebra,interes compuesto-serie geometrica,300,simple
-balg007,balg007.jpeg,balg007.txt,Algebra,logaritmos y propiedades,300,simple
-balg008,balg008.jpeg,balg008.txt,Algebra,logaritmos y propiedades,300,muy simple
-balg009,balg009.jpeg,balg009.txt,Algebra,ecuacion cuadratica,300,muy simple
-balg010,balg010.jpeg,balg010.txt,Algebra,ecuacion cuadratica,300,muy simple
-balg011,balg011.jpeg,balg011.txt,Algebra,ecuacion cuadratica,300,simple
-balg012,balg012.jpeg,balg012.txt,Algebra,ecuacion cuadratica,300,muy simple
-balg013,balg013.jpeg,balg013.txt,Algebra,ecuacion cuadratica,300,simple
-balg014,balg014.jpeg,balg014.txt,Algebra,ecuacion cuadratica,300,simple
-balg015,balg015.jpeg,balg015.txt,Algebra,ecuacion cuadratica,300,muy simple
-balg016,balg016.jpeg,balg016.txt,Algebra,ecuacion cuadratica,300,simple
-balg017,balg017.jpeg,balg017.txt,Algebra,raices-numeros imaginarios,300,simple
-balg018,balg018.jpeg,balg018.txt,Algebra,raices-numeros imaginarios,300,simple
-balg019,balg019.jpeg,balg019.txt,Algebra,raices-numeros imaginarios,300,simple
-balg020,balg020.jpeg,balg020.txt,Algebra,ecuaciones-ecuaciones lineales,300,simple
-balg021,balg021.jpeg,balg021.txt,Algebra,ecuaciones-ecuaciones lineales,300,muy simple
-balg022,balg022.jpeg,balg022.txt,Algebra,ecuaciones-ecuaciones lineales,300,simple
-balg023,balg023.jpeg,balg023.txt,Algebra,ecuaciones-ecuaciones lineales,600,media
-balg024,balg024.jpeg,balg024.txt,Algebra,ecuaciones-ecuaciones lineales,300,simple
-balg025,balg025.jpeg,balg025.txt,Algebra,ecuaciones-ecuaciones lineales,300,simple
-balg026,balg026.jpeg,balg026.txt,Algebra,ecuaciones-ecuaciones lineales,300,simple
-balg027,balg027.jpeg,balg027.txt,Algebra,ecuaciones-ecuaciones lineales,300,simple
-balg028,balg028.jpeg,balg028.txt,Algebra,,300,simple
-balg029,balg029.jpeg,balg029.txt,Algebra,,300,simple
-balg030,balg030.jpeg,balg030.txt,Algebra,polinomios-division de polinomios,600,media
-balg031,balg031.jpeg,balg031.txt,Algebra,polinomios-division de polinomios,300,simple
-balg032,balg032.jpeg,balg032.txt,Algebra,polinomios-producto de polinomios,300,simple
-balg033,balg033.jpeg,balg033.txt,Algebra,polinomios-producto de polinomios,300,simple
-balg034,balg034.jpeg,balg034.txt,Algebra,polinomios-producto de polinomios,300,muy simple
-balg035,balg035.jpeg,balg035.txt,Algebra,polinomios,600,media
-balg036,balg036.jpeg,balg036.txt,Algebra,polinomios,300,simple
-balg037,balg037.jpeg,balg037.txt,Algebra,polinomios,300,simple
-balg038,balg038.jpeg,balg038.txt,Algebra,polinomios,300,simple
-balg039,balg039.jpeg,balg039.txt,Algebra,polinomios,300,simple
-balg040,balg040.jpeg,balg040.txt,Algebra,polinomios,300,muy simple
-balg041,balg041.jpeg,balg041.txt,Algebra,potencias y propiedades,300,muy simple
-balg042,balg042.jpeg,balg042.txt,Algebra,potencias y propiedades,300,simple
-balg043,balg043.jpeg,balg043.txt,Algebra,potencias y propiedades,300,simple
-balg044,balg044.jpeg,balg044.txt,Algebra,potencias y propiedades,300,simple
-balg045,balg045.jpeg,balg045.txt,Algebra,potencias y propiedades,300,simple
-balg046,balg046.jpeg,balg046.txt,Algebra,potencias y propiedades,300,simple
-balg047,balg047.jpeg,balg047.txt,Algebra,potencias y propiedades,300,muy simple
-balg048,balg048.jpeg,balg048.txt,Algebra,potencias y propiedades,300,simple
-balg049,balg049.jpeg,balg049.txt,Algebra,potencias y propiedades,300,simple
-balg050,balg050.jpeg,balg050.txt,Algebra,distancia geometrica,300,muy simple
-balg051,balg051.jpeg,balg051.txt,Algebra,definicion de numero pi,300,muy simple
-balg052,balg052.jpeg,balg052.txt,Algebra,evaluacion de expresiones,600,media
-balg053,balg053.jpeg,balg053.txt,Algebra,division de fracciones-expresiones fraccionarias,300,simple
-balg054,balg054.jpeg,balg054.txt,Algebra,expresiones fraccionarias,300,simple
-balg055,balg055.jpeg,balg055.txt,Algebra,raices-evaluacion de expresiones,300,simple
-balg056,balg056.jpeg,balg056.txt,Algebra,evaluacion de expresiones,600,media
-balg057,balg057.jpeg,balg057.txt,Algebra,evaluacion de expresiones,300,simple
-balg058,balg058.jpeg,balg058.txt,Algebra,evaluacion de expresiones-raices,300,simple
-balg059,balg059.jpeg,balg059.txt,Algebra,polinomios,300,simple
-balg060,balg060.jpeg,balg060.txt,Algebra,polinomios,600,media
-balg061,balg061.jpeg,balg061.txt,Algebra,polinomios,300,simple
-balg062,balg062.jpeg,balg062.txt,Algebra,polinomios,600,media
-balg063,balg063.jpeg,balg063.txt,Algebra,polinomios,300,simple
-balg064,balg064.jpeg,balg064.txt,Algebra,polinomios,300,muy simple
-balg065,balg065.jpeg,balg065.txt,Algebra,polinomios,300,muy simple
-balg066,balg066.jpeg,balg066.txt,Algebra,polinomios,300,muy simple
-balg067,balg067.jpeg,balg067.txt,Algebra,polinomios,300,simple
-balg068,balg068.jpeg,balg068.txt,Algebra,polinomios,300,simple
-balg069,balg069.jpeg,balg069.txt,Algebra,polinomios,300,simple
-balg070,balg070.jpeg,balg070.txt,Algebra,expresiones con raices,300,muy simple
-balg071,balg071.jpeg,balg071.txt,Algebra,polinomios,600,media
-balg072,balg072.jpeg,balg072.txt,Algebra,polinomios,300,simple
-balg073,balg073.jpeg,balg073.txt,Algebra,expresiones-terminos,300,simple
-balg074,balg074.jpeg,balg074.txt,Algebra,polinomios-expresiones,300,simple
-balg075,balg075.jpeg,balg075.txt,Algebra,expresiones con raices-terminos,300,simple
-balg076,balg076.jpeg,balg076.txt,Algebra,,300,muy simple
-balg077,balg077.jpeg,balg077.txt,Algebra,,300,simple
+balg001,balg001.jpeg,balg001.txt,Algebra,interes compuesto-serie geometrica,600,simple
+balg002,balg002.jpeg,balg002.txt,Algebra,interes compuesto-serie geometrica,900,media
+balg003,balg003.jpeg,balg003.txt,Algebra,interes compuesto-serie geometrica,600,simple
+balg004,balg004.jpeg,balg004.txt,Algebra,interes compuesto-serie geometrica,600,simple
+balg005,balg005.jpeg,balg005.txt,Algebra,interes compuesto-serie geometrica,600,simple
+balg006,balg006.jpeg,balg006.txt,Algebra,interes compuesto-serie geometrica,600,simple
+balg007,balg007.jpeg,balg007.txt,Algebra,logaritmos y propiedades,600,simple
+balg008,balg008.jpeg,balg008.txt,Algebra,logaritmos y propiedades,600,muy simple
+balg009,balg009.jpeg,balg009.txt,Algebra,ecuacion cuadratica,600,muy simple
+balg010,balg010.jpeg,balg010.txt,Algebra,ecuacion cuadratica,600,muy simple
+balg011,balg011.jpeg,balg011.txt,Algebra,ecuacion cuadratica,600,simple
+balg012,balg012.jpeg,balg012.txt,Algebra,ecuacion cuadratica,600,muy simple
+balg013,balg013.jpeg,balg013.txt,Algebra,ecuacion cuadratica,600,simple
+balg014,balg014.jpeg,balg014.txt,Algebra,ecuacion cuadratica,600,simple
+balg015,balg015.jpeg,balg015.txt,Algebra,ecuacion cuadratica,600,muy simple
+balg016,balg016.jpeg,balg016.txt,Algebra,ecuacion cuadratica,600,simple
+balg017,balg017.jpeg,balg017.txt,Algebra,raices-numeros imaginarios,600,simple
+balg018,balg018.jpeg,balg018.txt,Algebra,raices-numeros imaginarios,600,simple
+balg019,balg019.jpeg,balg019.txt,Algebra,raices-numeros imaginarios,600,simple
+balg020,balg020.jpeg,balg020.txt,Algebra,ecuaciones-ecuaciones lineales,600,simple
+balg021,balg021.jpeg,balg021.txt,Algebra,ecuaciones-ecuaciones lineales,600,muy simple
+balg022,balg022.jpeg,balg022.txt,Algebra,ecuaciones-ecuaciones lineales,600,simple
+balg023,balg023.jpeg,balg023.txt,Algebra,ecuaciones-ecuaciones lineales,900,media
+balg024,balg024.jpeg,balg024.txt,Algebra,ecuaciones-ecuaciones lineales,600,simple
+balg025,balg025.jpeg,balg025.txt,Algebra,ecuaciones-ecuaciones lineales,600,simple
+balg026,balg026.jpeg,balg026.txt,Algebra,ecuaciones-ecuaciones lineales,600,simple
+balg027,balg027.jpeg,balg027.txt,Algebra,ecuaciones-ecuaciones lineales,600,simple
+balg028,balg028.jpeg,balg028.txt,Algebra,,600,simple
+balg029,balg029.jpeg,balg029.txt,Algebra,,600,simple
+balg030,balg030.jpeg,balg030.txt,Algebra,polinomios-division de polinomios,900,media
+balg031,balg031.jpeg,balg031.txt,Algebra,polinomios-division de polinomios,600,simple
+balg032,balg032.jpeg,balg032.txt,Algebra,polinomios-producto de polinomios,600,simple
+balg033,balg033.jpeg,balg033.txt,Algebra,polinomios-producto de polinomios,600,simple
+balg034,balg034.jpeg,balg034.txt,Algebra,polinomios-producto de polinomios,600,muy simple
+balg035,balg035.jpeg,balg035.txt,Algebra,polinomios,900,media
+balg036,balg036.jpeg,balg036.txt,Algebra,polinomios,600,simple
+balg037,balg037.jpeg,balg037.txt,Algebra,polinomios,600,simple
+balg038,balg038.jpeg,balg038.txt,Algebra,polinomios,600,simple
+balg039,balg039.jpeg,balg039.txt,Algebra,polinomios,600,simple
+balg040,balg040.jpeg,balg040.txt,Algebra,polinomios,600,muy simple
+balg041,balg041.jpeg,balg041.txt,Algebra,potencias y propiedades,600,muy simple
+balg042,balg042.jpeg,balg042.txt,Algebra,potencias y propiedades,600,simple
+balg043,balg043.jpeg,balg043.txt,Algebra,potencias y propiedades,600,simple
+balg044,balg044.jpeg,balg044.txt,Algebra,potencias y propiedades,600,simple
+balg045,balg045.jpeg,balg045.txt,Algebra,potencias y propiedades,600,simple
+balg046,balg046.jpeg,balg046.txt,Algebra,potencias y propiedades,600,simple
+balg047,balg047.jpeg,balg047.txt,Algebra,potencias y propiedades,600,muy simple
+balg048,balg048.jpeg,balg048.txt,Algebra,potencias y propiedades,600,simple
+balg049,balg049.jpeg,balg049.txt,Algebra,potencias y propiedades,600,simple
+balg050,balg050.jpeg,balg050.txt,Algebra,distancia geometrica,600,muy simple
+balg051,balg051.jpeg,balg051.txt,Algebra,definicion de numero pi,600,muy simple
+balg052,balg052.jpeg,balg052.txt,Algebra,evaluacion de expresiones,900,media
+balg053,balg053.jpeg,balg053.txt,Algebra,division de fracciones-expresiones fraccionarias,600,simple
+balg054,balg054.jpeg,balg054.txt,Algebra,expresiones fraccionarias,600,simple
+balg055,balg055.jpeg,balg055.txt,Algebra,raices-evaluacion de expresiones,600,simple
+balg056,balg056.jpeg,balg056.txt,Algebra,evaluacion de expresiones,900,media
+balg057,balg057.jpeg,balg057.txt,Algebra,evaluacion de expresiones,600,simple
+balg058,balg058.jpeg,balg058.txt,Algebra,evaluacion de expresiones-raices,600,simple
+balg059,balg059.jpeg,balg059.txt,Algebra,polinomios,600,simple
+balg060,balg060.jpeg,balg060.txt,Algebra,polinomios,900,media
+balg061,balg061.jpeg,balg061.txt,Algebra,polinomios,600,simple
+balg062,balg062.jpeg,balg062.txt,Algebra,polinomios,900,media
+balg063,balg063.jpeg,balg063.txt,Algebra,polinomios,600,simple
+balg064,balg064.jpeg,balg064.txt,Algebra,polinomios,600,muy simple
+balg065,balg065.jpeg,balg065.txt,Algebra,polinomios,600,muy simple
+balg066,balg066.jpeg,balg066.txt,Algebra,polinomios,600,muy simple
+balg067,balg067.jpeg,balg067.txt,Algebra,polinomios,600,simple
+balg068,balg068.jpeg,balg068.txt,Algebra,polinomios,600,simple
+balg069,balg069.jpeg,balg069.txt,Algebra,polinomios,600,simple
+balg070,balg070.jpeg,balg070.txt,Algebra,expresiones con raices,600,muy simple
+balg071,balg071.jpeg,balg071.txt,Algebra,polinomios,900,media
+balg072,balg072.jpeg,balg072.txt,Algebra,polinomios,600,simple
+balg073,balg073.jpeg,balg073.txt,Algebra,expresiones-terminos,600,simple
+balg074,balg074.jpeg,balg074.txt,Algebra,polinomios-expresiones,600,simple
+balg075,balg075.jpeg,balg075.txt,Algebra,expresiones con raices-terminos,600,simple
+balg076,balg076.jpeg,balg076.txt,Algebra,,600,muy simple
+balg077,balg077.jpeg,balg077.txt,Algebra,,600,simple

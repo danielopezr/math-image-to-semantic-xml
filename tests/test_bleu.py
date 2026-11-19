@@ -4,6 +4,8 @@ from image_to_mathml.metrics.bleu import (
     MathMLNormalizationError,
     canonical_mathml_tokens,
     corpus_bleu,
+    exact_match,
+    lenient_exact_match,
     mathml_bleu,
     mathml_corpus_bleu,
     sentence_bleu,
@@ -207,3 +209,60 @@ def test_distinct_symbols_are_not_unified():
     candidate = _math("<mo>\u2212</mo>")
 
     assert mathml_bleu(reference, candidate).structure.score < 1.0
+
+
+def test_lenient_exact_match_ignores_mrow_grouping():
+    reference = _math("<mi>a</mi><mo>+</mo><mi>b</mi><mo>+</mo><mi>c</mi>")
+    candidate = _math("<mrow><mi>a</mi><mo>+</mo><mi>b</mi></mrow><mo>+</mo><mi>c</mi>")
+
+    assert not exact_match(reference, candidate, include_intent=False)
+    assert lenient_exact_match(reference, candidate, include_intent=False)
+
+
+def test_lenient_exact_match_ignores_trailing_punctuation():
+    reference = _math("<mi>x</mi><mo>=</mo><mn>1</mn>")
+    for mark in (".", ",", ";"):
+        candidate = _math(f"<mi>x</mi><mo>=</mo><mn>1</mn><mo>{mark}</mo>")
+        assert lenient_exact_match(reference, candidate, include_intent=False)
+    inner = _math("<mi>x</mi><mo>,</mo><mi>y</mi>")
+    assert not lenient_exact_match(
+        _math("<mi>x</mi><mi>y</mi>"), inner, include_intent=False
+    )
+
+
+def test_lenient_exact_match_keeps_arguments_of_fixed_arity_elements():
+    ab_over_c = _math("<mfrac><mrow><mi>a</mi><mi>b</mi></mrow><mi>c</mi></mfrac>")
+    a_over_bc = _math("<mfrac><mi>a</mi><mrow><mi>b</mi><mi>c</mi></mrow></mfrac>")
+
+    assert not lenient_exact_match(ab_over_c, a_over_bc, include_intent=False)
+
+
+def test_lenient_exact_match_keeps_rows_that_carry_intents():
+    reference = _math(
+        '<mrow intent="plus($x,$y)"><mi arg="x">a</mi><mo>+</mo>'
+        '<mi arg="y">b</mi></mrow><mo>.</mo>'
+    )
+    candidate = _math("<mi>a</mi><mo>+</mo><mi>b</mi>")
+
+    assert lenient_exact_match(reference, candidate, include_intent=False)
+    assert not lenient_exact_match(reference, candidate, include_intent=True)
+
+
+def test_lenient_exact_match_rejects_an_empty_candidate():
+    assert not lenient_exact_match(_math("<mi>x</mi>"), "", include_intent=False)
+
+
+@pytest.mark.parametrize(
+    ("reference", "candidate"),
+    [
+        ("<mo>&#x2026;</mo>", "<mo>&#x22EF;</mo>"),  # baseline vs midline ellipsis
+        ("<mo>...</mo>", "<mo>&#x22EF;</mo>"),
+        ("<mo>&#x27F6;</mo>", "<mo>&#x2192;</mo>"),  # long vs short arrow
+        ("<mo>&#x27E8;</mo>", "<mo>&#x2329;</mo>"),  # angle bracket variants
+        ("<mo>&#x27E9;</mo>", "<mo>&#x3009;</mo>"),
+    ],
+)
+def test_symbol_variants_written_differently_are_equivalent(reference, candidate):
+    assert canonical_mathml_tokens(_math(reference)) == canonical_mathml_tokens(
+        _math(candidate)
+    )

@@ -317,6 +317,10 @@ def test_report_csv_mirrors_the_sample_table_and_adds_timings(tmp_path):
         "bleu_estructura",
         "bleu_intent",
         "f1_intent",
+        "exacta_estructura",
+        "exacta_intent",
+        "exacta_flexible_estructura",
+        "exacta_flexible_intent",
         "llm",
         "validacion",
         "timeout",
@@ -327,7 +331,36 @@ def test_report_csv_mirrors_the_sample_table_and_adds_timings(tmp_path):
     assert rows[1][0] == "power"
     assert rows[1][1] == "simple"
     assert rows[1][2] == "1.000000"
+    assert rows[1][5:9] == ["sí", "sí", "sí", "sí"]
     assert rows[1][-2:] == ["2.500", "1.250"]
+
+
+def test_lenient_exact_match_is_reported_in_samples_rates_and_csv(tmp_path):
+    reference = (
+        '<math xmlns="http://www.w3.org/1998/Math/MathML"><mrow>'
+        "<mi>a</mi><mo>+</mo><mi>b</mi></mrow></math>"
+    )
+    candidate = (
+        '<math xmlns="http://www.w3.org/1998/Math/MathML"><mrow>'
+        "<mrow><mi>a</mi><mo>+</mo></mrow><mi>b</mi><mo>.</mo></mrow></math>"
+    )
+    samples = _samples(
+        tmp_path, [{"id": "s", "latex": "a+b", "reference_mathml": reference}]
+    )
+
+    report = evaluate_samples(samples, FakeRunPipeline([_result(candidate)]))
+
+    sample = report.samples[0]
+    assert not sample.exact_structure
+    assert sample.lenient_exact_structure
+    assert sample.lenient_exact_intent
+    rates = report.as_dict()["rates"]
+    assert rates["exact_structure"] == 0.0
+    assert rates["lenient_exact_structure"] == 1.0
+    assert report.as_dict()["samples"][0]["lenient_exact_structure"] is True
+    rows = list(csv.reader(io.StringIO(report_csv(report))))
+    assert rows[1][5:9] == ["no", "no", "sí", "sí"]
+    assert "coincidencia exacta flexible de estructura" in report_markdown(report)
 
 
 def test_seconds_per_attempt_divides_the_total_by_the_attempts_made():
@@ -360,3 +393,98 @@ def test_timeout_retries_are_counted_as_timing_attempts(tmp_path):
     assert report.samples[0].timeout_retries == 2
     assert report.samples[0].attempts_total == 3
     assert report.samples[0].elapsed_seconds >= 0.0
+
+
+def test_on_sample_reports_every_sample_as_it_finishes(tmp_path):
+    samples = _samples(
+        tmp_path,
+        [
+            {"id": "bad", "latex": "x", "reference_mathml": "<math><mrow>"},
+            {"id": "power", "latex": "x^{2}", "reference_mathml": _REFERENCE},
+        ],
+    )
+    seen = []
+
+    evaluate_samples(
+        samples,
+        FakeRunPipeline([_result(_REFERENCE)]),
+        on_sample=lambda sample, index, total: seen.append(
+            (sample.sample_id, index, total, sample.ok)
+        ),
+    )
+
+    assert seen == [("bad", 1, 2, False), ("power", 2, 2, True)]
+
+
+def test_completed_samples_are_rescored_without_running_the_pipeline(tmp_path):
+    saved = {
+        "sample_id": "power",
+        "output_mathml": _REFERENCE,
+        "validation_ok": True,
+        "llm_used": True,
+        "fallback": False,
+        "attempts": 1,
+        "attempts_total": 2,
+        "timeout": 360.0,
+        "timeout_retries": 1,
+        "timed_out": False,
+        "elapsed_seconds": 12.5,
+        "warnings": ["w"],
+        "error": "Invalid output MathML: stale",
+    }
+    pipeline = FakeRunPipeline([])
+
+    report = evaluate_samples(_power(tmp_path), pipeline, completed={"power": saved})
+
+    sample = report.samples[0]
+    assert pipeline.timeouts == []  # the pipeline was never called
+    assert sample.resumed
+    assert sample.ok and sample.error == ""
+    assert sample.exact_structure
+    assert (sample.elapsed_seconds, sample.timeout_retries) == (12.5, 1)
+    assert report.as_dict()["samples"][0]["structure_bleu"]["score"] == 1.0
+
+
+def test_cli_evaluation_saves_partial_results_and_resumes(tmp_path, monkeypatch):
+    from image_to_mathml import cli_commands
+    from image_to_mathml.cli import main
+
+    dataset = tmp_path / "samples.jsonl"
+    _write_jsonl(
+        dataset,
+        [
+            {"id": "a", "latex": "x^{2}", "reference_mathml": _REFERENCE},
+            {"id": "b", "latex": "x^{2}", "reference_mathml": _REFERENCE},
+        ],
+    )
+    output = tmp_path / "report.json"
+    partial = tmp_path / "report.partial.jsonl"
+    args = ["evaluate", "--dataset", str(dataset), "--output", str(output), "--json"]
+
+    class Interrupted(FakeRunPipeline):
+        def run(self, request):
+            if self.timeouts:  # the second sample: the user stops the run
+                raise KeyboardInterrupt
+            return super().run(request)
+
+    interrupted = Interrupted([_result(_REFERENCE)])
+    monkeypatch.setattr(cli_commands, "EquationPipeline", lambda settings: interrupted)
+    with pytest.raises(KeyboardInterrupt):
+        main(args)
+    saved = [
+        json.loads(line) for line in partial.read_text(encoding="utf-8").splitlines()
+    ]
+    assert [entry["sample_id"] for entry in saved] == ["a"]
+    assert not output.exists()
+
+    # Without --resume an existing partial file is never overwritten.
+    assert main(args) == 1
+
+    resumed = FakeRunPipeline([_result(_REFERENCE)])
+    monkeypatch.setattr(cli_commands, "EquationPipeline", lambda settings: resumed)
+    assert main([*args, "--resume"]) == 0
+
+    assert len(resumed.timeouts) == 1  # only sample "b" ran again
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert [sample["sample_id"] for sample in report["samples"]] == ["a", "b"]
+    assert not partial.exists()

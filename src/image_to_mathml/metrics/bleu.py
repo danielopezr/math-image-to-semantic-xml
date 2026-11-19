@@ -180,6 +180,12 @@ _SYMBOL_EQUIVALENTS = str.maketrans(
         "\u2032": "'",
         # Double vertical bars (norm).
         "\u2225": "\u2016",  # parallel to
+        # Ellipses: NFKC already turns the baseline ``\u2026`` into ``...``.
+        "\u22ef": "...",  # midline horizontal ellipsis
+        # Arrows and angle brackets (NFKC maps U+2329/U+232A to U+3008/U+3009).
+        "\u27f6": "\u2192",  # long rightward arrow
+        "\u3008": "\u27e8",  # left angle bracket
+        "\u3009": "\u27e9",  # right angle bracket
     }
 )
 
@@ -1013,3 +1019,100 @@ def exact_match(
     return canonical_mathml_tokens(
         reference_mathml, include_intent=include_intent
     ) == canonical_mathml_tokens(candidate_mathml, include_intent=include_intent)
+
+
+# Elements whose children are positional arguments: an ``<mrow>`` directly
+# inside them delimits an argument, so it is never treated as mere grouping.
+_FIXED_ARITY_ELEMENTS = frozenset(
+    {
+        "mfrac",
+        "mmultiscripts",
+        "mover",
+        "mroot",
+        "msub",
+        "msubsup",
+        "msup",
+        "munder",
+        "munderover",
+    }
+)
+_TRAILING_PUNCTUATION = frozenset({".", ",", ";"})
+
+
+def _unwrap_grouping_mrows(element: etree._Element, include_intent: bool) -> None:
+    """Splice every bare ``<mrow>`` into its parent, bottom-up.
+
+    A bare row is one without scored attributes (with ``include_intent`` the
+    rows carrying ``intent``/``arg`` are kept).  Rows that are arguments of a
+    fixed-arity element are kept too, so ``\\frac{ab}{c}`` and
+    ``\\frac{a}{bc}`` stay different.
+    """
+
+    for child in [node for node in element if is_element(node)]:
+        _unwrap_grouping_mrows(child, include_intent)
+    if localname(element.tag) in _FIXED_ARITY_ELEMENTS:
+        return
+    index = 0
+    while index < len(element):
+        child = element[index]
+        if (
+            not is_element(child)
+            or localname(child.tag) != "mrow"
+            or _attribute_tokens(child, include_intent)
+            or (child.text or "").strip()
+        ):
+            index += 1
+            continue
+        grandchildren = list(child)
+        if grandchildren:
+            last = grandchildren[-1]
+            last.tail = (last.tail or "") + (child.tail or "")
+        element.remove(child)
+        for offset, grandchild in enumerate(grandchildren):
+            element.insert(index + offset, grandchild)
+        index += len(grandchildren)
+
+
+def _drop_trailing_punctuation(root: etree._Element, include_intent: bool) -> None:
+    while True:
+        children = [node for node in root if is_element(node)]
+        if not children:
+            return
+        last = children[-1]
+        if (
+            localname(last.tag) != "mo"
+            or len(last)
+            or _attribute_tokens(last, include_intent)
+            or (last.text or "").strip() not in _TRAILING_PUNCTUATION
+        ):
+            return
+        root.remove(last)
+
+
+def lenient_mathml_tokens(markup: str, *, include_intent: bool = True) -> list[str]:
+    """Canonical tokens without grouping rows or sentence punctuation.
+
+    On top of :func:`canonical_mathml_tokens` it ignores how the expression is
+    grouped with bare ``<mrow>`` elements and drops the ``.``, ``,`` or ``;``
+    that ends the expression (the sentence punctuation copied from the page).
+    """
+
+    root = normalize_mathml_tree(markup, include_intent=include_intent)
+    _unwrap_grouping_mrows(root, include_intent)
+    _drop_trailing_punctuation(root, include_intent)
+    return _element_tokens(root, include_intent)
+
+
+def lenient_exact_match(
+    reference_mathml: str,
+    candidate_mathml: str | None,
+    *,
+    include_intent: bool,
+) -> bool:
+    """Exact match that ignores ``<mrow>`` grouping and trailing punctuation."""
+
+    if candidate_mathml is None or not candidate_mathml.strip():
+        return False
+    return lenient_mathml_tokens(
+        reference_mathml, include_intent=include_intent
+    ) == lenient_mathml_tokens(candidate_mathml, include_intent=include_intent)

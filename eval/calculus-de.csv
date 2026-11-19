@@ -1,70 +1,70 @@
 id,img_path,mathml_path,area,topic,timeout,eqn_complexity
-calc001,calc001.jpeg,calc001.txt,Calculo y ecuaciones diferenciales,ecuacones diferenciales orden superior coeficientes constantes,300,simple
-calc002,calc002.jpeg,calc002.txt,Calculo y ecuaciones diferenciales,ecuacones diferenciales orden superior coeficientes constantes,300,simple
-calc003,calc003.jpeg,calc003.txt,Calculo y ecuaciones diferenciales,ecuacones diferenciales orden superior coeficientes constantes,300,simple
-calc004,calc004.jpeg,calc004.txt,Calculo y ecuaciones diferenciales,ecuacones diferenciales orden superior coeficientes constantes,300,muy simple
-calc005,calc005.jpeg,calc005.txt,Calculo y ecuaciones diferenciales,ecuacones diferenciales orden superior coeficientes constantes,300,simple
-calc006,calc006.jpeg,calc006.txt,Calculo y ecuaciones diferenciales,ecuacones diferenciales orden superior coeficientes constantes,300,simple
-calc007,calc007.jpeg,calc007.txt,Calculo y ecuaciones diferenciales,ecuacones diferenciales orden superior coeficientes constantes,300,simple
-calc008,calc008.jpeg,calc008.txt,Calculo y ecuaciones diferenciales,ecuacones diferenciales orden superior coeficientes constantes,300,muy simple
-calc009,calc009.jpeg,calc009.txt,Calculo y ecuaciones diferenciales,ecuacones diferenciales orden superior coeficientes constantes,600,media
-calc010,calc010.jpeg,calc010.txt,Calculo y ecuaciones diferenciales,ecuacones diferenciales orden superior coeficientes constantes,300,simple
-calc011,calc011.jpeg,calc011.txt,Calculo y ecuaciones diferenciales,ecuacones diferenciales orden superior coeficientes constantes,300,muy simple
-calc012,calc012.jpeg,calc012.txt,Calculo y ecuaciones diferenciales,ecuacones diferenciales orden superior coeficientes constantes,300,simple
-calc013,calc013.jpeg,calc013.txt,Calculo y ecuaciones diferenciales,ecuacones diferenciales orden superior coeficientes constantes,300,simple
-calc014,calc014.jpeg,calc014.txt,Calculo y ecuaciones diferenciales,ecuacones diferenciales orden superior coeficientes constantes,300,muy simple
-calc015,calc015.jpeg,calc015.txt,Calculo y ecuaciones diferenciales,ecuacones diferenciales orden superior coeficientes constantes,300,muy simple
-calc016,calc016.jpeg,calc016.txt,Calculo y ecuaciones diferenciales,ecuacones diferenciales orden superior coeficientes constantes,300,muy simple
-calc017,calc017.jpeg,calc017.txt,Calculo y ecuaciones diferenciales,ecuacones diferenciales orden superior coeficientes constantes,300,simple
-calc018,calc018.jpeg,calc018.txt,Calculo y ecuaciones diferenciales,ecuacones diferenciales orden superior coeficientes constantes,300,simple
-calc019,calc019.jpeg,calc019.txt,Calculo y ecuaciones diferenciales,ecuacones diferenciales orden superior coeficientes constantes,300,simple
-calc020,calc020.jpeg,calc020.txt,Calculo y ecuaciones diferenciales,ecuacones diferenciales orden superior coeficientes constantes,300,simple
-calc021,calc021.jpeg,calc021.txt,Calculo y ecuaciones diferenciales,,300,muy simple
-calc022,calc022.jpeg,calc022.txt,Calculo y ecuaciones diferenciales,ecuacones diferenciales orden superior coeficientes constantes,300,simple
-calc023,calc023.jpeg,calc023.txt,Calculo y ecuaciones diferenciales,,300,simple
-calc024,calc024.jpeg,calc024.txt,Calculo y ecuaciones diferenciales,,300,muy simple
-calc025,calc025.jpeg,calc025.txt,Calculo y ecuaciones diferenciales,,300,muy simple
-calc026,calc026.jpeg,calc026.txt,Calculo y ecuaciones diferenciales,funcion gamma,300,muy simple
-calc027,calc027.jpeg,calc027.txt,Calculo y ecuaciones diferenciales,funciones de bessel,300,simple
-calc028,calc028.jpeg,calc028.txt,Calculo y ecuaciones diferenciales,funcion gamma,600,media
-calc029,calc029.jpeg,calc029.txt,Calculo y ecuaciones diferenciales,,300,muy simple
-calc030,calc030.jpeg,calc030.txt,Calculo y ecuaciones diferenciales,funcion gamma,300,simple
-calc031,calc031.jpeg,calc031.txt,Calculo y ecuaciones diferenciales,funciones de Bessel,300,muy simple
-calc032,calc032.jpeg,calc032.txt,Calculo y ecuaciones diferenciales,funcion gamma,300,simple
-calc033,calc033.jpeg,calc033.txt,Calculo y ecuaciones diferenciales,funciones de Bessel,300,simple
-calc034,calc034.jpeg,calc034.txt,Calculo y ecuaciones diferenciales,solucion ecuacion diferencial-funciones de Bessel,300,simple
-calc035,calc035.jpeg,calc035.txt,Calculo y ecuaciones diferenciales,,300,muy simple
-calc036,calc036.jpeg,calc036.txt,Calculo y ecuaciones diferenciales,,300,muy simple
-calc037,calc037.jpeg,calc037.txt,Calculo y ecuaciones diferenciales,funcion gamma,300,simple
-calc038,calc038.jpeg,calc038.txt,Calculo y ecuaciones diferenciales,funcion gamma,300,muy simple
-calc039,calc039.jpeg,calc039.txt,Calculo y ecuaciones diferenciales,funcion gamma,300,simple
-calc040,calc040.jpeg,calc040.txt,Calculo y ecuaciones diferenciales,,300,muy simple
-calc041,calc041.jpeg,calc041.txt,Calculo y ecuaciones diferenciales,,300,muy simple
-calc042,calc042.jpeg,calc042.txt,Calculo y ecuaciones diferenciales,,300,muy simple
-calc043,calc043.jpeg,calc043.txt,Calculo y ecuaciones diferenciales,funcion gamma,300,simple
-calc044,calc044.jpeg,calc044.txt,Calculo y ecuaciones diferenciales,,300,simple
-calc045,calc045.jpeg,calc045.txt,Calculo y ecuaciones diferenciales,funciones de Bessel,600,media
-calc046,calc046.jpeg,calc046.txt,Calculo y ecuaciones diferenciales,funciones de Bessel,600,media
-calc047,calc047.jpeg,calc047.txt,Calculo y ecuaciones diferenciales,solucion ecuaciones diferenciales con funciones de Bessel,600,compleja
-calc048,calc048.jpeg,calc048.txt,Calculo y ecuaciones diferenciales,,300,simple
-calc049,calc049.jpeg,calc049.txt,Calculo y ecuaciones diferenciales,,300,simple
-calc050,calc050.jpeg,calc050.txt,Calculo y ecuaciones diferenciales,ecuaciones diferenciales de orden superior,300,simple
-calc051,calc051.jpeg,calc051.txt,Calculo y ecuaciones diferenciales,,300,simple
-calc052,calc052.jpeg,calc052.txt,Calculo y ecuaciones diferenciales,,300,muy simple
-calc053,calc053.jpeg,calc053.txt,Calculo y ecuaciones diferenciales,ecuaciones diferenciales de coeficientes constantes,300,muy simple
-calc054,calc054.jpeg,calc054.txt,Calculo y ecuaciones diferenciales,funcion gamma,300,muy simple
-calc055,calc055.jpeg,calc055.txt,Calculo y ecuaciones diferenciales,,300,muy simple
-calc056,calc056.jpeg,calc056.txt,Calculo y ecuaciones diferenciales,funciones de Bessel,600,media
-calc057,calc057.jpeg,calc057.txt,Calculo y ecuaciones diferenciales,funcion gamma,600,media
-calc058,calc058.jpeg,calc058.txt,Calculo y ecuaciones diferenciales,,300,simple
-calc059,calc059.jpeg,calc059.txt,Calculo y ecuaciones diferenciales,metodo reduccion de orden,300,simple
-calc060,calc060.jpeg,calc060.txt,Calculo y ecuaciones diferenciales,ecuaciones diferenciales lineales primer orden,300,simple
-calc061,calc061.jpeg,calc061.txt,Calculo y ecuaciones diferenciales,,300,muy simple
-calc062,calc062.jpeg,calc062.txt,Calculo y ecuaciones diferenciales,,300,muy simple
-calc063,calc063.jpeg,calc063.txt,Calculo y ecuaciones diferenciales,funciones de Bessel-metodo reduccion de orden,300,simple
-calc064,calc064.jpeg,calc064.txt,Calculo y ecuaciones diferenciales,funciones de Bessel,300,simple
-calc065,calc065.jpeg,calc065.txt,Calculo y ecuaciones diferenciales,Series de potencias,300,simple
-calc066,calc066.jpeg,calc066.txt,Calculo y ecuaciones diferenciales,funciones de Bessel-series de potencias,300,simple
-calc067,calc067.jpeg,calc067.txt,Calculo y ecuaciones diferenciales,funciones de Bessel-series de potencias,600,media
-calc068,calc068.jpeg,calc068.txt,Calculo y ecuaciones diferenciales,funciones de Bessel-series de potencia,300,simple
-calc069,calc069.jpeg,calc069.txt,Calculo y ecuaciones diferenciales,,300,muy simple
+calc001,calc001.jpeg,calc001.txt,Calculo y ecuaciones diferenciales,ecuaciones diferenciales orden superior coeficientes constantes,600,simple
+calc002,calc002.jpeg,calc002.txt,Calculo y ecuaciones diferenciales,ecuaciones diferenciales orden superior coeficientes constantes,600,simple
+calc003,calc003.jpeg,calc003.txt,Calculo y ecuaciones diferenciales,ecuaciones diferenciales orden superior coeficientes constantes,600,simple
+calc004,calc004.jpeg,calc004.txt,Calculo y ecuaciones diferenciales,ecuaciones diferenciales orden superior coeficientes constantes,600,muy simple
+calc005,calc005.jpeg,calc005.txt,Calculo y ecuaciones diferenciales,ecuaciones diferenciales orden superior coeficientes constantes,600,simple
+calc006,calc006.jpeg,calc006.txt,Calculo y ecuaciones diferenciales,ecuaciones diferenciales orden superior coeficientes constantes,600,simple
+calc007,calc007.jpeg,calc007.txt,Calculo y ecuaciones diferenciales,ecuaciones diferenciales orden superior coeficientes constantes,600,simple
+calc008,calc008.jpeg,calc008.txt,Calculo y ecuaciones diferenciales,ecuaciones diferenciales orden superior coeficientes constantes,600,muy simple
+calc009,calc009.jpeg,calc009.txt,Calculo y ecuaciones diferenciales,ecuaciones diferenciales orden superior coeficientes constantes,900,media
+calc010,calc010.jpeg,calc010.txt,Calculo y ecuaciones diferenciales,ecuaciones diferenciales orden superior coeficientes constantes,600,simple
+calc011,calc011.jpeg,calc011.txt,Calculo y ecuaciones diferenciales,ecuaciones diferenciales orden superior coeficientes constantes,600,muy simple
+calc012,calc012.jpeg,calc012.txt,Calculo y ecuaciones diferenciales,ecuaciones diferenciales orden superior coeficientes constantes,600,simple
+calc013,calc013.jpeg,calc013.txt,Calculo y ecuaciones diferenciales,ecuaciones diferenciales orden superior coeficientes constantes,600,simple
+calc014,calc014.jpeg,calc014.txt,Calculo y ecuaciones diferenciales,ecuaciones diferenciales orden superior coeficientes constantes,600,muy simple
+calc015,calc015.jpeg,calc015.txt,Calculo y ecuaciones diferenciales,ecuaciones diferenciales orden superior coeficientes constantes,600,muy simple
+calc016,calc016.jpeg,calc016.txt,Calculo y ecuaciones diferenciales,ecuaciones diferenciales orden superior coeficientes constantes,600,muy simple
+calc017,calc017.jpeg,calc017.txt,Calculo y ecuaciones diferenciales,ecuaciones diferenciales orden superior coeficientes constantes,600,simple
+calc018,calc018.jpeg,calc018.txt,Calculo y ecuaciones diferenciales,ecuaciones diferenciales orden superior coeficientes constantes,600,simple
+calc019,calc019.jpeg,calc019.txt,Calculo y ecuaciones diferenciales,ecuaciones diferenciales orden superior coeficientes constantes,600,simple
+calc020,calc020.jpeg,calc020.txt,Calculo y ecuaciones diferenciales,ecuaciones diferenciales orden superior coeficientes constantes,600,simple
+calc021,calc021.jpeg,calc021.txt,Calculo y ecuaciones diferenciales,,600,muy simple
+calc022,calc022.jpeg,calc022.txt,Calculo y ecuaciones diferenciales,ecuaciones diferenciales orden superior coeficientes constantes,600,simple
+calc023,calc023.jpeg,calc023.txt,Calculo y ecuaciones diferenciales,,600,simple
+calc024,calc024.jpeg,calc024.txt,Calculo y ecuaciones diferenciales,,600,muy simple
+calc025,calc025.jpeg,calc025.txt,Calculo y ecuaciones diferenciales,,600,muy simple
+calc026,calc026.jpeg,calc026.txt,Calculo y ecuaciones diferenciales,funcion gamma,600,muy simple
+calc027,calc027.jpeg,calc027.txt,Calculo y ecuaciones diferenciales,funciones de bessel,600,simple
+calc028,calc028.jpeg,calc028.txt,Calculo y ecuaciones diferenciales,funcion gamma,900,media
+calc029,calc029.jpeg,calc029.txt,Calculo y ecuaciones diferenciales,,600,muy simple
+calc030,calc030.jpeg,calc030.txt,Calculo y ecuaciones diferenciales,funcion gamma,600,simple
+calc031,calc031.jpeg,calc031.txt,Calculo y ecuaciones diferenciales,funciones de Bessel,600,muy simple
+calc032,calc032.jpeg,calc032.txt,Calculo y ecuaciones diferenciales,funcion gamma,600,simple
+calc033,calc033.jpeg,calc033.txt,Calculo y ecuaciones diferenciales,funciones de Bessel,600,simple
+calc034,calc034.jpeg,calc034.txt,Calculo y ecuaciones diferenciales,solucion ecuacion diferencial-funciones de Bessel,600,simple
+calc035,calc035.jpeg,calc035.txt,Calculo y ecuaciones diferenciales,,600,muy simple
+calc036,calc036.jpeg,calc036.txt,Calculo y ecuaciones diferenciales,,600,muy simple
+calc037,calc037.jpeg,calc037.txt,Calculo y ecuaciones diferenciales,funcion gamma,600,simple
+calc038,calc038.jpeg,calc038.txt,Calculo y ecuaciones diferenciales,funcion gamma,600,muy simple
+calc039,calc039.jpeg,calc039.txt,Calculo y ecuaciones diferenciales,funcion gamma,600,simple
+calc040,calc040.jpeg,calc040.txt,Calculo y ecuaciones diferenciales,,600,muy simple
+calc041,calc041.jpeg,calc041.txt,Calculo y ecuaciones diferenciales,,600,muy simple
+calc042,calc042.jpeg,calc042.txt,Calculo y ecuaciones diferenciales,,600,muy simple
+calc043,calc043.jpeg,calc043.txt,Calculo y ecuaciones diferenciales,funcion gamma,600,simple
+calc044,calc044.jpeg,calc044.txt,Calculo y ecuaciones diferenciales,,600,simple
+calc045,calc045.jpeg,calc045.txt,Calculo y ecuaciones diferenciales,funciones de Bessel,900,media
+calc046,calc046.jpeg,calc046.txt,Calculo y ecuaciones diferenciales,funciones de Bessel,900,media
+calc047,calc047.jpeg,calc047.txt,Calculo y ecuaciones diferenciales,solucion ecuaciones diferenciales con funciones de Bessel,1200,compleja
+calc048,calc048.jpeg,calc048.txt,Calculo y ecuaciones diferenciales,,600,simple
+calc049,calc049.jpeg,calc049.txt,Calculo y ecuaciones diferenciales,,600,simple
+calc050,calc050.jpeg,calc050.txt,Calculo y ecuaciones diferenciales,ecuaciones diferenciales de orden superior,600,simple
+calc051,calc051.jpeg,calc051.txt,Calculo y ecuaciones diferenciales,,600,simple
+calc052,calc052.jpeg,calc052.txt,Calculo y ecuaciones diferenciales,,600,muy simple
+calc053,calc053.jpeg,calc053.txt,Calculo y ecuaciones diferenciales,ecuaciones diferenciales de coeficientes constantes,600,muy simple
+calc054,calc054.jpeg,calc054.txt,Calculo y ecuaciones diferenciales,funcion gamma,600,muy simple
+calc055,calc055.jpeg,calc055.txt,Calculo y ecuaciones diferenciales,,600,muy simple
+calc056,calc056.jpeg,calc056.txt,Calculo y ecuaciones diferenciales,funciones de Bessel,900,media
+calc057,calc057.jpeg,calc057.txt,Calculo y ecuaciones diferenciales,funcion gamma,900,media
+calc058,calc058.jpeg,calc058.txt,Calculo y ecuaciones diferenciales,,600,simple
+calc059,calc059.jpeg,calc059.txt,Calculo y ecuaciones diferenciales,metodo reduccion de orden,600,simple
+calc060,calc060.jpeg,calc060.txt,Calculo y ecuaciones diferenciales,ecuaciones diferenciales lineales primer orden,600,simple
+calc061,calc061.jpeg,calc061.txt,Calculo y ecuaciones diferenciales,,600,muy simple
+calc062,calc062.jpeg,calc062.txt,Calculo y ecuaciones diferenciales,,600,muy simple
+calc063,calc063.jpeg,calc063.txt,Calculo y ecuaciones diferenciales,funciones de Bessel-metodo reduccion de orden,600,simple
+calc064,calc064.jpeg,calc064.txt,Calculo y ecuaciones diferenciales,funciones de Bessel,600,simple
+calc065,calc065.jpeg,calc065.txt,Calculo y ecuaciones diferenciales,Series de potencias,600,simple
+calc066,calc066.jpeg,calc066.txt,Calculo y ecuaciones diferenciales,funciones de Bessel-series de potencias,600,simple
+calc067,calc067.jpeg,calc067.txt,Calculo y ecuaciones diferenciales,funciones de Bessel-series de potencias,900,media
+calc068,calc068.jpeg,calc068.txt,Calculo y ecuaciones diferenciales,funciones de Bessel-series de potencia,600,simple
+calc069,calc069.jpeg,calc069.txt,Calculo y ecuaciones diferenciales,,600,muy simple

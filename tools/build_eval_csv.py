@@ -53,8 +53,15 @@ def estimate_complexity(label: Path) -> str:
     return "compleja"
 
 
+# Initial per-request timeouts in seconds.  With the CPU-only qwen3-vl:4b
+# setup every 300 s request timed out and was retried (simple samples finished
+# within 400 s, medium ones needed up to 800 s); a generous ceiling costs
+# nothing when the request finishes earlier.
+TIMEOUTS = {"muy simple": 600, "simple": 600, "media": 900, "compleja": 1200}
+
+
 def timeout_for(complexity: str) -> int:
-    return 600 if complexity in {"media", "compleja"} else 300
+    return TIMEOUTS.get(complexity, TIMEOUTS["media"])
 
 
 def read_existing(path: Path) -> dict[str, dict[str, str]]:
