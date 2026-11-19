@@ -59,7 +59,7 @@ class EquationRequest:
     latex: str | None = None
     image_path: str | None = None
     context: MathContext = field(default_factory=MathContext)
-    flow: Flow = Flow.HYBRID
+    flow: Flow = Flow.OFFLINE
     ocr_backend: str | None = None
     allow_open_concepts: bool | None = None
     max_repair_attempts: int | None = None

@@ -92,7 +92,7 @@ def _power(tmp_path, **extra):
 def test_fallback_output_is_flagged_and_excluded_from_llm_scores(tmp_path):
     pipeline = EquationPipeline(Settings(), llm=_NoLLM())
 
-    report = evaluate_samples(_power(tmp_path), pipeline)
+    report = evaluate_samples(_power(tmp_path), pipeline, default_flow=Flow.HYBRID)
 
     sample = report.samples[0]
     assert sample.ok
@@ -123,6 +123,7 @@ def test_exhausted_timeouts_are_visible_in_the_report(tmp_path):
         pipeline,
         timeout_increment=60,
         max_timeout_retries=2,
+        default_flow=Flow.HYBRID,
     )
 
     sample = report.samples[0]

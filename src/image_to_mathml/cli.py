@@ -31,8 +31,9 @@ def _add_common(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--flow",
         choices=[flow.value for flow in Flow],
-        default=Flow.HYBRID.value,
-        help="Generation flow (default: hybrid). Use vision for direct "
+        default=Flow.OFFLINE.value,
+        help="Generation flow (default: offline, deterministic rules only). Use "
+        "hybrid to add the LLM, or vision for direct "
         "image-to-MathML without an intermediate LaTeX step.",
     )
     parser.add_argument(

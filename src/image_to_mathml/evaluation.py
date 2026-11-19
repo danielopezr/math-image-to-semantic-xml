@@ -1064,7 +1064,7 @@ def evaluate_samples(
     samples: list[EvaluationSample],
     pipeline: EquationPipeline,
     *,
-    default_flow: Flow = Flow.HYBRID,
+    default_flow: Flow = Flow.OFFLINE,
     max_n: int = 4,
     smooth: bool = True,
     timeout_increment: float = 60.0,

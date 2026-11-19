@@ -108,7 +108,7 @@ def _request_from_args(args: argparse.Namespace) -> EquationRequest:
             surrounding_text=getattr(args, "context_text", "") or "",
             language=getattr(args, "lang", "es") or "es",
         ),
-        flow=Flow(getattr(args, "flow", "hybrid")),
+        flow=Flow(getattr(args, "flow", Flow.OFFLINE.value)),
         ocr_backend=getattr(args, "ocr", None),
         allow_open_concepts=False if getattr(args, "strict_core", False) else None,
         max_repair_attempts=getattr(args, "max_repairs", None),
@@ -405,7 +405,7 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
     report = evaluate_samples(
         samples,
         pipeline,
-        default_flow=Flow(getattr(args, "flow", Flow.HYBRID.value)),
+        default_flow=Flow(getattr(args, "flow", Flow.OFFLINE.value)),
         max_n=max(1, int(getattr(args, "n_gram", 4) or 4)),
         smooth=not getattr(args, "no_smooth", False),
         timeout_increment=max(

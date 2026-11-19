@@ -101,8 +101,10 @@ Supported flows:
   deterministic fallback in this flow: if validation fails after the repair
   attempts, the last MathML candidate produced by the model is returned.
 
-The default flow is `hybrid`. The `vision` flow requires `--image` and ignores
-`--ocr`.
+The default flow is `offline`: on the evaluation of 18/11/2026 (660 samples)
+the LLM added only +0.005 / +0.005 / +0.003 intent F1 over the rules while
+taking more than half of the time per sample. `hybrid` remains available with
+`--flow hybrid`. The `vision` flow requires `--image` and ignores `--ocr`.
 
 ### Concept retrieval for the hybrid flow
 
@@ -330,7 +332,7 @@ input.
 - `--context-text`: surrounding OCR text.
 - `--lang`: reader language, default `es`.
 - `--flow`: `direct`, `hybrid`, `auto`, `vision`, or `offline`; default
-  `hybrid`.
+  `offline`.
 - `--ocr`: `auto`, `texify`, `pix2tex`, `rapid_latex_ocr`, `pix2text`,
   `paddleocr`, `ollama_vision`, or `none`; aliases such as `ollama` and
   `qwen3-vl` are also accepted.
@@ -487,7 +489,7 @@ attempts a sample can take several times that value. If Ollama or the semantic
 annotator reports a timeout, the sample is retried with a larger timeout
 (`initial + --timeout-increment`) up to `--max-timeout-retries` times; the OCR
 result of the image is reused between retries. In CSV mode the command defaults
-to the hybrid flow, `--ocr ollama_vision`, `--model qwen3:4b-instruct` and
+to `--ocr ollama_vision`, `--model qwen3:4b-instruct` and
 `--vision-model qwen3-vl:4b-instruct`; each default applies only when neither
 the flag nor its environment variable (`IMAGE_TO_MATHML_OCR`, `OLLAMA_MODEL`,
 `IMAGE_TO_MATHML_OLLAMA_VISION_MODEL`) is set. The report header shows the
