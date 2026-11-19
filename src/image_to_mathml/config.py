@@ -91,6 +91,10 @@ class Settings:
     # Round (u, v) as an inner product: "auto" (inner-product topic), "on",
     # "off".  <u, v> is always an inner product.
     inner_product_pairs: str = "auto"
+    # Hybrid flow: "rules" starts from the deterministic annotation and keeps
+    # only the LLM annotations that do not clash with it; "llm" starts from
+    # the LLM answer and fills its gaps with the rules.
+    hybrid_base: str = "rules"
     temperature: float = 0.0
     num_predict: int = 1600
     num_ctx: int = 8192
@@ -204,6 +208,9 @@ class Settings:
             inner_product_pairs=os.getenv(
                 "IMAGE_TO_MATHML_INNER_PRODUCT_PAIRS", cls.inner_product_pairs
             )
+            .strip()
+            .lower(),
+            hybrid_base=os.getenv("IMAGE_TO_MATHML_HYBRID_BASE", cls.hybrid_base)
             .strip()
             .lower(),
             ocr_backend=os.getenv("IMAGE_TO_MATHML_OCR", cls.ocr_backend),

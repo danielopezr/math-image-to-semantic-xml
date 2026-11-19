@@ -958,6 +958,8 @@ def _run_with_retries(
                 continue
             evaluation.error = message
             evaluation.timed_out = timed_out
+            # The LaTeX the OCR read is kept even when a later step failed.
+            evaluation.output_latex = str(getattr(exc, "latex", "") or "")
             result = None
             break
 

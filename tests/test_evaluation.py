@@ -383,3 +383,5 @@ def test_evaluate_samples_records_pipeline_errors(tmp_path):
     assert report.failed_samples
     assert report.failed_samples[0].sample_id == "invalid"
     assert report.failed_samples[0].error
+    # The LaTeX that was read is kept, so the sample can still be replayed.
+    assert report.failed_samples[0].output_latex == r"\frac{"

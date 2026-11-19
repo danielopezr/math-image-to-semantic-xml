@@ -268,7 +268,9 @@ def test_deterministic_annotator_fills_what_the_llm_left_unannotated():
         '{"annotations": [{"target": "n8", "concept": "fraction",'
         ' "args": {"a1": "n9", "a2": "n10"}}]}'
     )
-    pipeline = EquationPipeline(Settings(max_repair_attempts=0), llm=llm)
+    pipeline = EquationPipeline(
+        Settings(max_repair_attempts=0, hybrid_base="llm"), llm=llm
+    )
 
     result = pipeline.run(
         EquationRequest(latex=r"f(x)=\frac{1}{1+e^{-x}}", flow=Flow.HYBRID)
@@ -290,7 +292,9 @@ def test_fill_is_skipped_when_it_would_break_the_llm_annotation():
         '{"annotations": [{"target": "n2", "concept": "equals",'
         ' "args": {"a1": "n3", "a2": "n8"}}]}'
     )
-    pipeline = EquationPipeline(Settings(max_repair_attempts=0), llm=llm)
+    pipeline = EquationPipeline(
+        Settings(max_repair_attempts=0, hybrid_base="llm"), llm=llm
+    )
 
     result = pipeline.run(EquationRequest(latex="f(x)=y", flow=Flow.HYBRID))
 
@@ -311,7 +315,8 @@ _POWER_DERIVATIVES = (
 def test_derivatives_override_the_llm_powers_in_a_calculus_context():
     # The LLM reads y^{(4)} and y'' as powers (calc013–calc020, 17/11 run).
     pipeline = EquationPipeline(
-        Settings(max_repair_attempts=0), llm=_ScriptedLLM(_POWER_DERIVATIVES)
+        Settings(max_repair_attempts=0, hybrid_base="llm"),
+        llm=_ScriptedLLM(_POWER_DERIVATIVES),
     )
 
     result = pipeline.run(
@@ -340,3 +345,74 @@ def test_llm_powers_are_kept_outside_a_calculus_context():
 
     assert result.mathml.count("power(") == 2
     assert "derivative(" not in result.mathml
+
+
+def test_rules_first_keeps_the_rules_where_the_llm_disagrees():
+    # Default hybrid base: the rules annotate y^{(4)} and y'' as derivatives,
+    # so the LLM powers on the same elements are discarded and recorded.
+    pipeline = EquationPipeline(
+        Settings(max_repair_attempts=0), llm=_ScriptedLLM(_POWER_DERIVATIVES)
+    )
+
+    result = pipeline.run(
+        EquationRequest(
+            latex="y^{(4)}+4y''=0",
+            flow=Flow.HYBRID,
+            context=MathContext(area="Calculus and differential equations"),
+        )
+    )
+
+    assert result.llm_used
+    assert "power(" not in result.mathml
+    assert 'intent="derivative($y,_x,2)"' in result.mathml
+    output = result.llm_outputs[0]
+    assert output.accepted
+    assert len(output.discarded) == 2
+    assert all("already has an intent" in item for item in output.discarded)
+    assert output.as_dict()["discarded"] == output.discarded
+    assert any("rules-first: 0 LLM annotation(s)" in s for s in result.trace)
+
+
+def test_rules_first_adds_the_llm_annotations_the_rules_do_not_cover():
+    # The rules leave the accent of \tilde{y} alone; the LLM's tilde is added
+    # on top of the rules.
+    llm = _ScriptedLLM(
+        '{"annotations": [{"target": "n3", "concept": "tilde",'
+        ' "args": {"a1": "n4", "a2": "n5"}}]}'
+    )
+    pipeline = EquationPipeline(Settings(max_repair_attempts=0), llm=llm)
+
+    result = pipeline.run(EquationRequest(latex=r"\tilde{y}=0", flow=Flow.HYBRID))
+
+    assert 'intent="tilde($arg1,$arg2)"' in result.mathml
+    assert any("rules-first: 1 LLM annotation(s)" in s for s in result.trace)
+
+
+def test_rules_first_ignores_llm_concepts_owned_by_the_rules():
+    # The rules find no derivative in \tilde{y}; the LLM may not add one.
+    llm = _ScriptedLLM(
+        '{"annotations": [{"target": "n3", "concept": "derivative",'
+        ' "args": {"a1": "n4"}, "literals": {"a2": "_x", "a3": "1"}}]}'
+    )
+    pipeline = EquationPipeline(Settings(max_repair_attempts=0), llm=llm)
+
+    result = pipeline.run(EquationRequest(latex=r"\tilde{y}=0", flow=Flow.HYBRID))
+
+    assert "derivative(" not in result.mathml
+    assert any(
+        "decided by the deterministic rules" in item
+        for item in result.llm_outputs[0].discarded
+    )
+
+
+def test_rejected_llm_answers_record_the_reason():
+    llm = _ScriptedLLM('{"annotations": [{"target": "n99", "concept": "power"}]}')
+    pipeline = EquationPipeline(Settings(max_repair_attempts=1), llm=llm)
+
+    result = pipeline.run(EquationRequest(latex="x^2=4", flow=Flow.HYBRID))
+
+    assert len(result.llm_outputs) == 2
+    for output in result.llm_outputs:
+        assert not output.accepted
+        assert any("n99" in reason for reason in output.rejection)
+        assert output.as_dict()["rejection"] == output.rejection

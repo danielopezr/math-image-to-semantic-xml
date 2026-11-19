@@ -150,15 +150,25 @@ class LLMOutput:
     mathml: str
     accepted: bool = False
     input_mathml: str = ""
+    # Why the response was rejected (the feedback sent to the next attempt).
+    rejection: list[str] = field(default_factory=list)
+    # Annotations of an accepted response that were dropped: invalid ones, or
+    # ones that clash with the deterministic rules.
+    discarded: list[str] = field(default_factory=list)
 
     def as_dict(self) -> dict[str, Any]:
-        return {
+        data: dict[str, Any] = {
             "flow": self.flow.value,
             "attempt": self.attempt,
             "accepted": self.accepted,
             "input_mathml": self.input_mathml,
             "mathml": self.mathml,
         }
+        if self.rejection:
+            data["rejection"] = list(self.rejection)
+        if self.discarded:
+            data["discarded"] = list(self.discarded)
+        return data
 
 
 @dataclass

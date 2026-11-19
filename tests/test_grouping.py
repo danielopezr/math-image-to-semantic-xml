@@ -239,7 +239,8 @@ def test_partial_answers_are_kept_when_no_attempt_is_fully_valid():
                 "concept": "power",
                 "args": {"a1": base.get("id"), "a2": exponent.get("id")},
             },
-            {"target": "n2", "concept": "factorial", "args": {"a1": "n999"}},
+            # Not a concept the rules decide, so it is not filtered out first.
+            {"target": "n2", "concept": "logarithm", "args": {"a1": "n999"}},
         ]
 
     llm = _TreeAwareLLM(answer_with_ids)

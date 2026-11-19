@@ -27,6 +27,7 @@ from .mathml.calculus import enforce_partial_derivatives
 from .mathml.concept_rag import ConceptRAG
 from .mathml.concepts import ConceptRegistry, get_registry
 from .mathml.converter import LatexToMathML
+from .mathml.dom import element_children, is_element
 from .mathml.grouping import group_operator_scopes
 from .mathml.latex import clean_latex
 from .mathml.normalizer import (
@@ -37,6 +38,7 @@ from .mathml.normalizer import (
 )
 from .mathml.open_concept_rag import OpenConceptRAG
 from .mathml.semantic import (
+    ID_ATTR,
     SemanticError,
     apply_semantic_payload,
     assign_node_ids,
@@ -100,6 +102,135 @@ def _fold(text: str) -> str:
 
 def _dedupe(items: list[str]) -> list[str]:
     return list(dict.fromkeys(items))
+
+
+_ORIGINAL_ATTR = "data-original-index"
+
+# Concepts with an unambiguous notation that the deterministic rules detect
+# (primes, ∂, ∇, ‖·‖, |·|, ⟨·,·⟩, n!, …, tables, mixed numbers).  With the
+# rules as the base, the rules decide them: when they did not annotate one,
+# the notation is not there, so the LLM may not add it (measured 18/11/2026:
+# the LLM added derivative to f'(a; y), inner-product to u·v, ...).
+_RULE_OWNED_CONCEPTS = frozenset(
+    {
+        "absolute-value",
+        "curl",
+        "derivative",
+        "determinant",
+        "divergence",
+        "ellipsis",
+        "factorial",
+        "gradient",
+        "inner-product",
+        "matrix",
+        "mixed-fraction",
+        "norm",
+        "partial-derivative",
+        "transpose",
+        "vector",
+    }
+)
+
+
+def _split_rule_owned(
+    annotations: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """Separate the LLM annotations whose concept the rules decide."""
+
+    kept: list[dict[str, Any]] = []
+    owned: list[str] = []
+    for index, item in enumerate(annotations, 1):
+        concept = str(item.get("concept") or "").strip()
+        if concept in _RULE_OWNED_CONCEPTS:
+            owned.append(
+                f"annotation {index}: {concept!r} is decided by the deterministic rules"
+            )
+        else:
+            kept.append(item)
+    return kept, owned
+
+
+def _skeleton_with_llm_ids(
+    skeleton_root: etree._Element,
+) -> tuple[etree._Element, list[tuple[etree._Element, str]], dict[str, list[str]]]:
+    """Copy of the ungrouped skeleton and the ids the LLM saw on it.
+
+    The LLM sees the skeleton after operator grouping, which only adds
+    ``<mrow>`` wrappers.  Grouping a marked copy and numbering it exactly as
+    the hybrid flow does tells which id each original element got.  The ids
+    are returned apart (element, id) instead of set as attributes, because the
+    rules must run on a tree without them: an extra attribute changes some of
+    their decisions (y''' read as a power).  Also returns, for every wrapper
+    id, its children's ids.
+    """
+
+    root = copy.deepcopy(skeleton_root)
+    originals = [element for element in root.iter() if is_element(element)]
+    for index, element in enumerate(originals):
+        element.set(_ORIGINAL_ATTR, str(index))
+    grouped = copy.deepcopy(root)
+    group_operator_scopes(grouped)
+    assign_node_ids(grouped)
+    by_original: dict[str, str] = {}
+    wrappers: dict[str, list[str]] = {}
+    for element in grouped.iter():
+        if not is_element(element):
+            continue
+        node_id = str(element.get(ID_ATTR))
+        original = element.get(_ORIGINAL_ATTR)
+        if original is None:
+            wrappers[node_id] = [
+                str(child.get(ID_ATTR)) for child in element_children(element)
+            ]
+        else:
+            by_original[original] = node_id
+    assignments: list[tuple[etree._Element, str]] = []
+    for element in originals:
+        assignments.append((element, by_original[str(element.get(_ORIGINAL_ATTR))]))
+        del element.attrib[_ORIGINAL_ATTR]
+    return root, assignments, wrappers
+
+
+def _expand_wrapper_ids(
+    annotation: dict[str, Any], wrappers: dict[str, list[str]]
+) -> dict[str, Any]:
+    """Rewrite references to grouping wrappers as groups of their children.
+
+    The wrappers do not exist in the ungrouped skeleton: a wrapper target
+    becomes a ``wrap`` of its children (keeping the wrapper id for later
+    references) and a wrapper argument becomes a group.
+    """
+
+    if not wrappers:
+        return annotation
+
+    def flat(node_id: str) -> list[str]:
+        if node_id not in wrappers:
+            return [node_id]
+        return [leaf for child in wrappers[node_id] for leaf in flat(child)]
+
+    def expand(value: Any) -> Any:
+        if isinstance(value, str) and value in wrappers:
+            return flat(value)
+        if isinstance(value, list) and all(isinstance(item, str) for item in value):
+            return [leaf for item in value for leaf in flat(item)]
+        return value
+
+    result = dict(annotation)
+    target = result.get("target")
+    if isinstance(target, str) and target in wrappers and "wrap" not in result:
+        del result["target"]
+        result["wrap"] = flat(target)
+        result["new_id"] = target
+    if "wrap" in result:
+        result["wrap"] = expand(result["wrap"])
+    for key in ("args", "groups"):
+        value = result.get(key)
+        if isinstance(value, dict):
+            result[key] = {slot: expand(item) for slot, item in value.items()}
+        elif isinstance(value, list):
+            result[key] = [expand(item) for item in value]
+    return result
 
 
 def _cached_timing(tool: str, note: str):
@@ -237,7 +368,26 @@ class EquationPipeline:
                 )
 
         latex, ocr_backend = self._resolve_latex(request, timings=timings)
+        try:
+            return self._run_latex(
+                request, latex, ocr_backend, allow_open, max_repairs, timings
+            )
+        except Exception as exc:
+            # Keep what the OCR read, so a failed sample can still be replayed
+            # or turned into a semantic-only dataset.
+            if getattr(exc, "latex", None) is None:
+                exc.latex = latex  # type: ignore[attr-defined]
+            raise
 
+    def _run_latex(
+        self,
+        request: EquationRequest,
+        latex: str,
+        ocr_backend: str,
+        allow_open: bool,
+        max_repairs: int,
+        timings: TimingRecorder,
+    ) -> PipelineResult:
         if request.flow is Flow.AUTO:
             hybrid = self._run_flow(
                 Flow.HYBRID,
@@ -558,6 +708,7 @@ class EquationPipeline:
                             candidate = serialize_mathml(candidate_root)
                 except NormalizationError as exc:
                     feedback = [f"Invalid MathML: {exc}"]
+                    output.rejection = list(feedback)
                     trace.append(f"attempt {attempts}: normalization-error: {exc}")
                     continue
 
@@ -589,6 +740,7 @@ class EquationPipeline:
                     feedback = [
                         "The MathML is valid XML but has no usable intent attributes."
                     ]
+                output.rejection = list(feedback)
                 trace.append(
                     f"attempt {attempts}: rejected ({len(report.errors)} errors, "
                     f"{report.intent_count} intents)"
@@ -715,6 +867,7 @@ class EquationPipeline:
                             registry=self.registry,
                         )
                     feedback = [f"Invalid MathML: {exc}"]
+                    output.rejection = list(feedback)
                     trace.append(f"attempt {attempts}: normalization-error: {exc}")
                     continue
 
@@ -748,6 +901,7 @@ class EquationPipeline:
                     feedback = [
                         "The MathML is valid XML but has no usable intent attributes."
                     ]
+                output.rejection = list(feedback)
                 trace.append(
                     f"attempt {attempts}: rejected ({len(report.errors)} errors, "
                     f"{report.intent_count} intents)"
@@ -853,6 +1007,9 @@ class EquationPipeline:
             base_root = parse_and_normalize(base_mathml)
         with timings.measure("clean", "semantic-cleaner", note="drop intent/arg/id"):
             strip_semantic_attributes(base_root)
+        # The rules work best on the ungrouped skeleton (the offline flow's
+        # input); rules-first maps the LLM ids back onto it.
+        skeleton_root = copy.deepcopy(base_root)
         with timings.measure("group", "operator-grouping"):
             groups = group_operator_scopes(base_root)
         if groups:
@@ -948,6 +1105,7 @@ class EquationPipeline:
                             "expression or return the semantic JSON contract."
                         )
                     ]
+                    output.rejection = list(feedback)
                     trace.append(f"attempt {attempts}: rejected legacy MathML response")
                     continue
 
@@ -956,8 +1114,15 @@ class EquationPipeline:
                         annotations = parse_semantic_payload(raw)
                     except SemanticError as exc:
                         feedback = [str(exc)]
+                        output.rejection = list(feedback)
                         trace.append(f"attempt {attempts}: json-error: {exc}")
                         continue
+                if self.settings.hybrid_base == "rules":
+                    # The rules decide these concepts anyway; a malformed one
+                    # (partial-derivative with two arguments, 181 times on
+                    # 18/11) must not sink the rest of the answer.
+                    annotations, owned = _split_rule_owned(annotations)
+                    output.discarded = owned
 
                 with timings.measure("apply-semantics", "annotator", attempt=attempts):
                     applied = apply_semantic_payload(
@@ -975,6 +1140,7 @@ class EquationPipeline:
                     )
                 if applied.errors:
                     feedback = applied.errors
+                    output.rejection = list(feedback)
                     trace.append(
                         f"attempt {attempts}: semantic-error "
                         f"({len(applied.errors)} problem(s))"
@@ -993,6 +1159,7 @@ class EquationPipeline:
                                 attempts,
                                 output,
                                 len(applied.errors),
+                                annotations,
                             )
                     continue
                 if applied.applied == 0 and self.settings.annotate_default_structures:
@@ -1002,6 +1169,7 @@ class EquationPipeline:
                             "intents for the expression."
                         )
                     ]
+                    output.rejection = list(feedback)
                     trace.append(f"attempt {attempts}: no annotations")
                     continue
 
@@ -1021,25 +1189,19 @@ class EquationPipeline:
                     )
                 if self._accepts(report):
                     output.accepted = True
+                    output.discarded += applied.warnings
                     trace.append(f"attempt {attempts}: accepted")
                     with timings.measure(
                         "deterministic-fill", "annotator", attempt=attempts
                     ):
-                        candidate, report, enforced = self._enforce_rules(
-                            candidate, report, allow_open
-                        )
-                        candidate, report, added = self._fill_unannotated(
-                            candidate, report, allow_open
-                        )
-                    if enforced:
-                        trace.append(
-                            f"attempt {attempts}: deterministic rules "
-                            f"({enforced} corrected)"
-                        )
-                    if added:
-                        trace.append(
-                            f"attempt {attempts}: deterministic fill "
-                            f"(+{added} intent(s))"
+                        candidate, report = self._combine_with_rules(
+                            candidate,
+                            report,
+                            skeleton_root,
+                            annotations,
+                            output,
+                            allow_open,
+                            trace,
                         )
                     return PipelineResult(
                         latex=latex,
@@ -1059,29 +1221,38 @@ class EquationPipeline:
                     feedback = [
                         "No intent attributes were added; annotate the expression."
                     ]
+                output.rejection = list(feedback)
                 trace.append(
                     f"attempt {attempts}: rejected ({len(report.errors)} errors, "
                     f"{report.intent_count} intents)"
                 )
 
         if best_partial is not None:
-            candidate, report, partial_attempt, output, dropped = best_partial
+            (
+                candidate,
+                report,
+                partial_attempt,
+                output,
+                dropped,
+                annotations,
+            ) = best_partial
             output.accepted = True
+            output.discarded += output.rejection
+            output.rejection = []
             trace.append(
                 f"attempt {partial_attempt}: accepted the valid annotations "
                 f"({dropped} invalid one(s) discarded)"
             )
             with timings.measure("deterministic-fill", "annotator"):
-                candidate, report, enforced = self._enforce_rules(
-                    candidate, report, allow_open
+                candidate, report = self._combine_with_rules(
+                    candidate,
+                    report,
+                    skeleton_root,
+                    annotations,
+                    output,
+                    allow_open,
+                    trace,
                 )
-                candidate, report, added = self._fill_unannotated(
-                    candidate, report, allow_open
-                )
-            if enforced:
-                trace.append(f"deterministic rules ({enforced} corrected)")
-            if added:
-                trace.append(f"deterministic fill (+{added} intent(s))")
             warnings.append(
                 f"{dropped} invalid LLM annotation(s) were discarded; the valid "
                 "ones were kept."
@@ -1228,6 +1399,105 @@ class EquationPipeline:
                 self.settings.inner_product_pairs, _INNER_PRODUCT_CUES, topic
             ),
         }
+
+    def _combine_with_rules(
+        self,
+        candidate: str,
+        report: ValidationReport,
+        skeleton_root: etree._Element,
+        annotations: list[dict[str, Any]],
+        output: LLMOutput,
+        allow_open: bool,
+        trace: list[str],
+    ) -> tuple[str, ValidationReport]:
+        """Combine an accepted LLM answer with the deterministic annotator.
+
+        With ``hybrid_base="rules"`` the deterministic annotation is the base
+        and the LLM only adds what the rules leave out; otherwise the LLM
+        answer is the base and the rules correct and complete it.
+        ``skeleton_root`` is the clean skeleton before operator grouping.
+        """
+
+        if self.settings.hybrid_base == "rules":
+            combined = self._rules_first(skeleton_root, annotations, output, allow_open)
+            if combined is not None:
+                candidate, report, kept = combined
+                trace.append(
+                    f"rules-first: {kept} LLM annotation(s) added to the rules, "
+                    f"{len(annotations) - kept} discarded"
+                )
+                return candidate, report
+            rules_only = self._rules_first(skeleton_root, [], output, allow_open)
+            if rules_only is not None:
+                output.discarded = _dedupe(
+                    list(output.discarded)
+                    + ["the LLM annotations made the rules' annotation invalid"]
+                )
+                trace.append("rules-first: invalid combination; rules kept")
+                return rules_only[0], rules_only[1]
+            trace.append("rules-first: invalid combination; LLM answer kept")
+        candidate, report, enforced = self._enforce_rules(candidate, report, allow_open)
+        candidate, report, added = self._fill_unannotated(candidate, report, allow_open)
+        if enforced:
+            trace.append(f"deterministic rules ({enforced} corrected)")
+        if added:
+            trace.append(f"deterministic fill (+{added} intent(s))")
+        return candidate, report
+
+    def _rules_first(
+        self,
+        skeleton_root: etree._Element,
+        annotations: list[dict[str, Any]],
+        output: LLMOutput,
+        allow_open: bool,
+    ) -> tuple[str, ValidationReport, int] | None:
+        """Apply the LLM annotations on top of the deterministic annotation.
+
+        The rules annotate the ungrouped skeleton (as in the offline flow,
+        where they work best), which first gets the temporary ids the LLM saw
+        on the grouped tree.  Then every LLM annotation is applied as a
+        transaction: one that targets an element the rules already annotated,
+        or that would change an argument the rules set, is rolled back.
+        ``None`` when the combination does not validate.
+        """
+
+        root, assignments, wrappers = _skeleton_with_llm_ids(skeleton_root)
+        annotations, owned = _split_rule_owned(annotations)
+        annotations = [_expand_wrapper_ids(item, wrappers) for item in annotations]
+        annotate_tree(root, **self._annotator_options())
+        # The ids go on after the rules (see _skeleton_with_llm_ids); an
+        # element the rules replaced keeps no id, so the LLM cannot target it.
+        for element, node_id in assignments:
+            if element.getroottree().getroot() is root:
+                element.set(ID_ATTR, node_id)
+        applied = apply_semantic_payload(
+            root,
+            annotations,
+            registry=self.registry,
+            allow_open_concepts=allow_open,
+            allowed_open_concepts=self._allowed_open(allow_open),
+        )
+        strip_node_ids(root)
+        try:
+            candidate = normalize_mathml(serialize_mathml(root))
+            candidate_root = parse_and_normalize(candidate)
+        except NormalizationError:
+            return None
+        if prune_orphan_args(candidate_root):
+            candidate = serialize_mathml(candidate_root)
+        report = validate_mathml(
+            candidate,
+            allow_open_concepts=allow_open,
+            allowed_open_concepts=self._allowed_open(allow_open),
+            registry=self.registry,
+        )
+        if not self._accepts(report):
+            return None
+        candidate, report, _ = self._enforce_rules(candidate, report, allow_open)
+        output.discarded = _dedupe(
+            list(output.discarded) + owned + applied.errors + applied.warnings
+        )
+        return candidate, report, applied.applied
 
     def _fill_unannotated(
         self,

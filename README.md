@@ -237,6 +237,13 @@ Annotation options. The defaults follow the team's annotation guide
   read a round pair `(u, v)` as `inner-product`. `auto` applies it when the
   topic mentions inner products or orthogonality. `<u, v>` with angle brackets
   is always an inner product.
+- `IMAGE_TO_MATHML_HYBRID_BASE` (`rules`, `llm`; default `rules`): how the
+  hybrid flow combines the LLM with the deterministic annotator. `rules`
+  starts from the deterministic annotation and adds only the LLM annotations
+  that do not clash with it (the LLM covers what the rules leave out); `llm`
+  starts from the LLM answer and fills its gaps with the rules. Measured on
+  the 660 samples of the three areas (18/11/2026), the rules alone already
+  beat the LLM-first combination.
 
 ## Image preprocessing
 
