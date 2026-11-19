@@ -1,0 +1,11 @@
+id,img_path,mathml_path,area,topic,timeout,eqn_complexity
+dic001,dic001.jpeg,dic001.txt,Matematicas discretas,,600,media
+dic002,dic002.jpeg,dic002.txt,Matematicas discretas,,600,compleja
+dic003,dic003.jpeg,dic003.txt,Matematicas discretas,,300,simple
+dic004,dic004.jpeg,dic004.txt,Matematicas discretas,,300,simple
+dic005,dic005.jpeg,dic005.txt,Matematicas discretas,,300,muy simple
+dic006,dic006.jpeg,dic006.txt,Matematicas discretas,,600,media
+dic007,dic007.jpeg,dic007.txt,Matematicas discretas,,300,simple
+dic008,dic008.jpeg,dic008.txt,Matematicas discretas,,600,media
+dic009,dic009.jpeg,dic009.txt,Matematicas discretas,,300,simple
+dic010,dic010.jpeg,dic010.txt,Matematicas discretas,,300,simple

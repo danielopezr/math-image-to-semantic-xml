@@ -1,0 +1,11 @@
+csv: calculus-de.csv
+# IMAGE_TO_MATHML_DATASET_DIR points to the local copy of the dataset
+# (the "chopped" folder).  --images-dir and --mathml-dir override these.
+images_dir: ${IMAGE_TO_MATHML_DATASET_DIR:-../../image-to-mathML-dataset/chopped}/calculo-ed
+mathml_dir: ${IMAGE_TO_MATHML_DATASET_DIR:-../../image-to-mathML-dataset/chopped}/calculo-ed/labels
+
+complexity_weights:
+  muy simple: 1.0
+  simple: 1.0
+  media: 1.5
+  compleja: 2.0
