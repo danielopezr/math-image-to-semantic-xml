@@ -24,7 +24,43 @@
       "lebesgue-integral",
       "riemann-integral"
     ],
+    "analysis": [
+      "gamma-function",
+      "beta-function",
+      "error-function",
+      "airy-function",
+      "bessel-function",
+      "bessel-function-of-second-kind",
+      "legendre-polynomial",
+      "hermite-polynomial",
+      "laguerre-polynomial",
+      "chebyshev-polynomial-of-first-kind",
+      "chebyshev-polynomial-of-second-kind",
+      "gegenbauer-polynomial",
+      "jacobi-polynomial",
+      "generalized-hypergeometric-function",
+      "riemann-zeta-function",
+      "fourier-transform",
+      "laplace-transform",
+      "dirac-delta-function",
+      "lebesgue-integral",
+      "riemann-integral"
+    ],
     "analisis matematico": [
+      "gamma-function",
+      "beta-function",
+      "error-function",
+      "riemann-zeta-function",
+      "zeta-function",
+      "fourier-transform",
+      "laplace-transform",
+      "lebesgue-integral",
+      "riemann-integral",
+      "line-integral",
+      "surface-integral",
+      "multiple-integral"
+    ],
+    "mathematical analysis": [
       "gamma-function",
       "beta-function",
       "error-function",
@@ -56,7 +92,35 @@
       "fresnel-integral",
       "exponential-integral"
     ],
+    "calculus": [
+      "gamma-function",
+      "beta-function",
+      "error-function",
+      "airy-function",
+      "bessel-function",
+      "legendre-polynomial",
+      "fourier-transform",
+      "laplace-transform",
+      "dirac-delta-function",
+      "heaviside-function",
+      "principal-value",
+      "line-integral",
+      "surface-integral",
+      "multiple-integral",
+      "fresnel-integral",
+      "exponential-integral"
+    ],
     "analisis funcional": [
+      "fourier-transform",
+      "laplace-transform",
+      "lebesgue-integral",
+      "sobolev-space",
+      "spectrum",
+      "spectrum-of-matrix",
+      "laplace-operator",
+      "hilbert-symbol"
+    ],
+    "functional analysis": [
       "fourier-transform",
       "laplace-transform",
       "lebesgue-integral",
@@ -74,7 +138,33 @@
       "mellin-transform",
       "gabor-transform"
     ],
+    "harmonic analysis": [
+      "fourier-transform",
+      "fourier-sine-transform",
+      "fourier-cosine-transform",
+      "wavelet-transform",
+      "mellin-transform",
+      "gabor-transform"
+    ],
     "ecuaciones diferenciales": [
+      "airy-function",
+      "bessel-function",
+      "bessel-function-of-second-kind",
+      "modified-bessel-function-of-first-kind",
+      "modified-bessel-function-of-second-kind",
+      "legendre-polynomial",
+      "associated-legendre-polynomial",
+      "hermite-polynomial",
+      "laguerre-polynomial",
+      "chebyshev-polynomial-of-first-kind",
+      "chebyshev-polynomial-of-second-kind",
+      "laplace-operator",
+      "dalembert-operator",
+      "hamiltonian",
+      "heaviside-function",
+      "dirac-delta-function"
+    ],
+    "differential equations": [
       "airy-function",
       "bessel-function",
       "bessel-function-of-second-kind",
@@ -106,7 +196,37 @@
       "fourier-transform",
       "laplace-transform"
     ],
+    "physics": [
+      "dirac-delta-function",
+      "heaviside-function",
+      "hamiltonian",
+      "pauli-matrix",
+      "dirac-matrix",
+      "dirac-operator",
+      "angular-momentum",
+      "spin-angular-momentum",
+      "momentum",
+      "energy",
+      "fourier-transform",
+      "laplace-transform"
+    ],
     "fisica matematica": [
+      "dirac-delta-function",
+      "heaviside-function",
+      "hamiltonian",
+      "pauli-matrix",
+      "dirac-matrix",
+      "dirac-operator",
+      "angular-momentum",
+      "spin-angular-momentum",
+      "momentum",
+      "energy",
+      "fourier-transform",
+      "laplace-transform",
+      "bessel-function",
+      "legendre-polynomial"
+    ],
+    "mathematical physics": [
       "dirac-delta-function",
       "heaviside-function",
       "hamiltonian",
@@ -134,6 +254,18 @@
       "dirac-delta-function",
       "heaviside-function"
     ],
+    "quantum mechanics": [
+      "hamiltonian",
+      "pauli-matrix",
+      "dirac-matrix",
+      "dirac-operator",
+      "angular-momentum",
+      "spin-angular-momentum",
+      "momentum",
+      "energy",
+      "dirac-delta-function",
+      "heaviside-function"
+    ],
     "mecanica estadistica": [
       "gaussian-distribution",
       "fermi-dirac-distribution",
@@ -141,7 +273,39 @@
       "entropy",
       "shannon-entropy"
     ],
+    "statistical mechanics": [
+      "gaussian-distribution",
+      "fermi-dirac-distribution",
+      "partition-function",
+      "entropy",
+      "shannon-entropy"
+    ],
     "estadistica": [
+      "gaussian-distribution",
+      "binomial-distribution",
+      "poisson-distribution",
+      "gamma-distribution",
+      "beta-distribution",
+      "chi-squared-distribution",
+      "f-distribution",
+      "negative-binomial-distribution",
+      "dirichlet-distribution",
+      "wishart-distribution",
+      "multivariate-gaussian-distribution",
+      "cumulative-distribution-function",
+      "expectation-value",
+      "conditional-expectation",
+      "covariance",
+      "correlation",
+      "sample-variance",
+      "entropy",
+      "mean-squared-error",
+      "root-mean-square",
+      "geometric-mean",
+      "harmonic-mean",
+      "weighted-mean"
+    ],
+    "statistics": [
       "gaussian-distribution",
       "binomial-distribution",
       "poisson-distribution",
@@ -184,6 +348,24 @@
       "correlation",
       "sample-variance"
     ],
+    "probability": [
+      "gaussian-distribution",
+      "binomial-distribution",
+      "poisson-distribution",
+      "gamma-distribution",
+      "beta-distribution",
+      "chi-squared-distribution",
+      "f-distribution",
+      "negative-binomial-distribution",
+      "dirichlet-distribution",
+      "multivariate-gaussian-distribution",
+      "cumulative-distribution-function",
+      "expectation-value",
+      "conditional-expectation",
+      "covariance",
+      "correlation",
+      "sample-variance"
+    ],
     "teoria de la probabilidad": [
       "gaussian-distribution",
       "binomial-distribution",
@@ -202,7 +384,41 @@
       "correlation",
       "sample-variance"
     ],
+    "probability theory": [
+      "gaussian-distribution",
+      "binomial-distribution",
+      "poisson-distribution",
+      "gamma-distribution",
+      "beta-distribution",
+      "chi-squared-distribution",
+      "f-distribution",
+      "negative-binomial-distribution",
+      "dirichlet-distribution",
+      "multivariate-gaussian-distribution",
+      "cumulative-distribution-function",
+      "expectation-value",
+      "conditional-expectation",
+      "covariance",
+      "correlation",
+      "sample-variance"
+    ],
     "algebra lineal": [
+      "conjugate-transpose",
+      "frobenius-norm",
+      "gram-matrix",
+      "jacobi-matrix",
+      "laplacian-matrix",
+      "zero-matrix",
+      "diagonal-matrix",
+      "tensor-product",
+      "tensor-algebra",
+      "direct-sum",
+      "trace",
+      "rank",
+      "spectrum",
+      "spectrum-of-matrix"
+    ],
+    "linear algebra": [
       "conjugate-transpose",
       "frobenius-norm",
       "gram-matrix",
@@ -248,7 +464,36 @@
       "polynomial-ring",
       "grobner-basis"
     ],
+    "abstract algebra": [
+      "galois-group",
+      "general-linear-group",
+      "dihedral-group",
+      "alternating-group",
+      "symmetric-group",
+      "orthogonal-group",
+      "unitary-group",
+      "special-linear-group",
+      "automorphism-group",
+      "commutator-subgroup",
+      "field-extension",
+      "galois-field",
+      "cyclotomic-field",
+      "polynomial-ring",
+      "grobner-basis"
+    ],
     "teoria de grupos": [
+      "galois-group",
+      "general-linear-group",
+      "dihedral-group",
+      "alternating-group",
+      "symmetric-group",
+      "orthogonal-group",
+      "unitary-group",
+      "special-linear-group",
+      "automorphism-group",
+      "commutator-subgroup"
+    ],
+    "group theory": [
       "galois-group",
       "general-linear-group",
       "dihedral-group",
@@ -278,7 +523,36 @@
       "stirling-number-of-second-kind",
       "bell-number"
     ],
+    "number theory": [
+      "mobius-function",
+      "euler-totient-function",
+      "divisor-function",
+      "prime-counting-function",
+      "riemann-zeta-function",
+      "dirichlet-eta-function",
+      "legendre-symbol",
+      "jacobi-symbol",
+      "hilbert-symbol",
+      "fibonacci-number",
+      "lucas-number",
+      "catalan-number",
+      "bernoulli-number",
+      "stirling-number-of-first-kind",
+      "stirling-number-of-second-kind",
+      "bell-number"
+    ],
     "aritmetica": [
+      "mobius-function",
+      "euler-totient-function",
+      "divisor-function",
+      "prime-counting-function",
+      "legendre-symbol",
+      "jacobi-symbol",
+      "fibonacci-number",
+      "lucas-number",
+      "catalan-number"
+    ],
+    "arithmetic": [
       "mobius-function",
       "euler-totient-function",
       "divisor-function",
@@ -305,6 +579,22 @@
       "alternating-factorial",
       "exponential-factorial"
     ],
+    "combinatorics": [
+      "fibonacci-number",
+      "lucas-number",
+      "catalan-number",
+      "bernoulli-number",
+      "stirling-number-of-first-kind",
+      "stirling-number-of-second-kind",
+      "bell-number",
+      "partition-function",
+      "double-factorial",
+      "subfactorial",
+      "falling-factorial",
+      "rising-factorial",
+      "alternating-factorial",
+      "exponential-factorial"
+    ],
     "geometria": [
       "riemann-sphere",
       "projective-space",
@@ -314,7 +604,26 @@
       "kronecker-symbol",
       "levi-civita-symbol"
     ],
+    "geometry": [
+      "riemann-sphere",
+      "projective-space",
+      "complex-projective-space",
+      "tangent-space",
+      "hyperbolic-space",
+      "kronecker-symbol",
+      "levi-civita-symbol"
+    ],
     "topologia": [
+      "sobolev-space",
+      "riemann-sphere",
+      "projective-space",
+      "complex-projective-space",
+      "tangent-space",
+      "hyperbolic-space",
+      "hausdorff-space",
+      "homology-group"
+    ],
+    "topology": [
       "sobolev-space",
       "riemann-sphere",
       "projective-space",
@@ -336,7 +645,29 @@
       "dirac-delta-function",
       "heaviside-function"
     ],
+    "signal processing": [
+      "fourier-transform",
+      "fourier-sine-transform",
+      "fourier-cosine-transform",
+      "laplace-transform",
+      "z-transform",
+      "wavelet-transform",
+      "mellin-transform",
+      "gabor-transform",
+      "dirac-delta-function",
+      "heaviside-function"
+    ],
     "teoria de senales": [
+      "fourier-transform",
+      "fourier-sine-transform",
+      "fourier-cosine-transform",
+      "laplace-transform",
+      "z-transform",
+      "wavelet-transform",
+      "dirac-delta-function",
+      "heaviside-function"
+    ],
+    "signal theory": [
       "fourier-transform",
       "fourier-sine-transform",
       "fourier-cosine-transform",
@@ -353,7 +684,23 @@
       "fisher-information",
       "mean-squared-error"
     ],
+    "information theory": [
+      "entropy",
+      "shannon-entropy",
+      "mutual-information",
+      "fisher-information",
+      "mean-squared-error"
+    ],
     "metodos numericos": [
+      "legendre-polynomial",
+      "chebyshev-polynomial-of-first-kind",
+      "chebyshev-polynomial-of-second-kind",
+      "hermite-polynomial",
+      "laguerre-polynomial",
+      "gaussian-distribution",
+      "bernoulli-number"
+    ],
+    "numerical methods": [
       "legendre-polynomial",
       "chebyshev-polynomial-of-first-kind",
       "chebyshev-polynomial-of-second-kind",
@@ -371,7 +718,24 @@
       "dalembert-operator",
       "tensor-product"
     ],
+    "electromagnetism": [
+      "levi-civita-symbol",
+      "dirac-delta-function",
+      "heaviside-function",
+      "fourier-transform",
+      "laplace-operator",
+      "dalembert-operator",
+      "tensor-product"
+    ],
     "relatividad": [
+      "levi-civita-symbol",
+      "tensor-product",
+      "tensor-algebra",
+      "riemann-sphere",
+      "dirac-matrix",
+      "dirac-operator"
+    ],
+    "relativity": [
       "levi-civita-symbol",
       "tensor-product",
       "tensor-algebra",

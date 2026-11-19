@@ -188,6 +188,17 @@ _CONTEXT_HINTS: dict[str, tuple[str, ...]] = {
         "inner-product",
     ),
 }
+# The dataset metadata (areas and topics) is in English: every Spanish cue has
+# its English equivalent.
+for _spanish, _english in (
+    ("calculo", "calculus"),
+    ("analisis", "analysis"),
+    ("geometria", "geometry"),
+    ("estadistica", "statistics"),
+    ("probabilidad", "probability"),
+    ("matriz", "matrix"),
+):
+    _CONTEXT_HINTS.setdefault(_english, _CONTEXT_HINTS[_spanish])
 
 
 @dataclass(frozen=True)

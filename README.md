@@ -504,33 +504,40 @@ csv: dataset.csv
 images_dir: ${IMAGE_TO_MATHML_DATASET_DIR:-../dataset}/images
 mathml_dir: ${IMAGE_TO_MATHML_DATASET_DIR:-../dataset}/labels
 complexity_weights:
-  muy simple: 1.0
+  very simple: 1.0
   simple: 1.0
-  media: 1.5
-  compleja: 2.0
+  medium: 1.5
+  complex: 2.0
 ```
 
 `csv`, `images_dir` and `mathml_dir` can be absolute or relative to the YAML
 file, and may use `$VAR`, `${VAR}` or `${VAR:-default}` so the same YAML works
 on several machines. `--images-dir` and `--mathml-dir` override the YAML
 folders. In this example the CSV only contains file names such as
-`alg001.jpeg` and `alg001.mathml`. The generated YAML files read the
+`alg001.jpeg` and `alg001.mml`. The generated YAML files read the
 dataset folder from `IMAGE_TO_MATHML_DATASET_DIR`.
 
-The `eval/` folder is local (it is git-ignored): each person keeps their own
-CSV/YAML files there. `tools/build_eval_csv.py` creates or updates the pair of
-one dataset area, for example:
+The evaluation dataset is
+[math-intent-mathml-dataset](https://github.com/danielopezr/math-intent-mathml-dataset):
+one folder per area under `areas/` (`images/`, `labels/` and `pages/`) and a
+`metadata/<area>.csv` with the topic and complexity of every image. Clone it
+next to this project, or point `IMAGE_TO_MATHML_DATASET_DIR` to its root.
+
+The `eval/` folder holds the CSV/YAML pair of each dataset area and is
+versioned, so everyone evaluates the same samples. `tools/build_eval_csv.py`
+creates or updates the pair of one area, for example:
 
 ```bash
-python tools/build_eval_csv.py --dataset ../image-to-mathML-dataset/chopped \
-  --area algebra-lineal --name linear-algebra --area-label "Algebra lineal"
+python tools/build_eval_csv.py --dataset ../math-intent-mathml-dataset \
+  --area linear-algebra
 ```
 
-It adds a row for every labelled image, keeps the `topic`, `timeout` and
-`eqn_complexity` already written and estimates the complexity of new rows
-from the size of the label. Fill in the
-`topic` column by hand: it is what lets the pipeline decide context-dependent
-notation such as `(u, v)` as an inner product.
+It adds a row for every labelled image with the area, topic and complexity of
+the dataset metadata (the topic is what lets the pipeline decide
+context-dependent notation such as `(u, v)` as an inner product, so it is
+filled in there), keeps the `timeout` of rows already written and gives new
+rows a timeout from their complexity. The calculus area is written as
+`calculus-de.csv` and `calculus-de.yaml`, the name earlier results use.
 
 The report separates where each output came from:
 

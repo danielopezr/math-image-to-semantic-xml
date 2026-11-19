@@ -1,12 +1,11 @@
 csv: linear-algebra.csv
-# IMAGE_TO_MATHML_DATASET_DIR points to the local copy of the dataset; the
-# value after ":-" is used when the variable is not set.  The folders can
-# also be overridden with --images-dir and --mathml-dir.
-images_dir: ${IMAGE_TO_MATHML_DATASET_DIR:-/home/andres/Documents/Fundamentos de investigacion/dataset/chopped}/algebra-lineal
-mathml_dir: ${IMAGE_TO_MATHML_DATASET_DIR:-/home/andres/Documents/Fundamentos de investigacion/dataset/chopped}/algebra-lineal/labels
+# IMAGE_TO_MATHML_DATASET_DIR points to the local copy of the dataset
+# (math-intent-mathml-dataset).  --images-dir and --mathml-dir override these.
+images_dir: ${IMAGE_TO_MATHML_DATASET_DIR:-../../math-intent-mathml-dataset}/areas/linear-algebra/images
+mathml_dir: ${IMAGE_TO_MATHML_DATASET_DIR:-../../math-intent-mathml-dataset}/areas/linear-algebra/labels
 
 complexity_weights:
-  muy simple: 1.0
+  very simple: 1.0
   simple: 1.0
-  media: 1.5
-  compleja: 2.0
+  medium: 1.5
+  complex: 2.0

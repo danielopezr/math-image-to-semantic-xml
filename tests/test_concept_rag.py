@@ -288,3 +288,35 @@ def test_pipeline_adds_open_rag_cards_to_the_semantic_prompt():
 
     system = fake.messages[0][0]["content"]
     assert "fourier-transform" in system
+
+
+def test_english_and_spanish_areas_give_the_same_context_hints():
+    from image_to_mathml.mathml.concept_rag import _context_concepts
+
+    for spanish, english in (
+        ("Cálculo y ecuaciones diferenciales", "Calculus and differential equations"),
+        ("Probabilidad", "Probability"),
+        ("Geometría", "Geometry"),
+    ):
+        assert _context_concepts(MathContext(area=english)) == _context_concepts(
+            MathContext(area=spanish)
+        )
+        assert _context_concepts(MathContext(area=english))
+
+
+def test_english_areas_select_the_same_open_concepts_as_spanish_ones():
+    rag = OpenConceptRAG()
+
+    def names(area):
+        context = MathContext(area=area)
+        return [
+            card.name
+            for card in rag.retrieve("f", _tree("f"), context, allow_open=True, top_k=8)
+        ]
+
+    for spanish, english in (
+        ("Probabilidad", "Probability"),
+        ("Álgebra lineal", "Linear algebra"),
+    ):
+        assert names(english) == names(spanish)
+        assert names(english)

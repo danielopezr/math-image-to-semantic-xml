@@ -1,7 +1,8 @@
 # Guía de anotación
 
 Estado: **acordada por el equipo (2026-11-15).** Aplica por igual a las
-etiquetas del dataset (`image-to-mathML-dataset`), al anotador determinista,
+etiquetas del dataset (`math-intent-mathml-dataset`, que guarda la versión
+en inglés de esta guía), al anotador determinista,
 al LLM y a las métricas. Cada regla indica la opción que la controla en el
 código, por si hay que revisarla.
 
@@ -20,6 +21,7 @@ una regla determinista (`IMAGE_TO_MATHML_IMPLICIT_TIMES`, activada).
 | `2x^2y` | `times(2, power(x,2), y)` |
 | `i(1+r)^t(1+r)` | `times(i, power((1+r),t), (1+r))` |
 | `2f(x)` | `times(2, f(x))` |
+| `2n!` | `times(2, factorial(n))` |
 | `a(b+c)`, `n(n+1)` | `times(a, (b+c))`: una expresión entre paréntesis es un factor |
 | `\int 2x\,dx` | `times(2, x)`; el `dx` no es factor |
 
@@ -28,7 +30,8 @@ No son factores: el `d` de un diferencial, las funciones con nombre
 grandes y los límites. Dos números seguidos nunca son un producto (son
 dígitos o índices, como el "1 1" de `a_{11}`), y en un subíndice las letras
 contiguas son una lista de índices (`a_{ij}`), no un producto; un coeficiente
-numérico sí lo marca (`a_{2n}`).
+numérico sí lo marca (`a_{2n}`). El `d` de `dt^n` en `d^n/dt^n` tampoco es
+factor.
 
 ## 2. Productos y sumas: forma plana
 
@@ -71,7 +74,7 @@ elimina esos intents si los añade el LLM.
 - `(u, v)` es `inner-product` **solo si el tema** habla de producto interno,
   ortogonalidad u ortogonalización (Gram-Schmidt); en otro caso se deja sin
   anotar. Opción: `IMAGE_TO_MATHML_INNER_PRODUCT_PAIRS=auto|on|off`.
-- Por eso la columna `topic` de los CSV de evaluación debe rellenarse (regla 7).
+- Por eso el tema de cada imagen debe estar rellenado (regla 8).
 
 ## 6. Derivadas con primas
 
@@ -82,19 +85,24 @@ en contexto de cálculo o ecuaciones diferenciales
 `IMAGE_TO_MATHML_DERIVATIVE_VARIABLE`). La prima puede escribirse junto a su
 base o como superíndice: las métricas tratan ambas formas como iguales.
 
-## 7. Columna `topic` en los CSV
+## 7. Otras lecturas
 
-Cada área tiene su CSV con las columnas
-`id,img_path,mathml_path,area,topic,timeout,eqn_complexity`. `topic` se
-rellena a mano con el tema de la sección del libro (por ejemplo
-"ortogonalización, bases ortogonales"). `tools/build_eval_csv.py` crea o
-actualiza el CSV de un área conservando lo ya rellenado.
+- `n!`, `5!` y `(n-k)!` son `factorial($var)`, en el grupo que forman el
+  operando y el `!`.
+- Los puntos suspensivos `…` y `⋯` son un operador (`<mo>`) con
+  `intent="ellipsis"`.
+- `x → a`, `x → 0`, `x → +∞` (letra minúscula, flecha y valor) son
+  `tends-to($var,$value)`; una aplicación como `f: A → B` no.
 
-La carpeta `eval/` del proyecto no se versiona (está en `.gitignore`), así que
-esos CSV son locales. Para que los temas rellenados se compartan, conviene
-guardarlos en el repositorio del dataset; está pendiente decidir dónde.
+## 8. Tema y complejidad de cada imagen
 
-## 8. Reglas generales
+El tema (la sección del libro, por ejemplo "orthogonal projections") y la
+complejidad de cada imagen están en `metadata/<area>.csv` del dataset, en
+inglés. `tools/build_eval_csv.py` los copia al CSV de evaluación del área en
+`eval/` (versionado, para que todos evalúen las mismas muestras), que solo
+añade el timeout.
+
+## 9. Reglas generales
 
 - Un único `<mrow>` raíz dentro de `<math>`, sin atributo `display`.
 - Cada `$ref` tiene exactamente un descendiente con `arg="ref"` en su alcance.
@@ -117,7 +125,9 @@ a las etiquetas corregidas:
 
 ## Pendiente
 
-- Rellenar `topic` en los CSV (hoy solo lo tienen 5 filas de álgebra lineal).
+- Rellenar el tema de las 39 imágenes etiquetadas que no lo tienen.
+- Decidir si se anotan las integrales definidas, los productos con `×` o `·`
+  visible y los operadores aplicados a una expresión (`T(e_k)`, `D(1+x)`).
 - Etiquetar lógica matemática y probabilidad, y completar matemáticas
   discretas.
 - Verificar en la especificación W3C los argumentos múltiples de `times`.

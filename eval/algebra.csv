@@ -1,78 +1,221 @@
 id,img_path,mathml_path,area,topic,timeout,eqn_complexity
-balg001,balg001.jpeg,balg001.txt,Algebra,interes compuesto-serie geometrica,600,simple
-balg002,balg002.jpeg,balg002.txt,Algebra,interes compuesto-serie geometrica,900,media
-balg003,balg003.jpeg,balg003.txt,Algebra,interes compuesto-serie geometrica,600,simple
-balg004,balg004.jpeg,balg004.txt,Algebra,interes compuesto-serie geometrica,600,simple
-balg005,balg005.jpeg,balg005.txt,Algebra,interes compuesto-serie geometrica,600,simple
-balg006,balg006.jpeg,balg006.txt,Algebra,interes compuesto-serie geometrica,600,simple
-balg007,balg007.jpeg,balg007.txt,Algebra,logaritmos y propiedades,600,simple
-balg008,balg008.jpeg,balg008.txt,Algebra,logaritmos y propiedades,600,muy simple
-balg009,balg009.jpeg,balg009.txt,Algebra,ecuacion cuadratica,600,muy simple
-balg010,balg010.jpeg,balg010.txt,Algebra,ecuacion cuadratica,600,muy simple
-balg011,balg011.jpeg,balg011.txt,Algebra,ecuacion cuadratica,600,simple
-balg012,balg012.jpeg,balg012.txt,Algebra,ecuacion cuadratica,600,muy simple
-balg013,balg013.jpeg,balg013.txt,Algebra,ecuacion cuadratica,600,simple
-balg014,balg014.jpeg,balg014.txt,Algebra,ecuacion cuadratica,600,simple
-balg015,balg015.jpeg,balg015.txt,Algebra,ecuacion cuadratica,600,muy simple
-balg016,balg016.jpeg,balg016.txt,Algebra,ecuacion cuadratica,600,simple
-balg017,balg017.jpeg,balg017.txt,Algebra,raices-numeros imaginarios,600,simple
-balg018,balg018.jpeg,balg018.txt,Algebra,raices-numeros imaginarios,600,simple
-balg019,balg019.jpeg,balg019.txt,Algebra,raices-numeros imaginarios,600,simple
-balg020,balg020.jpeg,balg020.txt,Algebra,ecuaciones-ecuaciones lineales,600,simple
-balg021,balg021.jpeg,balg021.txt,Algebra,ecuaciones-ecuaciones lineales,600,muy simple
-balg022,balg022.jpeg,balg022.txt,Algebra,ecuaciones-ecuaciones lineales,600,simple
-balg023,balg023.jpeg,balg023.txt,Algebra,ecuaciones-ecuaciones lineales,900,media
-balg024,balg024.jpeg,balg024.txt,Algebra,ecuaciones-ecuaciones lineales,600,simple
-balg025,balg025.jpeg,balg025.txt,Algebra,ecuaciones-ecuaciones lineales,600,simple
-balg026,balg026.jpeg,balg026.txt,Algebra,ecuaciones-ecuaciones lineales,600,simple
-balg027,balg027.jpeg,balg027.txt,Algebra,ecuaciones-ecuaciones lineales,600,simple
-balg028,balg028.jpeg,balg028.txt,Algebra,,600,simple
-balg029,balg029.jpeg,balg029.txt,Algebra,,600,simple
-balg030,balg030.jpeg,balg030.txt,Algebra,polinomios-division de polinomios,900,media
-balg031,balg031.jpeg,balg031.txt,Algebra,polinomios-division de polinomios,600,simple
-balg032,balg032.jpeg,balg032.txt,Algebra,polinomios-producto de polinomios,600,simple
-balg033,balg033.jpeg,balg033.txt,Algebra,polinomios-producto de polinomios,600,simple
-balg034,balg034.jpeg,balg034.txt,Algebra,polinomios-producto de polinomios,600,muy simple
-balg035,balg035.jpeg,balg035.txt,Algebra,polinomios,900,media
-balg036,balg036.jpeg,balg036.txt,Algebra,polinomios,600,simple
-balg037,balg037.jpeg,balg037.txt,Algebra,polinomios,600,simple
-balg038,balg038.jpeg,balg038.txt,Algebra,polinomios,600,simple
-balg039,balg039.jpeg,balg039.txt,Algebra,polinomios,600,simple
-balg040,balg040.jpeg,balg040.txt,Algebra,polinomios,600,muy simple
-balg041,balg041.jpeg,balg041.txt,Algebra,potencias y propiedades,600,muy simple
-balg042,balg042.jpeg,balg042.txt,Algebra,potencias y propiedades,600,simple
-balg043,balg043.jpeg,balg043.txt,Algebra,potencias y propiedades,600,simple
-balg044,balg044.jpeg,balg044.txt,Algebra,potencias y propiedades,600,simple
-balg045,balg045.jpeg,balg045.txt,Algebra,potencias y propiedades,600,simple
-balg046,balg046.jpeg,balg046.txt,Algebra,potencias y propiedades,600,simple
-balg047,balg047.jpeg,balg047.txt,Algebra,potencias y propiedades,600,muy simple
-balg048,balg048.jpeg,balg048.txt,Algebra,potencias y propiedades,600,simple
-balg049,balg049.jpeg,balg049.txt,Algebra,potencias y propiedades,600,simple
-balg050,balg050.jpeg,balg050.txt,Algebra,distancia geometrica,600,muy simple
-balg051,balg051.jpeg,balg051.txt,Algebra,definicion de numero pi,600,muy simple
-balg052,balg052.jpeg,balg052.txt,Algebra,evaluacion de expresiones,900,media
-balg053,balg053.jpeg,balg053.txt,Algebra,division de fracciones-expresiones fraccionarias,600,simple
-balg054,balg054.jpeg,balg054.txt,Algebra,expresiones fraccionarias,600,simple
-balg055,balg055.jpeg,balg055.txt,Algebra,raices-evaluacion de expresiones,600,simple
-balg056,balg056.jpeg,balg056.txt,Algebra,evaluacion de expresiones,900,media
-balg057,balg057.jpeg,balg057.txt,Algebra,evaluacion de expresiones,600,simple
-balg058,balg058.jpeg,balg058.txt,Algebra,evaluacion de expresiones-raices,600,simple
-balg059,balg059.jpeg,balg059.txt,Algebra,polinomios,600,simple
-balg060,balg060.jpeg,balg060.txt,Algebra,polinomios,900,media
-balg061,balg061.jpeg,balg061.txt,Algebra,polinomios,600,simple
-balg062,balg062.jpeg,balg062.txt,Algebra,polinomios,900,media
-balg063,balg063.jpeg,balg063.txt,Algebra,polinomios,600,simple
-balg064,balg064.jpeg,balg064.txt,Algebra,polinomios,600,muy simple
-balg065,balg065.jpeg,balg065.txt,Algebra,polinomios,600,muy simple
-balg066,balg066.jpeg,balg066.txt,Algebra,polinomios,600,muy simple
-balg067,balg067.jpeg,balg067.txt,Algebra,polinomios,600,simple
-balg068,balg068.jpeg,balg068.txt,Algebra,polinomios,600,simple
-balg069,balg069.jpeg,balg069.txt,Algebra,polinomios,600,simple
-balg070,balg070.jpeg,balg070.txt,Algebra,expresiones con raices,600,muy simple
-balg071,balg071.jpeg,balg071.txt,Algebra,polinomios,900,media
-balg072,balg072.jpeg,balg072.txt,Algebra,polinomios,600,simple
-balg073,balg073.jpeg,balg073.txt,Algebra,expresiones-terminos,600,simple
-balg074,balg074.jpeg,balg074.txt,Algebra,polinomios-expresiones,600,simple
-balg075,balg075.jpeg,balg075.txt,Algebra,expresiones con raices-terminos,600,simple
-balg076,balg076.jpeg,balg076.txt,Algebra,,600,muy simple
-balg077,balg077.jpeg,balg077.txt,Algebra,,600,simple
+balg001,balg001.jpeg,balg001.mml,Algebra,compound interest; geometric series,600,simple
+balg002,balg002.jpeg,balg002.mml,Algebra,compound interest; geometric series,900,medium
+balg003,balg003.jpeg,balg003.mml,Algebra,compound interest; geometric series,600,simple
+balg004,balg004.jpeg,balg004.mml,Algebra,compound interest; geometric series,600,simple
+balg005,balg005.jpeg,balg005.mml,Algebra,compound interest; geometric series,600,simple
+balg006,balg006.jpeg,balg006.mml,Algebra,compound interest; geometric series,600,simple
+balg007,balg007.jpeg,balg007.mml,Algebra,logarithms and their properties,600,simple
+balg008,balg008.jpeg,balg008.mml,Algebra,logarithms and their properties,600,very simple
+balg009,balg009.jpeg,balg009.mml,Algebra,quadratic equation,600,very simple
+balg010,balg010.jpeg,balg010.mml,Algebra,quadratic equation,600,very simple
+balg011,balg011.jpeg,balg011.mml,Algebra,quadratic equation,600,simple
+balg012,balg012.jpeg,balg012.mml,Algebra,quadratic equation,600,simple
+balg013,balg013.jpeg,balg013.mml,Algebra,quadratic equation,600,simple
+balg014,balg014.jpeg,balg014.mml,Algebra,quadratic equation,600,simple
+balg015,balg015.jpeg,balg015.mml,Algebra,roots; imaginary numbers,600,simple
+balg016,balg016.jpeg,balg016.mml,Algebra,roots; imaginary numbers,600,simple
+balg017,balg017.jpeg,balg017.mml,Algebra,roots; imaginary numbers,600,simple
+balg018,balg018.jpeg,balg018.mml,Algebra,equations; linear equations,600,simple
+balg019,balg019.jpeg,balg019.mml,Algebra,equations; linear equations,600,very simple
+balg020,balg020.jpeg,balg020.mml,Algebra,equations; linear equations,600,simple
+balg021,balg021.jpeg,balg021.mml,Algebra,equations; linear equations,900,medium
+balg022,balg022.jpeg,balg022.mml,Algebra,equations; linear equations,600,simple
+balg023,balg023.jpeg,balg023.mml,Algebra,equations; linear equations,600,simple
+balg024,balg024.jpeg,balg024.mml,Algebra,equations; linear equations,600,simple
+balg025,balg025.jpeg,balg025.mml,Algebra,equations; linear equations,600,simple
+balg026,balg026.jpeg,balg026.mml,Algebra,,600,simple
+balg027,balg027.jpeg,balg027.mml,Algebra,,600,simple
+balg028,balg028.jpeg,balg028.mml,Algebra,polynomials; polynomial division,900,medium
+balg029,balg029.jpeg,balg029.mml,Algebra,polynomials; polynomial division,600,simple
+balg030,balg030.jpeg,balg030.mml,Algebra,polynomials; polynomial multiplication,600,simple
+balg031,balg031.jpeg,balg031.mml,Algebra,polynomials; polynomial multiplication,600,simple
+balg032,balg032.jpeg,balg032.mml,Algebra,polynomials; polynomial multiplication,600,very simple
+balg033,balg033.jpeg,balg033.mml,Algebra,polynomials,900,medium
+balg034,balg034.jpeg,balg034.mml,Algebra,polynomials,600,simple
+balg035,balg035.jpeg,balg035.mml,Algebra,polynomials,600,simple
+balg036,balg036.jpeg,balg036.mml,Algebra,polynomials,600,simple
+balg037,balg037.jpeg,balg037.mml,Algebra,polynomials,600,simple
+balg038,balg038.jpeg,balg038.mml,Algebra,polynomials,600,very simple
+balg039,balg039.jpeg,balg039.mml,Algebra,powers and their properties,600,very simple
+balg040,balg040.jpeg,balg040.mml,Algebra,powers and their properties,600,simple
+balg041,balg041.jpeg,balg041.mml,Algebra,powers and their properties,600,simple
+balg042,balg042.jpeg,balg042.mml,Algebra,powers and their properties,600,simple
+balg043,balg043.jpeg,balg043.mml,Algebra,powers and their properties,600,simple
+balg044,balg044.jpeg,balg044.mml,Algebra,powers and their properties,600,simple
+balg045,balg045.jpeg,balg045.mml,Algebra,powers and their properties,600,very simple
+balg046,balg046.jpeg,balg046.mml,Algebra,powers and their properties,600,simple
+balg047,balg047.jpeg,balg047.mml,Algebra,powers and their properties,600,simple
+balg048,balg048.jpeg,balg048.mml,Algebra,geometric distance,600,very simple
+balg049,balg049.jpeg,balg049.mml,Algebra,definition of pi,600,very simple
+balg050,balg050.jpeg,balg050.mml,Algebra,evaluating expressions,900,medium
+balg051,balg051.jpeg,balg051.mml,Algebra,fraction division; fractional expressions,600,simple
+balg052,balg052.jpeg,balg052.mml,Algebra,fractional expressions,600,simple
+balg053,balg053.jpeg,balg053.mml,Algebra,roots; evaluating expressions,600,simple
+balg054,balg054.jpeg,balg054.mml,Algebra,evaluating expressions,900,medium
+balg055,balg055.jpeg,balg055.mml,Algebra,evaluating expressions; roots,600,simple
+balg056,balg056.jpeg,balg056.mml,Algebra,polynomials,600,simple
+balg057,balg057.jpeg,balg057.mml,Algebra,polynomials,900,medium
+balg058,balg058.jpeg,balg058.mml,Algebra,polynomials,600,simple
+balg059,balg059.jpeg,balg059.mml,Algebra,polynomials,900,medium
+balg060,balg060.jpeg,balg060.mml,Algebra,polynomials,600,simple
+balg061,balg061.jpeg,balg061.mml,Algebra,polynomials,600,very simple
+balg062,balg062.jpeg,balg062.mml,Algebra,polynomials,600,very simple
+balg063,balg063.jpeg,balg063.mml,Algebra,polynomials,600,very simple
+balg064,balg064.jpeg,balg064.mml,Algebra,polynomials,600,simple
+balg065,balg065.jpeg,balg065.mml,Algebra,polynomials,600,simple
+balg066,balg066.jpeg,balg066.mml,Algebra,polynomials,600,simple
+balg067,balg067.jpeg,balg067.mml,Algebra,expressions with roots,600,very simple
+balg068,balg068.jpeg,balg068.mml,Algebra,polynomials,900,medium
+balg069,balg069.jpeg,balg069.mml,Algebra,polynomials,600,simple
+balg070,balg070.jpeg,balg070.mml,Algebra,expressions; terms,600,simple
+balg071,balg071.jpeg,balg071.mml,Algebra,polynomials; expressions,600,simple
+balg072,balg072.jpeg,balg072.mml,Algebra,expressions with roots; terms,600,simple
+balg073,balg073.jpeg,balg073.mml,Algebra,,600,very simple
+balg074,balg074.jpeg,balg074.mml,Algebra,,600,simple
+balg075,balg075.jpeg,balg075.mml,Algebra,,600,very simple
+balg076,balg076.jpeg,balg076.mml,Algebra,,600,very simple
+balg077,balg077.jpeg,balg077.mml,Algebra,,600,very simple
+balg078,balg078.jpeg,balg078.mml,Algebra,,600,very simple
+balg079,balg079.jpeg,balg079.mml,Algebra,,600,simple
+balg080,balg080.jpeg,balg080.mml,Algebra,,600,simple
+balg081,balg081.jpeg,balg081.mml,Algebra,,900,medium
+balg082,balg082.jpeg,balg082.mml,Algebra,,600,simple
+balg083,balg083.jpeg,balg083.mml,Algebra,,600,simple
+balg084,balg084.jpeg,balg084.mml,Algebra,,900,medium
+balg085,balg085.jpeg,balg085.mml,Algebra,,600,simple
+balg086,balg086.jpeg,balg086.mml,Algebra,,900,medium
+balg087,balg087.jpeg,balg087.mml,Algebra,,600,simple
+balg088,balg088.jpeg,balg088.mml,Algebra,,900,medium
+balg089,balg089.jpeg,balg089.mml,Algebra,,900,medium
+balg090,balg090.jpeg,balg090.mml,Algebra,,900,medium
+balg091,balg091.jpeg,balg091.mml,Algebra,,600,simple
+balg092,balg092.jpeg,balg092.mml,Algebra,,900,medium
+balg093,balg093.jpeg,balg093.mml,Algebra,,600,simple
+balg094,balg094.jpeg,balg094.mml,Algebra,,600,very simple
+balg095,balg095.jpeg,balg095.mml,Algebra,,600,simple
+balg096,balg096.jpeg,balg096.mml,Algebra,,600,simple
+balg097,balg097.jpeg,balg097.mml,Algebra,,600,simple
+balg098,balg098.jpeg,balg098.mml,Algebra,,600,very simple
+balg099,balg099.jpeg,balg099.mml,Algebra,,600,simple
+balg100,balg100.jpeg,balg100.mml,Algebra,,600,simple
+balg101,balg101.jpeg,balg101.mml,Algebra,,600,simple
+balg102,balg102.jpeg,balg102.mml,Algebra,,600,very simple
+balg103,balg103.jpeg,balg103.mml,Algebra,,600,simple
+balg104,balg104.jpeg,balg104.mml,Algebra,,600,simple
+balg105,balg105.jpeg,balg105.mml,Algebra,,600,very simple
+balg106,balg106.jpeg,balg106.mml,Algebra,,600,simple
+balg107,balg107.jpeg,balg107.mml,Algebra,,600,simple
+balg108,balg108.jpeg,balg108.mml,Algebra,,600,simple
+balg109,balg109.jpeg,balg109.mml,Algebra,,600,very simple
+balg110,balg110.jpeg,balg110.mml,Algebra,,600,simple
+balg111,balg111.jpeg,balg111.mml,Algebra,,600,simple
+balg112,balg112.jpeg,balg112.mml,Algebra,,600,very simple
+balg113,balg113.jpeg,balg113.mml,Algebra,,600,simple
+balg114,balg114.jpeg,balg114.mml,Algebra,,600,simple
+balg115,balg115.jpeg,balg115.mml,Algebra,,600,simple
+balg116,balg116.jpeg,balg116.mml,Algebra,,600,simple
+balg117,balg117.jpeg,balg117.mml,Algebra,,600,simple
+balg118,balg118.jpeg,balg118.mml,Algebra,,600,simple
+balg119,balg119.jpeg,balg119.mml,Algebra,,600,simple
+balg120,balg120.jpeg,balg120.mml,Algebra,,600,simple
+balg121,balg121.jpeg,balg121.mml,Algebra,,600,simple
+balg122,balg122.jpeg,balg122.mml,Algebra,,600,very simple
+balg123,balg123.jpeg,balg123.mml,Algebra,,600,simple
+balg124,balg124.jpeg,balg124.mml,Algebra,,900,medium
+balg125,balg125.jpeg,balg125.mml,Algebra,,900,medium
+balg126,balg126.jpeg,balg126.mml,Algebra,,900,medium
+balg127,balg127.jpeg,balg127.mml,Algebra,,900,medium
+balg128,balg128.jpeg,balg128.mml,Algebra,,900,medium
+balg129,balg129.jpeg,balg129.mml,Algebra,,900,medium
+balg130,balg130.jpeg,balg130.mml,Algebra,,900,medium
+balg131,balg131.jpeg,balg131.mml,Algebra,,600,simple
+balg132,balg132.jpeg,balg132.mml,Algebra,,600,simple
+balg133,balg133.jpeg,balg133.mml,Algebra,,600,simple
+balg134,balg134.jpeg,balg134.mml,Algebra,,600,simple
+balg135,balg135.jpeg,balg135.mml,Algebra,,600,simple
+balg136,balg136.jpeg,balg136.mml,Algebra,,600,simple
+balg137,balg137.jpeg,balg137.mml,Algebra,,900,medium
+balg138,balg138.jpeg,balg138.mml,Algebra,,900,medium
+balg139,balg139.jpeg,balg139.mml,Algebra,,900,medium
+balg140,balg140.jpeg,balg140.mml,Algebra,,900,medium
+balg141,balg141.jpeg,balg141.mml,Algebra,,600,very simple
+balg142,balg142.jpeg,balg142.mml,Algebra,,600,very simple
+balg143,balg143.jpeg,balg143.mml,Algebra,,600,very simple
+balg144,balg144.jpeg,balg144.mml,Algebra,,600,simple
+balg145,balg145.jpeg,balg145.mml,Algebra,,600,simple
+balg146,balg146.jpeg,balg146.mml,Algebra,,600,very simple
+balg147,balg147.jpeg,balg147.mml,Algebra,,600,simple
+balg148,balg148.jpeg,balg148.mml,Algebra,,600,simple
+balg149,balg149.jpeg,balg149.mml,Algebra,,600,simple
+balg150,balg150.jpeg,balg150.mml,Algebra,,600,simple
+balg151,balg151.jpeg,balg151.mml,Algebra,,900,medium
+balg152,balg152.jpeg,balg152.mml,Algebra,,600,simple
+balg153,balg153.jpeg,balg153.mml,Algebra,,600,simple
+balg154,balg154.jpeg,balg154.mml,Algebra,,600,very simple
+balg155,balg155.jpeg,balg155.mml,Algebra,,900,medium
+balg156,balg156.jpeg,balg156.mml,Algebra,,600,very simple
+balg157,balg157.jpeg,balg157.mml,Algebra,,600,simple
+balg158,balg158.jpeg,balg158.mml,Algebra,,600,simple
+balg159,balg159.jpeg,balg159.mml,Algebra,,600,simple
+balg160,balg160.jpeg,balg160.mml,Algebra,,600,simple
+balg161,balg161.jpeg,balg161.mml,Algebra,,600,simple
+balg162,balg162.jpeg,balg162.mml,Algebra,,600,simple
+balg163,balg163.jpeg,balg163.mml,Algebra,,600,simple
+balg164,balg164.jpeg,balg164.mml,Algebra,,600,simple
+balg165,balg165.jpeg,balg165.mml,Algebra,,900,medium
+balg166,balg166.jpeg,balg166.mml,Algebra,,600,very simple
+balg167,balg167.jpeg,balg167.mml,Algebra,,600,simple
+balg168,balg168.jpeg,balg168.mml,Algebra,,600,very simple
+balg169,balg169.jpeg,balg169.mml,Algebra,,600,simple
+balg170,balg170.jpeg,balg170.mml,Algebra,,600,very simple
+balg171,balg171.jpeg,balg171.mml,Algebra,,600,very simple
+balg172,balg172.jpeg,balg172.mml,Algebra,,600,very simple
+balg173,balg173.jpeg,balg173.mml,Algebra,,600,very simple
+balg174,balg174.jpeg,balg174.mml,Algebra,,600,very simple
+balg175,balg175.jpeg,balg175.mml,Algebra,,600,very simple
+balg176,balg176.jpeg,balg176.mml,Algebra,,600,very simple
+balg177,balg177.jpeg,balg177.mml,Algebra,,600,simple
+balg178,balg178.jpeg,balg178.mml,Algebra,,600,simple
+balg179,balg179.jpeg,balg179.mml,Algebra,,600,simple
+balg180,balg180.jpeg,balg180.mml,Algebra,,600,simple
+balg181,balg181.jpeg,balg181.mml,Algebra,,600,simple
+balg182,balg182.jpeg,balg182.mml,Algebra,,600,simple
+balg183,balg183.jpeg,balg183.mml,Algebra,,900,medium
+balg184,balg184.jpeg,balg184.mml,Algebra,,600,simple
+balg185,balg185.jpeg,balg185.mml,Algebra,,600,simple
+balg186,balg186.jpeg,balg186.mml,Algebra,,600,very simple
+balg187,balg187.jpeg,balg187.mml,Algebra,,600,very simple
+balg188,balg188.jpeg,balg188.mml,Algebra,,600,simple
+balg189,balg189.jpeg,balg189.mml,Algebra,,600,very simple
+balg190,balg190.jpeg,balg190.mml,Algebra,,600,simple
+balg191,balg191.jpeg,balg191.mml,Algebra,,600,simple
+balg192,balg192.jpeg,balg192.mml,Algebra,,600,simple
+balg193,balg193.jpeg,balg193.mml,Algebra,,600,very simple
+balg194,balg194.jpeg,balg194.mml,Algebra,,600,simple
+balg195,balg195.jpeg,balg195.mml,Algebra,,600,very simple
+balg196,balg196.jpeg,balg196.mml,Algebra,,600,very simple
+balg197,balg197.jpeg,balg197.mml,Algebra,,600,very simple
+balg198,balg198.jpeg,balg198.mml,Algebra,,600,very simple
+balg199,balg199.jpeg,balg199.mml,Algebra,,600,very simple
+balg200,balg200.jpeg,balg200.mml,Algebra,,600,very simple
+balg201,balg201.jpeg,balg201.mml,Algebra,,600,simple
+balg202,balg202.jpeg,balg202.mml,Algebra,,600,simple
+balg203,balg203.jpeg,balg203.mml,Algebra,,600,very simple
+balg204,balg204.jpeg,balg204.mml,Algebra,,600,very simple
+balg205,balg205.jpeg,balg205.mml,Algebra,,600,simple
+balg206,balg206.jpeg,balg206.mml,Algebra,,600,simple
+balg207,balg207.jpeg,balg207.mml,Algebra,,600,very simple
+balg208,balg208.jpeg,balg208.mml,Algebra,,600,simple
+balg209,balg209.jpeg,balg209.mml,Algebra,,600,simple
+balg210,balg210.jpeg,balg210.mml,Algebra,,600,simple
+balg211,balg211.jpeg,balg211.mml,Algebra,,600,simple
+balg212,balg212.jpeg,balg212.mml,Algebra,,600,very simple
+balg213,balg213.jpeg,balg213.mml,Algebra,,600,simple
+balg214,balg214.jpeg,balg214.mml,Algebra,,600,simple
+balg215,balg215.jpeg,balg215.mml,Algebra,,600,simple
+balg216,balg216.jpeg,balg216.mml,Algebra,,600,simple
+balg217,balg217.jpeg,balg217.mml,Algebra,,600,simple
+balg218,balg218.jpeg,balg218.mml,Algebra,,600,simple
+balg219,balg219.jpeg,balg219.mml,Algebra,,600,simple
+balg220,balg220.jpeg,balg220.mml,Algebra,,600,very simple
